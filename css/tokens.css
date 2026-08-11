@@ -1,0 +1,156 @@
+/* ============================================================================
+   tokens.css — the entire visual language of Digijournal.
+   Every colour, size, weight, radius and duration in the app resolves to a
+   token declared here. No other file invents a value.
+
+   Palette: off-white paper / off-navy ink, and the same two colours swapped
+   in dark mode. Contrast ratios in the comments are measured, not estimated
+   (WCAG 2.1 relative luminance) — body text clears 4.5:1, mood dots and other
+   non-text UI clear 3:1, in both schemes.
+   ========================================================================= */
+
+:root {
+  color-scheme: light dark;
+
+  /* --- Paper and ink (light) ------------------------------------------- */
+  --paper:        #F5F3EE;   /* the page                                    */
+  --paper-sunk:   #EEEBE4;   /* wells, pressed states                       */
+  --card:         #FFFFFF;   /* raised surfaces                             */
+
+  --ink:          #141C2E;   /* titles, body            15.3:1 on paper     */
+  --ink-2:        #565F78;   /* secondary                5.7:1              */
+  --ink-3:        #606983;   /* dates, metadata          4.9:1              */
+  --hairline:     #DFDBD2;   /* the dividing rules                          */
+  --hairline-2:   #E8E4DC;
+
+  --accent:       #2F5BD0;   /* publish, links           5.4:1              */
+  --accent-ink:   #FFFFFF;   /* text on accent           6.9:1              */
+  --danger:       #B3261E;
+
+  /* --- The mood ramp ---------------------------------------------------
+     Cool and dim at 1, warm and bright at 5, so a month reads as a
+     temperature at a glance. All ≥4:1 on paper. Colour is never the only
+     carrier — every dot also has a label, and the calendar prints the
+     numeral inside the day.                                              */
+  --mood-1:       #585C93;   /* rough    5.6:1 */
+  --mood-2:       #2E76A6;   /* low      4.5:1 */
+  --mood-3:       #2F856C;   /* even     4.0:1 */
+  --mood-4:       #9C6A16;   /* good     4.2:1 */
+  --mood-5:       #BE4C39;   /* bright   4.4:1 */
+  --mood-none:    #C9C4BA;   /* no entry                                    */
+  --mood-ink:     #FFFFFF;   /* text sitting on a filled mood swatch        */
+
+  /* --- Liquid glass -----------------------------------------------------
+     A glass layer is: a blurred, saturation-boosted sample of what is
+     behind it; a translucent tint so text stays legible over anything; a
+     specular hairline along the top edge where the light catches; and a
+     soft shadow that lifts it off the page. The tint is doing the
+     accessibility work — never lower its alpha to show more of the blur. */
+  --glass-tint:   rgba(255, 255, 255, 0.68);
+  --glass-tint-2: rgba(255, 255, 255, 0.82);
+  --glass-filter: blur(28px) saturate(180%);
+  --glass-edge:   rgba(255, 255, 255, 0.85);
+  --glass-rim:    rgba(20, 28, 46, 0.08);
+  --glass-shadow: 0 1px 2px rgba(20, 28, 46, 0.05),
+                  0 8px 28px rgba(20, 28, 46, 0.10);
+
+  --scrim:        rgba(20, 28, 46, 0.28);
+
+  /* --- Type -------------------------------------------------------------
+     DM Sans throughout. Black (900) for anything titular, Light (300) for
+     anything you actually read at length. Sizes are rem so they follow the
+     browser's text-size setting; the ratio between steps is what carries
+     the hierarchy, not absolute pixels.                                  */
+  --font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  --t-display:  2.125rem;  /* 34 — the one big title on a screen           */
+  --t-title:    1.75rem;   /* 28 — entry titles                            */
+  --t-title-2:  1.375rem;  /* 22 — list item titles, month name            */
+  --t-headline: 1.0625rem; /* 17 — emphasis inside running text            */
+  --t-body:     1.0625rem; /* 17 — the body of an entry                    */
+  --t-callout:  1rem;      /* 16 — list previews                           */
+  --t-subhead:  0.9375rem; /* 15 — controls                                */
+  --t-foot:     0.8125rem; /* 13 — dates, counts                           */
+  --t-caption:  0.75rem;   /* 12 — calendar weekday letters                */
+
+  --w-black:  900;
+  --w-bold:   700;
+  --w-medium: 500;
+  --w-regular:400;
+  --w-light:  300;
+
+  --lh-tight: 1.15;
+  --lh-snug:  1.3;
+  --lh-body:  1.6;   /* long-form reading                                  */
+
+  --tr-display: -0.02em;  /* Black weights want negative tracking          */
+  --tr-title:   -0.015em;
+  --tr-flat:     0em;
+
+  /* --- Space (4pt grid) -------------------------------------------------- */
+  --s-1:  0.25rem; --s-2: 0.5rem;  --s-3: 0.75rem; --s-4: 1rem;
+  --s-5:  1.25rem; --s-6: 1.5rem;  --s-7: 1.75rem; --s-8: 2rem;
+  --s-10: 2.5rem;  --s-12: 3rem;   --s-16: 4rem;
+
+  --gutter: 1.25rem;          /* the page's left/right margin              */
+  --measure: 38rem;           /* max line length for reading               */
+  --tap: 2.75rem;             /* 44px — the HIG minimum, never smaller     */
+
+  /* --- Shape ------------------------------------------------------------ */
+  --r-sm: 0.625rem;
+  --r-md: 0.875rem;
+  --r-lg: 1.25rem;
+  --r-xl: 1.625rem;   /* the composer bar, sheets                          */
+  --r-full: 999px;
+
+  /* --- Motion -----------------------------------------------------------
+     One easing curve, three durations. iOS-ish: quick out, settled in.   */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --d-fast: 140ms;
+  --d-mid:  260ms;
+  --d-slow: 420ms;
+
+  --z-bar: 40;
+  --z-sheet: 60;
+  --z-gate: 90;
+  --z-toast: 100;
+}
+
+/* --- Dark: the same two colours, swapped ---------------------------------
+   Off-navy becomes the paper and off-white becomes the ink. This is not a
+   generic dark theme — it is the light theme inverted through the same
+   pair, which is why the app doesn't change character at sunset.        */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:        #101828;
+    --paper-sunk:   #0B111E;
+    --card:         #18213A;
+
+    --ink:          #EFEDE7;   /* 15.2:1 */
+    --ink-2:        #A3ADC6;   /*  7.9:1 */
+    --ink-3:        #8B95B0;   /*  5.9:1 */
+    --hairline:     #28324C;
+    --hairline-2:   #202940;
+
+    --accent:       #8AA6FF;   /*  7.6:1 */
+    --accent-ink:   #0B111E;
+    --danger:       #FF9A90;
+
+    --mood-1:       #9BA0E4;   /*  7.2:1 */
+    --mood-2:       #5FB2E6;   /*  7.6:1 */
+    --mood-3:       #4FC5A4;   /*  8.3:1 */
+    --mood-4:       #E3AC4E;   /*  8.7:1 */
+    --mood-5:       #F2836D;   /*  7.0:1 */
+    --mood-none:    #38425E;
+    --mood-ink:     #0B111E;
+
+    --glass-tint:   rgba(24, 33, 58, 0.66);
+    --glass-tint-2: rgba(24, 33, 58, 0.82);
+    --glass-edge:   rgba(255, 255, 255, 0.14);
+    --glass-rim:    rgba(0, 0, 0, 0.45);
+    --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
+                    0 8px 28px rgba(0, 0, 0, 0.45);
+
+    --scrim:        rgba(4, 8, 16, 0.5);
+  }
+}

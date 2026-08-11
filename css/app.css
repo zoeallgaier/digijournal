@@ -1,0 +1,732 @@
+/* ============================================================================
+   app.css — every component in Digijournal.
+   Order follows the app: shell, glass, bars, home, entry, calendar, gate,
+   toast.
+   ========================================================================= */
+
+/* ---------------------------------------------------------------- shell -- */
+
+#app {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+}
+
+/* A screen is a full-height scroll pane. Only one is mounted at a time.
+   `--kb` is the height the on-screen keyboard is covering (set from
+   visualViewport in app.js) so the pane can shorten instead of being
+   scrolled out from under itself. */
+.screen {
+  position: absolute;
+  inset: 0;
+  bottom: var(--kb, 0px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+.screen::-webkit-scrollbar { display: none; }
+
+/* Room under the last row so the composer bar never covers content. */
+.screen-inner {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding:
+    calc(env(safe-area-inset-top) + var(--s-4))
+    max(var(--gutter), env(safe-area-inset-left))
+    calc(env(safe-area-inset-bottom) + 7.5rem)
+    max(var(--gutter), env(safe-area-inset-right));
+}
+
+/* Entering a screen: a short, shallow rise. Nothing slides sideways —
+   this app is a stack of sheets, not a carousel. */
+@keyframes rise {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+.screen[data-enter] > .screen-inner { animation: rise var(--d-mid) var(--ease) both; }
+
+/* ---------------------------------------------------------------- glass --
+   The one liquid-glass primitive. Everything floating uses it: the composer
+   bar, the top toolbar, the calendar sheet, the menu.
+
+   Four parts, in order: the blurred backdrop, the tint that guarantees
+   contrast, the specular hairline on the lit (top) edge, and the shadow. */
+.glass {
+  position: relative;
+  background: var(--glass-tint);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-edge),        /* specular top edge          */
+    inset 0 0 0 0.5px var(--glass-rim),       /* the rim of the pane        */
+    var(--glass-shadow);
+  isolation: isolate;
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass {
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+  }
+}
+/* No backdrop-filter (older Android, Firefox without the flag): fall back to
+   a near-opaque tint. Legibility first; the blur is the decoration. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--glass-tint-2); }
+}
+
+/* ------------------------------------------------------------- toolbar --
+   Top bar: back on the left, actions on the right, title in the middle.
+   It only materialises once you have scrolled — at rest the screen's own
+   big title carries the page. */
+.toolbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: var(--z-bar);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: calc(env(safe-area-inset-top) + 3rem);
+  padding:
+    env(safe-area-inset-top)
+    max(var(--s-3), env(safe-area-inset-right))
+    0
+    max(var(--s-3), env(safe-area-inset-left));
+
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transition: background var(--d-mid) var(--ease),
+              box-shadow var(--d-mid) var(--ease),
+              backdrop-filter var(--d-mid) var(--ease);
+}
+.toolbar[data-scrolled='true'] {
+  background: var(--glass-tint);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-edge),
+    0 0.5px 0 0 var(--glass-rim);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .toolbar[data-scrolled='true'] {
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+  }
+}
+
+.toolbar-title {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--t-subhead);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--tr-flat);
+  line-height: var(--lh-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity var(--d-mid) var(--ease);
+}
+.toolbar[data-scrolled='true'] .toolbar-title { opacity: 1; }
+
+.toolbar-spacer { flex: 1; }
+
+/* --------------------------------------------------------- icon button -- */
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--r-full);
+  color: var(--ink);
+  transition: background var(--d-fast) var(--ease),
+              transform var(--d-fast) var(--ease);
+}
+.icon-btn svg { width: 1.375rem; height: 1.375rem; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn:active { transform: scale(0.92); background: var(--paper-sunk); }
+.icon-btn[data-tone='accent'] { color: var(--accent); }
+
+/* ----------------------------------------------------------------- home -- */
+
+.home-head {
+  padding: var(--s-8) 0 var(--s-5);
+}
+.home-title {
+  font-size: var(--t-display);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-display);
+  line-height: var(--lh-tight);
+}
+.home-sub {
+  margin-top: var(--s-1);
+  font-size: var(--t-foot);
+  font-weight: var(--w-regular);
+  color: var(--ink-3);
+  line-height: var(--lh-snug);
+}
+
+/* The list. Rows divided by hairlines, inset to the text edge — the divider
+   starts where the title starts, which is what makes a list read as a
+   column rather than a stack of boxes. */
+.entry-list { margin-top: var(--s-2); }
+
+.entry-row {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--s-4) 0;
+  border-radius: var(--r-md);
+  transition: background var(--d-fast) var(--ease);
+}
+.entry-row + .entry-row::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--hairline);
+}
+.entry-row:active { background: var(--paper-sunk); }
+.entry-row:active::before,
+.entry-row:active + .entry-row::before { background: transparent; }
+
+.entry-row-top {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.entry-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-title-2);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-title);
+  line-height: var(--lh-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.entry-title[data-untitled='true'] { color: var(--ink-3); font-weight: var(--w-medium); }
+
+.entry-preview {
+  margin-top: var(--s-2);
+  font-size: var(--t-callout);
+  font-weight: var(--w-light);
+  line-height: var(--lh-snug);
+  color: var(--ink-2);
+
+  /* Two lines of the body, then ellipsis. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.entry-preview:empty { display: none; }
+
+.entry-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  font-size: var(--t-foot);
+  font-weight: var(--w-regular);
+  color: var(--ink-3);
+  line-height: var(--lh-snug);
+}
+.entry-flag {
+  padding: 0.0625rem var(--s-2);
+  border-radius: var(--r-full);
+  background: var(--paper-sunk);
+  color: var(--ink-2);
+  font-size: var(--t-foot);
+  font-weight: var(--w-medium);
+}
+
+/* The mood dot on a row. 12px is below the 44px target but it is not a
+   control here — the whole row is the target. */
+.mood-dot {
+  flex: 0 0 auto;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--r-full);
+  background: var(--mood-none);
+}
+.mood-dot[data-mood='1'] { background: var(--mood-1); }
+.mood-dot[data-mood='2'] { background: var(--mood-2); }
+.mood-dot[data-mood='3'] { background: var(--mood-3); }
+.mood-dot[data-mood='4'] { background: var(--mood-4); }
+.mood-dot[data-mood='5'] { background: var(--mood-5); }
+
+/* --------------------------------------------------------------- empty -- */
+
+.empty {
+  padding: var(--s-16) var(--s-4);
+  text-align: center;
+}
+.empty h2 {
+  font-size: var(--t-title-2);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-title);
+}
+.empty p {
+  margin-top: var(--s-2);
+  font-size: var(--t-callout);
+  font-weight: var(--w-light);
+  color: var(--ink-2);
+  line-height: var(--lh-snug);
+}
+
+/* ----------------------------------------------------------------- bar --
+   The composer bar. One element, two jobs: on home it is the invitation to
+   write, in the editor it is the publish button. It never unmounts — it
+   morphs — so the transition between the two reads as one object changing
+   state, which is the whole point of the interaction. */
+
+.bar {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: var(--kb, 0px);
+  z-index: var(--z-bar);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding:
+    var(--s-3)
+    max(var(--gutter), env(safe-area-inset-right))
+    calc(var(--s-3) + env(safe-area-inset-bottom))
+    max(var(--gutter), env(safe-area-inset-left));
+  transition: bottom var(--d-fast) var(--ease),
+              transform var(--d-mid) var(--ease),
+              opacity var(--d-mid) var(--ease);
+}
+/* When the keyboard is up, the home indicator is gone — drop the inset. */
+.bar[data-kb='true'] { padding-bottom: var(--s-3); }
+
+.bar[hidden] {
+  display: flex;
+  transform: translate3d(0, 120%, 0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bar-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+/* The "Start writing…" field. It is a button that looks like a text field,
+   because tapping it opens a real editor rather than typing in place. */
+.compose {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: var(--tap);
+  padding: 0 var(--s-5);
+  border-radius: var(--r-xl);
+  text-align: left;
+  font-size: var(--t-subhead);
+  font-weight: var(--w-regular);
+  color: var(--ink-3);
+  transition: transform var(--d-fast) var(--ease),
+              color var(--d-mid) var(--ease),
+              background var(--d-mid) var(--ease);
+}
+.compose:active { transform: scale(0.985); }
+
+/* Publish state: same pill, now solid accent and centred. */
+.compose[data-mode='publish'] {
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: var(--t-headline);
+  font-weight: var(--w-bold);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.compose[data-mode='publish'][disabled] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* The calendar button sits in its own glass capsule beside the field. */
+.bar-side {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--r-full);
+  color: var(--ink);
+  transition: transform var(--d-fast) var(--ease), opacity var(--d-mid) var(--ease);
+}
+.bar-side svg { width: 1.375rem; height: 1.375rem; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.bar-side:active { transform: scale(0.92); }
+.bar-side[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- entry -- */
+
+.entry-head { padding: var(--s-6) 0 var(--s-4); }
+
+/* Title and body share a box model so read mode and edit mode land the text
+   in exactly the same place — switching modes must not move a pixel. */
+.entry-title-field,
+.entry-body-field {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  overflow: hidden;
+}
+
+.entry-title-field {
+  font-size: var(--t-title);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-title);
+  line-height: var(--lh-tight);
+  color: var(--ink);
+}
+
+.entry-body-field {
+  margin-top: var(--s-4);
+  font-size: var(--t-body);
+  font-weight: var(--w-light);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 40svh;
+}
+
+.entry-date {
+  margin-top: var(--s-2);
+  font-size: var(--t-foot);
+  font-weight: var(--w-regular);
+  color: var(--ink-3);
+}
+
+/* -------------------------------------------------------------- mood ---
+   Five circles. A radiogroup, so it is one tab stop and the arrow keys move
+   the selection — the pattern a rating control is supposed to follow.
+   Each circle carries its own 44px target even though the ink is 28px. */
+
+.mood {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin: var(--s-5) 0 var(--s-2);
+  margin-left: calc(var(--s-2) * -1);
+}
+
+.mood-opt {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--r-full);
+  transition: transform var(--d-fast) var(--ease);
+}
+.mood-opt::after {
+  content: '';
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--r-full);
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--mood-none);
+  transition: background var(--d-fast) var(--ease),
+              box-shadow var(--d-fast) var(--ease),
+              transform var(--d-fast) var(--ease);
+}
+.mood-opt[data-mood='1']::after { box-shadow: inset 0 0 0 2px var(--mood-1); }
+.mood-opt[data-mood='2']::after { box-shadow: inset 0 0 0 2px var(--mood-2); }
+.mood-opt[data-mood='3']::after { box-shadow: inset 0 0 0 2px var(--mood-3); }
+.mood-opt[data-mood='4']::after { box-shadow: inset 0 0 0 2px var(--mood-4); }
+.mood-opt[data-mood='5']::after { box-shadow: inset 0 0 0 2px var(--mood-5); }
+
+.mood-opt[aria-checked='true']::after { transform: scale(1.06); }
+.mood-opt[aria-checked='true'][data-mood='1']::after { background: var(--mood-1); }
+.mood-opt[aria-checked='true'][data-mood='2']::after { background: var(--mood-2); }
+.mood-opt[aria-checked='true'][data-mood='3']::after { background: var(--mood-3); }
+.mood-opt[aria-checked='true'][data-mood='4']::after { background: var(--mood-4); }
+.mood-opt[aria-checked='true'][data-mood='5']::after { background: var(--mood-5); }
+.mood-opt:active { transform: scale(0.9); }
+
+.mood-label {
+  margin-left: var(--s-2);
+  font-size: var(--t-foot);
+  font-weight: var(--w-medium);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- calendar -- */
+
+.cal-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-6) 0 var(--s-4);
+}
+.cal-month {
+  flex: 1;
+  font-size: var(--t-title-2);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-title);
+  line-height: var(--lh-tight);
+}
+
+.cal-weekdays,
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--s-1);
+}
+.cal-weekdays {
+  margin-bottom: var(--s-2);
+}
+.cal-weekday {
+  text-align: center;
+  font-size: var(--t-caption);
+  font-weight: var(--w-medium);
+  color: var(--ink-3);
+  line-height: 1;
+}
+
+.cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  min-height: var(--tap);
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  font-size: var(--t-subhead);
+  font-weight: var(--w-medium);
+  color: var(--ink-2);
+  transition: transform var(--d-fast) var(--ease);
+}
+.cal-day[data-empty='true'] { visibility: hidden; }
+.cal-day:active { transform: scale(0.92); }
+
+/* A day with an entry is filled with its mood. The numeral stays visible on
+   top of the fill — the colour is a second channel, never the only one. */
+.cal-day[data-mood]{ color: var(--mood-ink); font-weight: var(--w-bold); }
+.cal-day[data-mood='1'] { background: var(--mood-1); }
+.cal-day[data-mood='2'] { background: var(--mood-2); }
+.cal-day[data-mood='3'] { background: var(--mood-3); }
+.cal-day[data-mood='4'] { background: var(--mood-4); }
+.cal-day[data-mood='5'] { background: var(--mood-5); }
+
+/* An entry with no mood rated: a ring, not a fill. */
+.cal-day[data-written='true']:not([data-mood]) {
+  box-shadow: inset 0 0 0 1.5px var(--hairline);
+  color: var(--ink);
+}
+.cal-day[data-today='true']::after {
+  content: '';
+  position: absolute;
+  bottom: 0.3125rem;
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: var(--r-full);
+  background: currentColor;
+}
+
+/* The key. Ramp swatches with their words, so the colours are learnable
+   and the calendar is readable without them. */
+.cal-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  margin-top: var(--s-8);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--hairline);
+}
+.cal-key-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-foot);
+  font-weight: var(--w-regular);
+  color: var(--ink-2);
+}
+
+.cal-stats {
+  display: flex;
+  gap: var(--s-8);
+  margin-top: var(--s-6);
+}
+.cal-stat-n {
+  font-size: var(--t-title-2);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-title);
+  line-height: var(--lh-tight);
+}
+.cal-stat-l {
+  margin-top: 0.125rem;
+  font-size: var(--t-foot);
+  font-weight: var(--w-regular);
+  color: var(--ink-3);
+}
+
+/* ----------------------------------------------------------------- menu -- */
+
+.menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  background: var(--scrim);
+  animation: fade var(--d-fast) var(--ease) both;
+}
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.menu {
+  position: fixed;
+  z-index: calc(var(--z-sheet) + 1);
+  left: max(var(--gutter), env(safe-area-inset-left));
+  right: max(var(--gutter), env(safe-area-inset-right));
+  bottom: calc(env(safe-area-inset-bottom) + var(--s-4));
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--s-2);
+  border-radius: var(--r-xl);
+  animation: rise var(--d-mid) var(--ease) both;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-lg);
+  text-align: left;
+  font-size: var(--t-headline);
+  font-weight: var(--w-medium);
+}
+.menu-item:active { background: var(--paper-sunk); }
+.menu-item svg { width: 1.25rem; height: 1.25rem; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+.menu-item[data-tone='danger'] { color: var(--danger); }
+.menu-sep { height: 1px; margin: var(--s-1) var(--s-4); background: var(--hairline); }
+
+/* ----------------------------------------------------------------- gate --
+   The password screen. Covers everything, including during a resume, so a
+   glance at the app switcher shows the lock and not last night's entry. */
+
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-gate);
+  display: grid;
+  place-items: center;
+  padding: var(--s-8) var(--gutter);
+  background: var(--paper);
+}
+.gate-inner {
+  width: 100%;
+  max-width: 20rem;
+  text-align: center;
+}
+.gate-mark {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto var(--s-6);
+  color: var(--ink);
+}
+.gate-mark svg { width: 100%; height: 100%; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.gate h1 {
+  font-size: var(--t-display);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-display);
+}
+.gate p {
+  margin-top: var(--s-2);
+  font-size: var(--t-callout);
+  font-weight: var(--w-light);
+  color: var(--ink-2);
+  line-height: var(--lh-snug);
+}
+.gate-form {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-8);
+  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-5);
+  border-radius: var(--r-xl);
+}
+.gate-input {
+  flex: 1;
+  min-width: 0;
+  height: var(--tap);
+  font-size: var(--t-body);
+  font-weight: var(--w-regular);
+  text-align: left;
+}
+.gate-go {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--accent-ink);
+  transition: transform var(--d-fast) var(--ease), opacity var(--d-fast) var(--ease);
+}
+.gate-go svg { width: 1.25rem; height: 1.25rem; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.gate-go:active { transform: scale(0.92); }
+
+.gate-error {
+  margin-top: var(--s-4);
+  min-height: 1.25rem;
+  font-size: var(--t-foot);
+  font-weight: var(--w-medium);
+  color: var(--danger);
+}
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+.gate-form[data-wrong='true'] { animation: shake var(--d-slow) var(--ease); }
+
+/* ---------------------------------------------------------------- toast -- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 6rem);
+  z-index: var(--z-toast);
+  transform: translateX(-50%);
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--r-full);
+  font-size: var(--t-subhead);
+  font-weight: var(--w-medium);
+  animation: rise var(--d-mid) var(--ease) both;
+  pointer-events: none;
+  max-width: calc(100vw - var(--s-8));
+  text-align: center;
+}
+.toast[data-leaving='true'] { animation: fade var(--d-mid) var(--ease) reverse both; }
+
+/* ------------------------------------------------------------ pointers --
+   On a mouse, hover is available; on touch it is not, and a sticky :hover
+   is worse than none. Gate every hover behind a fine pointer. */
+@media (hover: hover) and (pointer: fine) {
+  .entry-row:hover { background: var(--paper-sunk); }
+  .icon-btn:hover,
+  .bar-side:hover { background: var(--paper-sunk); }
+  .menu-item:hover { background: var(--paper-sunk); }
+  .cal-day:not([data-mood]):hover { background: var(--paper-sunk); }
+  .compose:hover { color: var(--ink-2); }
+  .compose[data-mode='publish']:hover { filter: brightness(1.06); color: var(--accent-ink); }
+}

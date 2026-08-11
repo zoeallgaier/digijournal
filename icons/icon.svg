@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Digijournal">
+  <!-- Full-bleed off-navy: iOS applies its own mask, so the artwork must
+       reach every edge and keep its subject well inside the safe circle. -->
+  <rect width="1024" height="1024" fill="#101828"/>
+
+  <!-- The journal: an off-white page with a darker spine down the left. -->
+  <rect x="256" y="216" width="512" height="592" rx="56" fill="#F5F3EE"/>
+  <path d="M256 272a56 56 0 0 1 56-56h48v592h-48a56 56 0 0 1-56-56z" fill="#DCD7CD"/>
+
+  <!-- Three lines of writing, optically centred in the page and stopping
+       clear of the ribbon. Heavy enough to survive a 60px homescreen. -->
+  <g fill="#101828" opacity="0.30">
+    <rect x="416" y="404" width="192" height="42" rx="21"/>
+    <rect x="416" y="490" width="192" height="42" rx="21"/>
+    <rect x="416" y="576" width="120" height="42" rx="21"/>
+  </g>
+
+  <!-- The mood, as the ribbon: the warm end of the ramp. -->
+  <path d="M640 216h72v208l-36-34-36 34z" fill="#BE4C39"/>
+</svg>

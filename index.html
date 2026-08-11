@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Digijournal</title>
+
+<!-- viewport-fit=cover puts the page under the notch and the home indicator;
+     the CSS pays that back with env(safe-area-inset-*). interactive-widget
+     keeps the layout viewport still when the keyboard opens, which is what
+     lets the composer bar ride above it instead of being shoved off. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+
+<meta name="description" content="A private daily journal.">
+<meta name="robots" content="noindex, nofollow">
+
+<!-- The status bar takes its colour from the page beneath it, in both
+     schemes, so the top of the screen never seams. -->
+<meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101828" media="(prefers-color-scheme: dark)">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Digijournal">
+<meta name="format-detection" content="telephone=no">
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+
+<!-- The two font files, ahead of the stylesheets that will ask for them:
+     without this the first paint of a title is in the fallback face and
+     visibly reflows when DM Sans lands. -->
+<link rel="preload" href="fonts/dmsans-latin.woff2" as="font" type="font/woff2" crossorigin>
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Each screen mounts here. tabindex="-1" so focus can be moved to it on
+         navigation without it becoming a tab stop of its own. -->
+    <main class="screen" id="screen" tabindex="-1"></main>
+
+    <header class="toolbar" id="toolbar" data-scrolled="false"></header>
+
+    <nav class="bar" id="bar" aria-label="Write"></nav>
+  </div>
+
+  <!-- Toast copy is mirrored here so VoiceOver hears it. -->
+  <div id="live" class="sr-only" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+
+  <script>
+    /* Offline, and the update path.
+
+       The worker is network-first for the app's own files, so a deploy
+       reaches the phone on the next launch rather than sitting behind a
+       cache. The `controllerchange` reload matters because tapping the
+       homescreen icon usually RESUMES the app rather than navigating — with
+       out it you would keep running last week's code until iOS decided to
+       evict it. It is safe only because the editor flushes on
+       visibilitychange: hidden, so a reload can never eat what you typed. */
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        location.reload();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          navigator.serviceWorker.getRegistration().then((r) => r?.update());
+        }
+      });
+    }
+  </script>
+</body>
+</html>

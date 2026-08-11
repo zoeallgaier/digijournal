@@ -1,0 +1,261 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>test</title></head>
+<body>
+<pre id="out">running…</pre>
+<iframe id="f" src="about:blank" style="width:390px;height:844px;border:1px solid #ccc"></iframe>
+<script type="module">
+import * as store from '../js/store.js';
+
+const out = document.getElementById('out');
+const log = [];
+let failures = 0;
+const p = (s) => { log.push(s); out.textContent = log.join('\n'); };
+const ok  = (cond, name, detail = '') => { if (!cond) failures++; p(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* Wait for a condition rather than a duration — PBKDF2 takes as long as it
+   takes, and fixed sleeps make a test that lies on a slow machine. */
+async function until(fn, ms = 8000) {
+  const stop = Date.now() + ms;
+  while (Date.now() < stop) {
+    try { if (fn()) return true; } catch { /* not ready */ }
+    await wait(40);
+  }
+  return false;
+}
+
+/* The iframe has its own instance of store.js with its own in-memory array.
+   Re-read from localStorage before asserting on it. */
+const S = () => { store.load(); return store; };
+
+const f = document.getElementById('f');
+const load = (url) => new Promise((res) => { f.onload = () => res(f.contentWindow); f.src = url; });
+const $ = (sel) => f.contentDocument.querySelector(sel);
+const $$ = (sel) => [...f.contentDocument.querySelectorAll(sel)];
+const type = (node, value) => {
+  node.value = value;
+  node.dispatchEvent(new f.contentWindow.InputEvent('input', { bubbles: true }));
+};
+
+async function run() {
+  localStorage.removeItem('digijournal.v1');
+  sessionStorage.clear();
+
+  /* ---------------------------------------------------------- 1. the gate */
+  await load('../index.html');
+  await wait(400);
+  ok(!!$('.gate'), 'gate blocks a cold launch');
+  ok(!!$('#gate-input'), 'gate has a password field');
+
+  const submit = () => $('.gate-form').dispatchEvent(
+    new f.contentWindow.Event('submit', { bubbles: true, cancelable: true }));
+
+  const input = $('#gate-input');
+  input.value = 'wrong-password';
+  submit();
+  await until(() => $('.gate-error').textContent.length > 0);
+  ok(!!$('.gate'), 'wrong password does not unlock');
+  ok($('.gate-error').textContent.length > 0, 'wrong password reports an error');
+
+  $('#gate-input').value = 'digijournal';
+  submit();
+  await until(() => !$('.gate'));
+  ok(!$('.gate'), 'correct password unlocks (hash constant matches)');
+  ok(!!$('.home-title'), 'home renders after unlock');
+  ok($('.empty h2')?.textContent === 'Nothing written yet', 'empty state shown');
+
+  /* ------------------------------------------------------ 2. write & publish */
+  const bar = $('#bar');
+  ok(!bar.hidden, 'composer bar visible on home');
+  ok($('.compose').textContent === 'Start writing…', 'bar reads "Start writing…"');
+  ok(!$('.bar-side').hidden, 'calendar button present on home');
+
+  $('.compose').click();
+  await wait(300);
+  ok(f.contentWindow.location.hash.startsWith('#/e/'), 'compose opens a new entry', f.contentWindow.location.hash);
+  ok($('.compose').dataset.mode === 'publish', 'bar became the publish button');
+  ok($('.compose').textContent === 'Publish', 'publish button labelled Publish');
+  ok($('.compose').disabled === true, 'publish disabled while the entry is empty');
+  ok($('.entry-title-field').readOnly === false, 'new entry opens in edit mode');
+  ok($('.bar-side').hidden === true, 'calendar button hidden while writing');
+
+  type($('.entry-title-field'), 'A day in August');
+  type($('.entry-body-field'), 'Woke up late. The light through the kitchen window was\nvery good today, and I did not waste it.');
+  await wait(600);
+  ok($('.compose').disabled === false, 'publish enabled once something is written');
+  ok(S().count() === 1, 'entry persisted while typing', `count=${S().count()}`);
+
+  const growing = $('.entry-body-field');
+  ok(parseInt(growing.style.height) > 0, 'body field auto-grew', growing.style.height);
+
+  $('.compose').click();
+  await wait(500);
+  ok(f.contentWindow.location.hash === '#/', 'publishing returns to the list', f.contentWindow.location.hash);
+  ok($$('.entry-row').length === 1, 'the entry is in the list');
+  ok($('.entry-title').textContent === 'A day in August', 'row shows the title');
+  ok($('.entry-preview').textContent.startsWith('Woke up late'), 'row shows the body preview');
+  ok(!$('.entry-flag'), 'published entry has no Draft flag');
+  ok(/entry|entries/.test($('.home-sub')?.textContent || ''), 'home subtitle counts entries');
+
+  /* ------------------------------------------------- 3. read mode and mood */
+  $('.entry-row').click();
+  await wait(300);
+  ok($('.entry-title-field').readOnly === true, 'a published entry opens in read mode');
+  ok($('#bar').hidden === true, 'bar hides while reading');
+  ok(!!$('.icon-btn[aria-label="Edit entry"]'), 'edit icon is present');
+  ok($('.entry-date').textContent.startsWith('Edited'), 'date line shows last edited', $('.entry-date').textContent);
+
+  const moods = $$('.mood-opt');
+  ok(moods.length === 5, 'five mood circles');
+  ok(moods.every((m) => m.getAttribute('aria-checked') === 'false'), 'mood starts unrated');
+  moods[3].click();
+  await wait(200);
+  ok(moods[3].getAttribute('aria-checked') === 'true', 'tapping a mood selects it');
+  ok($('.mood-label').textContent === 'Good', 'mood label reads out', $('.mood-label').textContent);
+  ok(S().all()[0].mood === 4, 'mood persisted', String(S().all()[0].mood));
+
+  moods[3].click();
+  await wait(200);
+  ok(S().all()[0].mood === null, 'tapping the selected mood clears it');
+  moods[3].click();
+  await wait(200);
+
+  $('.icon-btn[aria-label="Edit entry"]').click();
+  await wait(250);
+  ok($('.entry-title-field').readOnly === false, 'edit icon enters edit mode');
+  ok($('.compose').textContent === 'Done', 'published entry says Done, not Publish');
+  $('.compose').click();
+  await wait(250);
+  ok($('.entry-title-field').readOnly === true, 'Done returns to read mode');
+
+  /* ------------------------------------------------------- 4. the calendar */
+  f.contentWindow.history.back();
+  await wait(350);
+  ok(f.contentWindow.location.hash === '#/' || f.contentWindow.location.hash === '', 'back returns to the list');
+
+  $('.bar-side').click();
+  await wait(350);
+  ok(f.contentWindow.location.hash.startsWith('#/calendar'), 'calendar button opens the calendar');
+  ok($$('.cal-day:not([data-empty])').length >= 28, 'month grid rendered', String($$('.cal-day:not([data-empty])').length));
+  const todayCell = $('.cal-day[data-today="true"]');
+  ok(!!todayCell, 'today is marked');
+  ok(todayCell.dataset.mood === '4', "today's cell carries the mood colour", `mood=${todayCell.dataset.mood}`);
+  ok(todayCell.textContent === String(new Date().getDate()), 'the numeral survives the fill');
+  ok($('.cal-stat-n').textContent === '1', 'stats count the month', $('.cal-stat-n').textContent);
+  ok($$('.cal-key-item').length === 5, 'the key explains the ramp');
+  const future = $$('.cal-day[aria-disabled="true"]');
+  ok(future.every((d) => d.disabled), 'future days are not writable');
+
+  /* --------------------------------------------------- 5. drafts behaviour */
+  f.contentWindow.location.hash = '#/';
+  await wait(300);
+  const before = S().count();
+  $('.compose').click();
+  await wait(300);
+  f.contentWindow.history.back();
+  await wait(400);
+  ok(S().count() === before, 'an untouched draft is discarded on leaving', `${before} → ${S().count()}`);
+
+  $('.compose').click();
+  await wait(300);
+  type($('.entry-body-field'), 'half a thought');
+  await wait(600);
+  f.contentWindow.history.back();
+  await wait(400);
+  ok(S().count() === before + 1, 'a draft with content is kept');
+  ok($$('.entry-flag').length === 1, 'the kept draft is flagged as a draft');
+  ok($$('.entry-row')[0].querySelector('.entry-title').textContent === 'half a thought',
+     'an untitled entry uses its first line as the title');
+
+  /* ------------------------------------------------------ 6. export/import */
+  const bundle = S().exportBundle();
+  ok(bundle.app === 'digijournal' && bundle.entries.length === store.count(), 'export bundles every entry');
+  const merged = store.importBundle(bundle);
+  ok(merged.added === 0 && merged.updated === 0, 're-importing the same bundle changes nothing');
+  const foreign = { app: 'digijournal', schema: 1, entries: [{ id: 'zzz', title: 'From another phone', body: 'x', mood: 2, day: '2026-01-04', createdAt: 1, updatedAt: 2, published: true }] };
+  ok(store.importBundle(foreign).added === 1, 'importing a new entry adds it');
+  let threw = false;
+  try { store.importBundle({ nope: true }); } catch { threw = true; }
+  ok(threw, 'importing a non-backup is rejected');
+
+  /* ------------------------------------------------------------ 7. a11y */
+  f.contentWindow.location.hash = '#/';
+  await wait(300);
+  const unlabelled = $$('button').filter((b) => !b.textContent.trim() && !b.getAttribute('aria-label'));
+  ok(unlabelled.length === 0, 'every icon button has a label', unlabelled.map((b) => b.className).join());
+  ok($('#screen').getAttribute('tabindex') === '-1', 'screen is focusable for route announcements');
+  const group = (f.contentWindow.location.hash, null);
+
+  /* tap targets */
+  f.contentWindow.location.hash = '#/calendar';
+  await wait(300);
+  const small = $$('.cal-day:not([data-empty]), .icon-btn, .bar-side, .mood-opt, .compose').filter((n) => {
+    if (n.hidden || n.offsetParent === null) return false;   /* not on screen */
+    const r = n.getBoundingClientRect();
+    return r.width < 44 || r.height < 44;
+  });
+  ok(small.length === 0, 'all controls meet the 44px minimum', small.slice(0, 3).map((n) => `${n.className}:${Math.round(n.getBoundingClientRect().width)}x${Math.round(n.getBoundingClientRect().height)}`).join(' '));
+
+  /* ------------------------------------------------- 8. layout on a phone */
+  const win = f.contentWindow;
+  const doc = f.contentDocument;
+  ok(win.innerWidth >= 375 && win.innerWidth <= 390, 'iframe really is phone-width', `${win.innerWidth}x${win.innerHeight}`);
+
+  const seedEntries = [
+    { id: 'L1', title: 'A title long enough to need truncating on a narrow screen', body: 'Walked home the long way because the evening was warm and I was not ready to be indoors yet. Stopped at the bookshop on the corner, bought nothing, stayed twenty minutes anyway.', mood: 4, day: S().dayKey(), createdAt: Date.now(), updatedAt: Date.now(), published: true },
+  ];
+  store.importBundle({ app: 'digijournal', schema: 1, entries: seedEntries });
+  win.location.hash = '#/';
+  win.location.reload();
+  await until(() => f.contentDocument.querySelector('.entry-row'));
+  await wait(300);
+
+  const noOverflow = (label) => {
+    const d = f.contentDocument;
+    const vw = f.contentWindow.innerWidth;
+    ok(d.documentElement.scrollWidth <= vw, `${label}: page does not scroll sideways`,
+       `scrollWidth=${d.documentElement.scrollWidth} vw=${vw}`);
+    const spills = [...d.querySelectorAll('.entry-title, .entry-preview, .entry-meta, .cal-grid, .compose, .home-title, .entry-body-field')]
+      .filter((n) => { const r = n.getBoundingClientRect(); return r.right > vw + 0.5 || r.left < -0.5; });
+    ok(spills.length === 0, `${label}: nothing spills past the edge`,
+       spills.map((n) => `${n.className}@${Math.round(n.getBoundingClientRect().right)}`).join(' '));
+  };
+
+  noOverflow('list');
+  const longTitle = f.contentDocument.querySelector('.entry-title');
+  ok(f.contentWindow.getComputedStyle(longTitle).textOverflow === 'ellipsis', 'long titles truncate rather than clip');
+
+  f.contentWindow.location.hash = '#/calendar';
+  await wait(400);
+  noOverflow('calendar');
+
+  f.contentWindow.location.hash = '#/e/L1';
+  await wait(400);
+  noOverflow('entry');
+
+  p('');
+  p(failures === 0 ? `ALL PASS (${log.length - 1} checks)` : `${failures} FAILURE(S)`);
+}
+
+function report() {
+  navigator.sendBeacon('/__result', out.textContent);
+}
+
+/* GUARD. This suite drives the real app against real storage: it clears
+   digijournal.v1 before it starts. Opening this file by accident must never
+   erase a journal, so it does nothing until you say so — ?run=1 for the
+   automated path, the button for a human. */
+function start() { run().then(report, (e) => { p('THREW: ' + (e && e.stack || e)); report(); }); }
+
+if (new URLSearchParams(location.search).has('run')) {
+  start();
+} else {
+  out.textContent = 'This erases this browser\'s journal and rebuilds it from scratch.';
+  const b = document.createElement('button');
+  b.textContent = 'Run the tests, erasing this journal';
+  b.style.cssText = 'display:block;margin:12px 0;padding:10px 14px;font:inherit';
+  b.onclick = () => { b.remove(); start(); };
+  out.after(b);
+}
+</script>
+</body></html>
