@@ -113,11 +113,13 @@ function onScroll() {
    reads as the same object taking a new job. */
 
 const compose = el('button.compose.glass', { type: 'button' });
-const calButton = el('button.bar-side.glass', {
-  type: 'button',
-  'aria-label': 'Mood calendar',
-  onclick: () => go('#/calendar'),
-}, icon('calendar'));
+
+/* The button beside the composer has two jobs, decided by where you are: it
+   opens the calendar from the list, and it is the way back out of the
+   calendar. Same position, same capsule — so the thing that took you in is
+   the thing that brings you back, and the calendar needs no chrome of its
+   own to escape. */
+const calButton = el('button.bar-side.glass', { type: 'button' });
 
 bar.append(el('div.bar-inner', compose, calButton));
 
@@ -147,7 +149,12 @@ function refreshBar() {
     compose.disabled = false;
     compose.setAttribute('aria-label', 'Start writing a new entry');
     compose.onclick = startWriting;
-    calButton.hidden = route?.name === 'calendar';
+
+    const onCalendar = route?.name === 'calendar';
+    calButton.hidden = false;
+    calButton.replaceChildren(icon(onCalendar ? 'back' : 'calendar'));
+    calButton.setAttribute('aria-label', onCalendar ? 'Back to the list' : 'Mood calendar');
+    calButton.onclick = onCalendar ? back : () => go('#/calendar');
     return;
   }
 

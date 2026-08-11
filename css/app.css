@@ -148,6 +148,47 @@
 .icon-btn:active { transform: scale(0.92); background: var(--paper-sunk); }
 .icon-btn[data-tone='accent'] { color: var(--accent); }
 
+/* Toolbar buttons — back, edit, more — float as their own glass capsules,
+   the same capsule the calendar button wears down in the composer bar. They
+   have to: at rest the toolbar has no background of its own, so a bare glyph
+   would sit directly on the entry text and lose its edges against it.
+
+   Once you scroll and the toolbar itself turns to glass, that surface is
+   doing the job, so the buttons drop theirs rather than stacking glass on
+   glass — which reads as a smear rather than two panes. */
+.toolbar .icon-btn {
+  background: var(--glass-tint);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-edge),
+    inset 0 0 0 0.5px var(--glass-rim),
+    var(--glass-shadow);
+  transition: background var(--d-mid) var(--ease),
+              box-shadow var(--d-mid) var(--ease),
+              transform var(--d-fast) var(--ease);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .toolbar .icon-btn {
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .toolbar .icon-btn { background: var(--glass-tint-2); }
+}
+
+.toolbar[data-scrolled='true'] .icon-btn {
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.toolbar .icon-btn:active,
+.toolbar[data-scrolled='true'] .icon-btn:active {
+  transform: scale(0.92);
+  background: var(--paper-sunk);
+}
+
 /* ----------------------------------------------------------------- home -- */
 
 .home-head {
@@ -635,13 +676,6 @@
   max-width: 20rem;
   text-align: center;
 }
-.gate-mark {
-  width: 3.5rem;
-  height: 3.5rem;
-  margin: 0 auto var(--s-6);
-  color: var(--ink);
-}
-.gate-mark svg { width: 100%; height: 100%; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .gate h1 {
   font-size: var(--t-display);
   font-weight: var(--w-black);
@@ -725,6 +759,8 @@
   .entry-row:hover { background: var(--paper-sunk); }
   .icon-btn:hover,
   .bar-side:hover { background: var(--paper-sunk); }
+  .toolbar .icon-btn:hover { background: var(--glass-tint-2); }
+  .toolbar[data-scrolled='true'] .icon-btn:hover { background: var(--paper-sunk); }
   .menu-item:hover { background: var(--paper-sunk); }
   .cal-day:not([data-mood]):hover { background: var(--paper-sunk); }
   .compose:hover { color: var(--ink-2); }

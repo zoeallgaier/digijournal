@@ -139,7 +139,6 @@ export function requireUnlock() {
 
     const gate = el('div.gate', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Locked' },
       el('div.gate-inner',
-        el('div.gate-mark', { 'aria-hidden': 'true' }, icon('book')),
         el('h1', 'Digijournal'),
         el('p', 'Private. Enter the password to continue.'),
         form,

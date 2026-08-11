@@ -156,6 +156,7 @@ export function view(params, api) {
     node,
     title: monthYear(month),
     bar: 'compose',
-    toolbarLeft: iconButton('back', 'Back', () => api.back()),
+    /* No back button up here: the calendar capsule in the composer bar is
+       the way out, and two ways back would be one too many. */
   };
 }

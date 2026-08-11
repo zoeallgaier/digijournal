@@ -146,6 +146,18 @@ async function run() {
   const future = $$('.cal-day[aria-disabled="true"]');
   ok(future.every((d) => d.disabled), 'future days are not writable');
 
+  /* The capsule that opened the calendar is the way back out of it. */
+  ok($('.bar-side').hidden === false, 'the bar capsule stays on the calendar');
+  ok($('.bar-side').getAttribute('aria-label') === 'Back to the list',
+     'on the calendar the capsule is a back button', $('.bar-side').getAttribute('aria-label'));
+  ok(!$('.toolbar .icon-btn[aria-label="Back"]'), 'no duplicate back button in the toolbar');
+  $('.bar-side').click();
+  await wait(400);
+  ok(f.contentWindow.location.hash === '#/' || f.contentWindow.location.hash === '',
+     'the capsule returns to the list', f.contentWindow.location.hash);
+  ok($('.bar-side').getAttribute('aria-label') === 'Mood calendar',
+     'back on the list it is the calendar button again');
+
   /* --------------------------------------------------- 5. drafts behaviour */
   f.contentWindow.location.hash = '#/';
   await wait(300);
@@ -195,6 +207,64 @@ async function run() {
     return r.width < 44 || r.height < 44;
   });
   ok(small.length === 0, 'all controls meet the 44px minimum', small.slice(0, 3).map((n) => `${n.className}:${Math.round(n.getBoundingClientRect().width)}x${Math.round(n.getBoundingClientRect().height)}`).join(' '));
+
+  /* ------------------------------------------- 7b. the glass on the chrome */
+  f.contentWindow.location.hash = '#/';
+  await until(() => f.contentDocument.querySelector('.entry-row'));
+  /* A draft opens straight into edit mode, where there is no pencil — the
+     pencil belongs to read mode, so open something published. */
+  $$('.entry-row').find((r) => !r.querySelector('.entry-flag')).click();
+  await wait(350);
+
+  const editBtn = $('.toolbar .icon-btn[aria-label="Edit entry"]');
+  ok(!!editBtn, 'edit button is in the toolbar');
+  const cs = (n) => f.contentWindow.getComputedStyle(n);
+  const editStyle = cs(editBtn);
+  const blurOf = (s) => s.backdropFilter || s.webkitBackdropFilter || '';
+  ok(blurOf(editStyle).includes('blur'), 'edit icon has the glass blur', blurOf(editStyle));
+  ok(editStyle.boxShadow !== 'none', 'edit icon has the specular edge and lift');
+  ok(!/rgba\(0, 0, 0, 0\)|transparent/.test(editStyle.backgroundColor),
+     'edit icon has the glass tint', editStyle.backgroundColor);
+  ok(cs($('.bar-side') || editBtn).borderRadius === editStyle.borderRadius ||
+     editStyle.borderRadius.startsWith('999'),
+     'edit icon wears the same capsule as the bar button', editStyle.borderRadius);
+
+  /* Scrolled, the toolbar is the glass — the buttons must drop theirs so the
+     two panes don't stack. Drive the attribute directly: whether a given
+     entry is long enough to scroll is a property of the fixture, not of the
+     rule being tested. */
+  $('#toolbar').dataset.scrolled = 'true';
+  await wait(250);
+  const scrolledStyle = cs($('.toolbar .icon-btn[aria-label="Edit entry"]'));
+  ok(!blurOf(scrolledStyle).includes('blur'), 'button glass gives way to the toolbar glass',
+     blurOf(scrolledStyle) || '(none)');
+  ok(cs($('#toolbar')).backdropFilter.includes('blur'), 'the toolbar itself is the glass when scrolled');
+  await wait(400);   /* the fade is 260ms; let it finish before reading it */
+  ok(cs($('.toolbar-title')).opacity === '1', 'the toolbar title fades in when scrolled',
+     cs($('.toolbar-title')).opacity);
+  $('#toolbar').dataset.scrolled = 'false';
+
+  /* And the real thing — but a list only scrolls if it overflows, so give it
+     enough rows to. */
+  store.importBundle({ app: 'digijournal', schema: 1, entries: Array.from({ length: 12 }, (_, i) => ({
+    id: 'M' + i, title: 'A day worth remembering ' + i, mood: (i % 5) + 1,
+    body: 'Enough words in the preview to give the row its full height, twice over.',
+    day: S().dayKey(), createdAt: Date.now() - i * 86400000, updatedAt: Date.now() - i * 1000,
+    published: true,
+  })) });
+  f.contentWindow.location.hash = '#/';
+  f.contentWindow.location.reload();
+  await until(() => f.contentDocument.querySelectorAll('.entry-row').length > 10);
+  await wait(300);
+
+  const pane = f.contentDocument.getElementById('screen');
+  pane.scrollTop = pane.scrollHeight;      /* a real scroll fires a real event */
+  await wait(400);
+  ok(pane.scrollTop > 8, 'the list scrolls when it overflows', `scrollTop=${pane.scrollTop}`);
+  ok(f.contentDocument.getElementById('toolbar').dataset.scrolled === 'true',
+     'toolbar materialises once the list is scrolled');
+  pane.scrollTop = 0;
+  await wait(300);
 
   /* ------------------------------------------------- 8. layout on a phone */
   const win = f.contentWindow;
