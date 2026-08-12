@@ -386,9 +386,6 @@
               transform var(--d-mid) var(--ease),
               opacity var(--d-mid) var(--ease);
 }
-/* When the keyboard is up, the home indicator is gone — nothing to clear, so
-   the bar drops to its own pad and sits right on the keyboard. */
-.bar[data-kb='true'] { padding-bottom: var(--bar-pad); }
 
 .bar[hidden] {
   display: flex;
@@ -705,7 +702,7 @@
   z-index: calc(var(--z-sheet) + 1);
   left: max(var(--gutter), env(safe-area-inset-left));
   right: max(var(--gutter), env(safe-area-inset-right));
-  bottom: calc(env(safe-area-inset-bottom) + var(--s-4));
+  bottom: var(--bar-bottom);   /* the same floor the composer stands on */
   max-width: var(--measure);
   margin: 0 auto;
   padding: var(--s-2);

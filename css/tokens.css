@@ -122,19 +122,26 @@
      into the pad reads fine at rest and then, the moment you scroll and the
      toolbar turns to glass, hands you a 90px pane of it.
 
-     At the bottom iOS has already reserved the home indicator's band, so the
-     composer takes the LARGER of its own pad and that inset instead of
-     stacking one on the other. That puts the bar as low as it goes without a
-     tap target landing inside the swipe-up gesture, which iOS eats. On a
-     phone with no indicator the inset is 0 and the pad is what is left.   */
+     At the bottom the composer sits a FIXED --bar-bottom above the screen's
+     physical edge and does not consult env(safe-area-inset-bottom) at all.
+     That inset reserves the entire 34pt band iOS keeps around the home
+     indicator, and padding the bar by it leaves the composer hovering a
+     thumb's width up the page — exactly what a native floating bar does not
+     do. Apple's own bottom bars sit inside that band and let the indicator
+     draw across their lower edge. 12pt lands our pill's bottom edge just
+     above the indicator's line, which still keeps the upper ~32pt of a 44pt
+     target clear of the swipe-up strip where iOS eats the first touch.
+
+     Do not put the inset back. It is a floor for content that must not be
+     obscured, not a floor for the chrome that the indicator draws on.     */
   --toolbar-pad: var(--s-2);   /* air above and below the toolbar buttons  */
   --chrome-air:  var(--s-4);   /* …and between the bar and the first line  */
-  --bar-pad:     var(--s-3);   /* air above the composer                   */
-  --bar-bottom:  max(var(--bar-pad), env(safe-area-inset-bottom));
+  --bar-pad:     var(--s-3);   /* air above the composer…                  */
+  --bar-bottom:  var(--s-3);   /* …and below it, down to the screen edge   */
   --toolbar-h: calc(var(--tap) + var(--toolbar-pad) * 2);          /* 60 */
   --bar-h:     calc(var(--tap) + var(--bar-pad) + var(--bar-bottom));
   --chrome-top:    calc(env(safe-area-inset-top) + var(--toolbar-h));
-  --chrome-bottom: var(--bar-h);   /* the inset is already inside --bar-h  */
+  --chrome-bottom: var(--bar-h);   /* pad, control, and the drop below it  */
 
   /* --- What is drawn inside a control ------------------------------------
      The 44px box is the target; these are the marks inside it. A glyph is

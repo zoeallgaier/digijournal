@@ -190,7 +190,6 @@ function trackKeyboard() {
   const update = () => {
     const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
     document.documentElement.style.setProperty('--kb', `${Math.round(covered)}px`);
-    bar.dataset.kb = covered > 40 ? 'true' : 'false';
   };
 
   vv.addEventListener('resize', update);
