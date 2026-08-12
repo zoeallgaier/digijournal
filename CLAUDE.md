@@ -51,8 +51,6 @@ js/ui.js            el(), icon(), dates, toast, menu — the shared vocabulary
 js/home.js          the list
 js/entry.js         reading and writing one entry  ← the subtle file
 js/calendar.js      the month, coloured by mood
-js/backup.js        export/import — the thing standing between this journal
-                    and an iOS storage sweep
 tools/test.html     the headless suite (see Testing)
 ```
 
@@ -84,6 +82,13 @@ Everything saves as you type (400ms debounce, plus a flush on
 `visibilitychange: hidden`). **Publish is not the save** — it only moves a
 draft into the list.
 
+Which mode you are in is the whole navigation. Reading offers one control, the
+pencil; editing swaps it for the bar, where Delete sits beside Done. There is
+no ⋯ on an entry and nothing hidden behind one — if you can do it to an entry,
+you can see it. The capsule beside the composer is the one slot that changes
+job by screen: calendar on the list, back on the calendar, delete while
+editing.
+
 ---
 
 ## Storage, and what it costs her
@@ -101,9 +106,18 @@ holding a year of journal entries.
 
 **This is reasoning from documented WebKit behaviour, not a measurement on
 Zoe's phone.** Treat it as a risk to design around, not a fact to quote at
-her. The answer already in the app is **Export** (the ⋯ menu on the list):
-one JSON file, into iCloud Drive or the repo. Import merges it back, keeping
-whichever copy of an entry was edited later, so moving to a new phone works.
+her.
+
+**There is no longer a way to get the journal off the phone.** Export and
+import were removed on 11 Aug 2026 at Zoe's request, along with the ⋯ menu
+that held them — the list's toolbar is deliberately empty now. What that
+costs: if iOS sweeps the storage, or the phone is lost or replaced, the
+entries are gone, and moving to a new phone starts an empty journal.
+
+`store.exportBundle()` and `store.importBundle()` survive in `store.js` and
+the suite still covers them, including the merge rule that keeps whichever
+copy of an entry was edited later. So restoring the feature is a menu and two
+handlers, not a rewrite — but do not add it back on your own initiative.
 
 **Entries never leave the browser they were written in.** There is no server.
 The repo ships the app, never the journal.
@@ -160,8 +174,10 @@ byte and is the blunt instrument if one is ever needed.
 ## Testing
 
 `tools/test.html` drives the real app in an iframe — the gate, writing,
-publishing, drafts, mood, the calendar, export/import, tap-target sizes and
-horizontal overflow. 66 checks.
+publishing, drafts, mood, the calendar, the store's bundle merge, tap-target
+sizes, horizontal overflow, where each screen's first line sits relative to
+the toolbar, the delete sheet's surface, and that the toast stays centred
+through its animation. 104 checks.
 
 **It erases this browser's journal before it runs**, so it does nothing until
 told: open it and press the button, or load it with `?run=1`.
@@ -173,7 +189,10 @@ python3 -m http.server 8777 --bind 127.0.0.1   # then open:
 
 Headless, it posts its results to a server that accepts POST — the plain
 `http.server` above will 501 the beacon, so read the results in a browser
-unless you stand up something that accepts it.
+unless you stand up something that accepts it. **Run headless Chrome with a
+throwaway `--user-data-dir` each time.** Reusing one serves `test.html` from
+Chrome's own HTTP cache, and you will spend an hour reading the results of
+the edit before last.
 
 **Do not test the gate under `--virtual-time-budget`.** It fast-forwards the
 clock past the 200k-iteration PBKDF2, and every assertion after it lies.
@@ -202,5 +221,36 @@ arrow-key support and a roving tabindex.
 - One easing curve and three durations, all in `tokens.css`.
 - Liquid glass is one primitive, `.glass`. The tint is doing the legibility
   work — **never lower its alpha to show more of the blur.**
+- **Glass needs the journal behind it.** Over a `--scrim` there is nothing to
+  refract, and white tint over a dimmed page cannot get the paper's warmth
+  back: it lands at a dead neutral, *darker* than the page it claims to float
+  above. A surface over a scrim is a `--card` — that is what the action sheet
+  is, and the blur lives on the scrim instead, where the journal actually is.
+- **Nothing is centred with `transform`.** Both keyframes in the app animate
+  transform, so a translate-centred element is shoved half its width sideways
+  for as long as the animation fills, then snaps back — which is what the
+  toast used to do. Centring is layout's job: auto margins, or flex.
+- **The chrome is measured once.** Both fixed bars are `--tap` plus air, so
+  their heights are calculated, not chosen; `--chrome-top` and
+  `--chrome-bottom` are what they cover, safe area included. `.screen-inner`
+  pays for both in one declaration — `--chrome-top` plus `--chrome-air` at the
+  top, `--chrome-bottom` plus a screen's worth of air at the bottom — and **a
+  screen's own header adds no top padding of its own**. That measures the same
+  distance twice, and is what used to slide the entry title under the floating
+  back button. A new screen inherits the right top edge by having no opinion
+  about it.
+- **`--toolbar-pad` and `--chrome-air` are two numbers, not one.** The pad is
+  the air around the button *inside* the top bar; the air is the gap between
+  that bar and the page's first line. Growing the pad to buy the gap looks
+  right at rest and then hands you a 90px slab of glass the moment you scroll.
+- **The bottom bar takes `max(--bar-pad, safe-area-inset-bottom)`, never the
+  sum.** iOS already reserves the home indicator's band; adding our own pad on
+  top of it floats the composer ~46px off the bottom. The `max()` puts it as
+  low as it goes — anything lower puts a tap target inside the swipe-up
+  gesture, where iOS eats the first tap.
+- Nothing is sized at the point of use. A glyph is `--icon` or `--icon-sm` at
+  `--stroke`; a press is `--press`; a spacing value is a step on the 4pt
+  scale. `--s-05` is the one half-step, for optical work next to type only.
+- No inline `style=` in the JS. If a thing needs a width, it needs a class.
 - Do not add a dependency without asking. Having none is a property of this
   app, not an accident.

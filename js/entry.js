@@ -16,7 +16,7 @@
    "Publish" only moves a draft into the list; it is not the save.
    ========================================================================= */
 
-import { el, icon, iconButton, longDate, toast, confirmDestructive } from './ui.js';
+import { el, iconButton, longDate, toast, confirmDestructive } from './ui.js';
 import * as store from './store.js';
 import { MOODS, moodLabel } from './store.js';
 
@@ -259,6 +259,10 @@ export function view(params, api) {
         label: current?.published ? 'Done' : 'Publish',
         /* Nothing to publish until something has been written. */
         disabled: !!current && store.isEmpty(current),
+        /* Delete sits beside Done because deleting is something you decide
+           while you have the entry open in front of you, not a thing to go
+           hunting for behind a ⋯. Reading stays read-only in every sense. */
+        side: { icon: 'trash', label: 'Delete entry', tone: 'danger', onSelect: del },
         onSelect: () => {
           flush();
           const now = store.get(entry.id);
@@ -276,19 +280,13 @@ export function view(params, api) {
     get toolbarLeft() {
       return iconButton('back', 'Back', () => api.back());
     },
+    /* Read mode offers exactly one thing, and it is the pencil. Everything
+       else you can do to an entry belongs to editing it and lives in the bar,
+       so there is no ⋯ here and nothing hidden behind one. */
     get toolbarRight() {
-      return [
-        !editing && iconButton('pencil', 'Edit entry', () => setEditing(true), { 'data-tone': 'accent' }),
-        iconButton('more', 'More actions', () => {
-          api.menu([
-            editing
-              ? { label: 'Done editing', icon: 'close', onSelect: () => setEditing(false) }
-              : { label: 'Edit entry', icon: 'pencil', onSelect: () => setEditing(true) },
-            '-',
-            { label: 'Delete entry', icon: 'trash', tone: 'danger', onSelect: del },
-          ]);
-        }),
-      ].filter(Boolean);
+      return editing
+        ? []
+        : iconButton('pencil', 'Edit entry', () => setEditing(true), { 'data-tone': 'accent' });
     },
     onLeave() {
       flush();

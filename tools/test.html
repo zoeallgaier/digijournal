@@ -77,7 +77,9 @@ async function run() {
   ok($('.compose').textContent === 'Publish', 'publish button labelled Publish');
   ok($('.compose').disabled === true, 'publish disabled while the entry is empty');
   ok($('.entry-title-field').readOnly === false, 'new entry opens in edit mode');
-  ok($('.bar-side').hidden === true, 'calendar button hidden while writing');
+  ok($('.bar-side').getAttribute('aria-label') === 'Delete entry',
+     'while writing, the bar capsule is Delete', $('.bar-side').getAttribute('aria-label'));
+  ok($('.bar-side').dataset.tone === 'danger', 'the delete capsule is toned as destructive');
 
   type($('.entry-title-field'), 'A day in August');
   type($('.entry-body-field'), 'Woke up late. The light through the kitchen window was\nvery good today, and I did not waste it.');
@@ -105,6 +107,12 @@ async function run() {
   ok(!!$('.icon-btn[aria-label="Edit entry"]'), 'edit icon is present');
   ok($('.entry-date').textContent.startsWith('Edited'), 'date line shows last edited', $('.entry-date').textContent);
 
+  /* The ⋯ is gone: the pencil is the only way in, and delete lives beside
+     Done once you are there. */
+  ok(!$('.toolbar .icon-btn[aria-label="More actions"]'), 'no ⋯ menu on the entry screen');
+  ok($$('.toolbar .icon-btn').length === 2, 'the entry toolbar holds back and pencil only',
+     $$('.toolbar .icon-btn').map((b) => b.getAttribute('aria-label')).join());
+
   const moods = $$('.mood-opt');
   ok(moods.length === 5, 'five mood circles');
   ok(moods.every((m) => m.getAttribute('aria-checked') === 'false'), 'mood starts unrated');
@@ -124,9 +132,20 @@ async function run() {
   await wait(250);
   ok($('.entry-title-field').readOnly === false, 'edit icon enters edit mode');
   ok($('.compose').textContent === 'Done', 'published entry says Done, not Publish');
+  ok(!$('.toolbar .icon-btn[aria-label="Edit entry"]'), 'the pencil steps aside while editing');
+  ok($('.bar-side').getAttribute('aria-label') === 'Delete entry',
+     'the pencil opens an editor with Delete beside Done');
+  /* Beside, not under: same row, delete to the right of the primary action. */
+  const doneBox = $('.compose').getBoundingClientRect();
+  const delBox = $('.bar-side').getBoundingClientRect();
+  ok(delBox.left >= doneBox.right - 1 && Math.abs(delBox.top - doneBox.top) < 8,
+     'Delete sits next to Done, on the same row',
+     `done right ${Math.round(doneBox.right)} / delete left ${Math.round(delBox.left)}`);
+
   $('.compose').click();
   await wait(250);
   ok($('.entry-title-field').readOnly === true, 'Done returns to read mode');
+  ok($('#bar').hidden === true, 'Done takes the delete capsule away with the bar');
 
   /* ------------------------------------------------------- 4. the calendar */
   f.contentWindow.history.back();
@@ -229,6 +248,38 @@ async function run() {
      editStyle.borderRadius.startsWith('999'),
      'edit icon wears the same capsule as the bar button', editStyle.borderRadius);
 
+  /* The capsules float over the column, so the column has to start below
+     them — and not by a hairline. Clearing them by 1px still reads as the
+     title being tucked under the buttons, which is what --chrome-air is for.
+     This is the whole reason .screen-inner pays for the chrome and no screen
+     header adds a top padding of its own. */
+  const capsuleBottom = Math.max(...$$('.toolbar .icon-btn').map((b) => b.getBoundingClientRect().bottom));
+  const titleTop = $('.entry-title-field').getBoundingClientRect().top;
+  ok(titleTop - capsuleBottom >= 12, 'the entry title clears the toolbar capsules with air',
+     `gap ${Math.round(titleTop - capsuleBottom)}px (title ${Math.round(titleTop)}, capsules ${Math.round(capsuleBottom)})`);
+
+  /* The column starts a real step below the bar, not flush against it. */
+  const innerPadTop = parseFloat(cs($('.screen-inner')).paddingTop);
+  const toolbarH = $('#toolbar').getBoundingClientRect().height;
+  ok(innerPadTop - toolbarH >= 12, 'the column starts a step below the toolbar',
+     `padding-top ${Math.round(innerPadTop)} vs toolbar ${Math.round(toolbarH)}`);
+
+  /* The bottom bar is measured once. --chrome-bottom must equal what the bar
+     actually covers: if the bar adds the home-indicator inset on top of its
+     own pad, or --chrome-bottom counts that inset a second time, these two
+     drift apart and every screen pads for a bar that isn't that tall.
+     This browser reports no safe-area inset, so it also pins the no-indicator
+     case: the bar's bottom padding collapses to --bar-pad exactly. */
+  const barBox = $('#bar').getBoundingClientRect().height;
+  const innerPadBottom = parseFloat(cs($('.screen-inner')).paddingBottom);
+  const s12 = 48;
+  ok(Math.abs((innerPadBottom - s12) - barBox) <= 1,
+     '--chrome-bottom is exactly what the composer bar covers',
+     `chrome-bottom ${Math.round(innerPadBottom - s12)} vs bar ${Math.round(barBox)}`);
+  ok(Math.abs(parseFloat(cs($('#bar')).paddingBottom) - parseFloat(cs($('#bar')).paddingTop)) <= 1,
+     'with no home indicator the bar does not stack an inset under itself',
+     `bottom ${cs($('#bar')).paddingBottom} top ${cs($('#bar')).paddingTop}`);
+
   /* Scrolled, the toolbar is the glass — the buttons must drop theirs so the
      two panes don't stack. Drive the attribute directly: whether a given
      entry is long enough to scroll is a property of the fixture, not of the
@@ -292,16 +343,77 @@ async function run() {
   };
 
   noOverflow('list');
+
+  /* Every screen begins at the same line — one step of --chrome-air below the
+     toolbar — so the three of them agree about where a page starts. It is the
+     same line, not the toolbar's own edge: a first line flush against the bar
+     reads as tucked under the floating capsules. What must hold is that all
+     three screens land on it identically, and that it is real air.
+     Read the live document, not the one captured before the last reload. */
+  const startsAtChrome = (sel, label) => {
+    const chromeBottom = $('#toolbar').getBoundingClientRect().bottom;
+    const node = $(sel);
+    const top = node ? node.getBoundingClientRect().top : NaN;
+    const air = top - chromeBottom;
+    ok(air >= 12 && air < 40, `${label} begins one step below the toolbar`,
+       `air ${Math.round(air)}px (top ${Math.round(top)}, toolbar ${Math.round(chromeBottom)})`);
+  };
+  startsAtChrome('.home-title', 'the list title');
+
   const longTitle = f.contentDocument.querySelector('.entry-title');
   ok(f.contentWindow.getComputedStyle(longTitle).textOverflow === 'ellipsis', 'long titles truncate rather than clip');
 
   f.contentWindow.location.hash = '#/calendar';
   await wait(400);
   noOverflow('calendar');
+  /* The row, not the month name inside it: that title shares its line with
+     two 44px buttons and centres against them. */
+  startsAtChrome('.cal-head', 'the calendar header');
 
   f.contentWindow.location.hash = '#/e/L1';
   await wait(400);
   noOverflow('entry');
+  startsAtChrome('.entry-title-field', 'the entry title');
+
+  /* ------------------------------------------ 9. the sheet, and the toast */
+  $('.toolbar .icon-btn[aria-label="Edit entry"]').click();
+  await wait(250);
+  $('.bar-side[aria-label="Delete entry"]').click();
+  await wait(350);
+
+  const sheet = $('.menu');
+  ok(!!sheet, 'delete asks for a second tap, in a sheet');
+  ok(!!$('.menu-scrim'), 'the sheet dims the page behind it');
+  /* Dimming alone separates nothing in dark mode — the blur is what does it,
+     and it belongs on the layer that has the journal behind it. */
+  const scrimStyle = f.contentWindow.getComputedStyle($('.menu-scrim'));
+  ok(/blur/.test(scrimStyle.backdropFilter || scrimStyle.webkitBackdropFilter || ''),
+     'the scrim, not the sheet, carries the blur',
+     scrimStyle.backdropFilter || '(none)');
+  /* A sheet sits on the scrim, and a flat wash is nothing to refract: glass
+     there renders no blur and composites to a dead neutral. It is a card. */
+  const sheetStyle = f.contentWindow.getComputedStyle(sheet);
+  ok(!/blur/.test(sheetStyle.backdropFilter || sheetStyle.webkitBackdropFilter || ''),
+     'the sheet is not glass — nothing behind it to blur',
+     sheetStyle.backdropFilter || '(none)');
+  ok(!/rgba/.test(sheetStyle.backgroundColor), 'the sheet is an opaque card',
+     sheetStyle.backgroundColor);
+
+  $('.menu-item').click();
+  await wait(300);
+
+  /* The toast was centred with translateX(-50%), which `rise` overwrote: it
+     sat half its width right of centre for the length of the animation, then
+     snapped back. Measure it while the animation is still filling. */
+  const centreOf = (n) => { const r = n.getBoundingClientRect(); return (r.left + r.right) / 2; };
+  const t = $('.toast');
+  ok(!!t, 'deleting toasts');
+  ok(Math.abs(centreOf(t) - f.contentWindow.innerWidth / 2) < 1, 'the toast is centred as it arrives',
+     `centre ${Math.round(centreOf(t))} vs ${Math.round(f.contentWindow.innerWidth / 2)}`);
+  await wait(400);   /* the rise is 260ms — it must not have moved since */
+  ok(Math.abs(centreOf(t) - f.contentWindow.innerWidth / 2) < 1, 'and does not jump once it settles',
+     `centre ${Math.round(centreOf(t))} vs ${Math.round(f.contentWindow.innerWidth / 2)}`);
+  ok(!S().get('L1'), 'the entry is gone');
 
   p('');
   p(failures === 0 ? `ALL PASS (${log.length - 1} checks)` : `${failures} FAILURE(S)`);

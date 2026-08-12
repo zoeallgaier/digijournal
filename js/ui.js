@@ -61,12 +61,7 @@ const PATHS = {
   prev:     ['M14 5l-7 7 7 7'],
   next:     ['M10 5l7 7-7 7'],
   go:       ['M5 12h13', 'M12 6l6 6-6 6'],
-  more:     ['M6 12h.01M12 12h.01M18 12h.01'],
   trash:    ['M4 7h16', 'M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2', 'M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13'],
-  export:   ['M12 15V4', 'M8 8l4-4 4 4', 'M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4'],
-  import:   ['M12 4v11', 'M8 11l4 4 4-4', 'M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4'],
-  lock:     ['M7 10V7a5 5 0 0 1 10 0v3', 'M5 10h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z'],
-  close:    ['M6 6l12 12M18 6L6 18'],
 };
 
 export function icon(name) {
@@ -169,12 +164,16 @@ export function toast(message, ms = 2400) {
    A bottom action sheet. Items: { label, icon, tone, onSelect }.
    Focus is trapped while it is open and returned to the opener on close —
    without that, dismissing the sheet drops a keyboard user at the top of
-   the document. */
+   the document.
+
+   Nothing routine opens one. The app's only sheet is the second tap on
+   Delete — everything else is a control you can already see. */
 
 export function menu(items, { label = 'Actions' } = {}) {
   const opener = document.activeElement;
   const scrim = el('div.menu-scrim', { onclick: () => close() });
-  const sheet = el('div.menu.glass', { role: 'dialog', 'aria-modal': 'true', 'aria-label': label });
+  /* Not .glass — see the note on .menu in app.css. */
+  const sheet = el('div.menu', { role: 'dialog', 'aria-modal': 'true', 'aria-label': label });
 
   for (const item of items) {
     if (item === '-') { sheet.append(el('div.menu-sep', { 'aria-hidden': 'true' })); continue; }

@@ -28,14 +28,20 @@
 }
 .screen::-webkit-scrollbar { display: none; }
 
-/* Room under the last row so the composer bar never covers content. */
+/* The column, and the only place the chrome is paid for. Top padding is the
+   toolbar plus --chrome-air, so the first line of a screen begins a clear
+   step below the glass rather than tucked against its edge; bottom is the
+   composer bar plus a screen's worth of air, so the last row is never
+   crowded by it. A screen's own header adds no top padding of its own —
+   that would be the same distance measured twice, and it is what let the
+   entry title slide under the back button. */
 .screen-inner {
   max-width: var(--measure);
   margin: 0 auto;
   padding:
-    calc(env(safe-area-inset-top) + var(--s-4))
+    calc(var(--chrome-top) + var(--chrome-air))
     max(var(--gutter), env(safe-area-inset-left))
-    calc(env(safe-area-inset-bottom) + 7.5rem)
+    calc(var(--chrome-bottom) + var(--s-12))
     max(var(--gutter), env(safe-area-inset-right));
 }
 
@@ -48,18 +54,21 @@
 .screen[data-enter] > .screen-inner { animation: rise var(--d-mid) var(--ease) both; }
 
 /* ---------------------------------------------------------------- glass --
-   The one liquid-glass primitive. Everything floating uses it: the composer
-   bar, the top toolbar, the calendar sheet, the menu.
+   The one liquid-glass primitive. Everything with the journal moving behind
+   it uses this: the top toolbar, the composer bar and its capsule, the toast,
+   the gate's field.
 
    Four parts, in order: the blurred backdrop, the tint that guarantees
-   contrast, the specular hairline on the lit (top) edge, and the shadow. */
+   contrast, the specular hairline on the lit (top) edge, and the shadow.
+
+   What must NOT use it is a surface over the scrim — see .menu. */
 .glass {
   position: relative;
   background: var(--glass-tint);
   box-shadow:
     inset 0 1px 0 0 var(--glass-edge),        /* specular top edge          */
     inset 0 0 0 0.5px var(--glass-rim),       /* the rim of the pane        */
-    var(--glass-shadow);
+    var(--lift);
   isolation: isolate;
 }
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
@@ -84,13 +93,12 @@
   z-index: var(--z-bar);
   display: flex;
   align-items: center;
-  gap: var(--s-2);
-  height: calc(env(safe-area-inset-top) + 3rem);
+  height: var(--chrome-top);
   padding:
     env(safe-area-inset-top)
-    max(var(--s-3), env(safe-area-inset-right))
+    max(var(--gutter), env(safe-area-inset-right))
     0
-    max(var(--s-3), env(safe-area-inset-left));
+    max(var(--gutter), env(safe-area-inset-left));
 
   background: transparent;
   box-shadow: none;
@@ -113,8 +121,33 @@
   }
 }
 
-.toolbar-title {
+/* The toolbar rides on the same column as everything else: same gutter, same
+   --measure, so a back button lines up with the title beneath it instead of
+   hugging the window edge on anything wider than a phone. */
+.toolbar-inner {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+/* Three columns. The two side slots claim equal width whether or not they
+   hold a button, which is what keeps the title optically centred when one
+   side has two buttons and the other has none. */
+.toolbar-slot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex: 1 1 0;
+  min-width: var(--tap);
+}
+.toolbar-slot[data-side='right'] { justify-content: flex-end; }
+
+.toolbar-title {
+  flex: 0 1 auto;
   min-width: 0;
   text-align: center;
   font-size: var(--t-subhead);
@@ -129,8 +162,6 @@
 }
 .toolbar[data-scrolled='true'] .toolbar-title { opacity: 1; }
 
-.toolbar-spacer { flex: 1; }
-
 /* --------------------------------------------------------- icon button -- */
 
 .icon-btn {
@@ -144,9 +175,17 @@
   transition: background var(--d-fast) var(--ease),
               transform var(--d-fast) var(--ease);
 }
-.icon-btn svg { width: 1.375rem; height: 1.375rem; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-.icon-btn:active { transform: scale(0.92); background: var(--paper-sunk); }
+.icon-btn svg {
+  width: var(--icon);
+  height: var(--icon);
+  stroke: currentColor;
+  stroke-width: var(--stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.icon-btn:active { transform: scale(var(--press)); }
 .icon-btn[data-tone='accent'] { color: var(--accent); }
+.icon-btn:disabled { opacity: var(--o-disabled); }
 
 /* Toolbar buttons — back, edit, more — float as their own glass capsules,
    the same capsule the calendar button wears down in the composer bar. They
@@ -161,7 +200,7 @@
   box-shadow:
     inset 0 1px 0 0 var(--glass-edge),
     inset 0 0 0 0.5px var(--glass-rim),
-    var(--glass-shadow);
+    var(--lift);
   transition: background var(--d-mid) var(--ease),
               box-shadow var(--d-mid) var(--ease),
               transform var(--d-fast) var(--ease);
@@ -183,16 +222,19 @@
   backdrop-filter: none;
 }
 
+/* The press is the scale and nothing else. A background swatch on :active
+   would also punch an opaque rectangle through the capsule's glass. */
 .toolbar .icon-btn:active,
 .toolbar[data-scrolled='true'] .icon-btn:active {
-  transform: scale(0.92);
-  background: var(--paper-sunk);
+  transform: scale(var(--press));
 }
 
 /* ----------------------------------------------------------------- home -- */
 
+/* No top padding here or on any other screen header: .screen-inner has
+   already paid for the toolbar. */
 .home-head {
-  padding: var(--s-8) 0 var(--s-5);
+  padding: 0 0 var(--s-5);
 }
 .home-title {
   font-size: var(--t-display);
@@ -229,9 +271,10 @@
   height: 1px;
   background: var(--hairline);
 }
-.entry-row:active { background: var(--paper-sunk); }
-.entry-row:active::before,
-.entry-row:active + .entry-row::before { background: transparent; }
+/* No :active wash on a row. On a scroll surface :active fires the instant a
+   finger lands, before the gesture is known to be a scroll, so every flick
+   down the list drags a grey block behind it. The tap already answers by
+   opening the entry. */
 
 .entry-row-top {
   display: flex;
@@ -278,7 +321,7 @@
   line-height: var(--lh-snug);
 }
 .entry-flag {
-  padding: 0.0625rem var(--s-2);
+  padding: var(--s-05) var(--s-2);
   border-radius: var(--r-full);
   background: var(--paper-sunk);
   color: var(--ink-2);
@@ -290,8 +333,8 @@
    control here — the whole row is the target. */
 .mood-dot {
   flex: 0 0 auto;
-  width: 0.75rem;
-  height: 0.75rem;
+  width: var(--dot);
+  height: var(--dot);
   border-radius: var(--r-full);
   background: var(--mood-none);
 }
@@ -335,16 +378,17 @@
   align-items: center;
   gap: var(--s-2);
   padding:
-    var(--s-3)
+    var(--bar-pad)
     max(var(--gutter), env(safe-area-inset-right))
-    calc(var(--s-3) + env(safe-area-inset-bottom))
+    var(--bar-bottom)
     max(var(--gutter), env(safe-area-inset-left));
   transition: bottom var(--d-fast) var(--ease),
               transform var(--d-mid) var(--ease),
               opacity var(--d-mid) var(--ease);
 }
-/* When the keyboard is up, the home indicator is gone — drop the inset. */
-.bar[data-kb='true'] { padding-bottom: var(--s-3); }
+/* When the keyboard is up, the home indicator is gone — nothing to clear, so
+   the bar drops to its own pad and sits right on the keyboard. */
+.bar[data-kb='true'] { padding-bottom: var(--bar-pad); }
 
 .bar[hidden] {
   display: flex;
@@ -380,7 +424,7 @@
               color var(--d-mid) var(--ease),
               background var(--d-mid) var(--ease);
 }
-.compose:active { transform: scale(0.985); }
+.compose:active { transform: scale(var(--press-wide)); }
 
 /* Publish state: same pill, now solid accent and centred. */
 .compose[data-mode='publish'] {
@@ -389,12 +433,12 @@
   color: var(--accent-ink);
   font-size: var(--t-headline);
   font-weight: var(--w-bold);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--lift);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 .compose[data-mode='publish'][disabled] {
-  opacity: 0.45;
+  opacity: var(--o-disabled);
   pointer-events: none;
 }
 
@@ -408,13 +452,21 @@
   color: var(--ink);
   transition: transform var(--d-fast) var(--ease), opacity var(--d-mid) var(--ease);
 }
-.bar-side svg { width: 1.375rem; height: 1.375rem; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-.bar-side:active { transform: scale(0.92); }
+.bar-side svg {
+  width: var(--icon);
+  height: var(--icon);
+  stroke: currentColor;
+  stroke-width: var(--stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bar-side:active { transform: scale(var(--press)); }
+.bar-side[data-tone='danger'] { color: var(--danger); }
 .bar-side[hidden] { display: none; }
 
 /* ---------------------------------------------------------------- entry -- */
 
-.entry-head { padding: var(--s-6) 0 var(--s-4); }
+.entry-head { padding: 0 0 var(--s-4); }
 
 /* Title and body share a box model so read mode and edit mode land the text
    in exactly the same place — switching modes must not move a pixel. */
@@ -477,20 +529,20 @@
 }
 .mood-opt::after {
   content: '';
-  width: 1.75rem;
-  height: 1.75rem;
+  width: var(--dot-lg);
+  height: var(--dot-lg);
   border-radius: var(--r-full);
   background: transparent;
-  box-shadow: inset 0 0 0 2px var(--mood-none);
+  box-shadow: inset 0 0 0 var(--ring) var(--mood-none);
   transition: background var(--d-fast) var(--ease),
               box-shadow var(--d-fast) var(--ease),
               transform var(--d-fast) var(--ease);
 }
-.mood-opt[data-mood='1']::after { box-shadow: inset 0 0 0 2px var(--mood-1); }
-.mood-opt[data-mood='2']::after { box-shadow: inset 0 0 0 2px var(--mood-2); }
-.mood-opt[data-mood='3']::after { box-shadow: inset 0 0 0 2px var(--mood-3); }
-.mood-opt[data-mood='4']::after { box-shadow: inset 0 0 0 2px var(--mood-4); }
-.mood-opt[data-mood='5']::after { box-shadow: inset 0 0 0 2px var(--mood-5); }
+.mood-opt[data-mood='1']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-1); }
+.mood-opt[data-mood='2']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-2); }
+.mood-opt[data-mood='3']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-3); }
+.mood-opt[data-mood='4']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-4); }
+.mood-opt[data-mood='5']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-5); }
 
 .mood-opt[aria-checked='true']::after { transform: scale(1.06); }
 .mood-opt[aria-checked='true'][data-mood='1']::after { background: var(--mood-1); }
@@ -498,7 +550,7 @@
 .mood-opt[aria-checked='true'][data-mood='3']::after { background: var(--mood-3); }
 .mood-opt[aria-checked='true'][data-mood='4']::after { background: var(--mood-4); }
 .mood-opt[aria-checked='true'][data-mood='5']::after { background: var(--mood-5); }
-.mood-opt:active { transform: scale(0.9); }
+.mood-opt:active { transform: scale(var(--press)); }
 
 .mood-label {
   margin-left: var(--s-2);
@@ -514,7 +566,7 @@
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  padding: var(--s-6) 0 var(--s-4);
+  padding: 0 0 var(--s-4);
 }
 .cal-month {
   flex: 1;
@@ -554,7 +606,7 @@
   transition: transform var(--d-fast) var(--ease);
 }
 .cal-day[data-empty='true'] { visibility: hidden; }
-.cal-day:active { transform: scale(0.92); }
+.cal-day:active { transform: scale(var(--press)); }
 
 /* A day with an entry is filled with its mood. The numeral stays visible on
    top of the fill — the colour is a second channel, never the only one. */
@@ -567,15 +619,15 @@
 
 /* An entry with no mood rated: a ring, not a fill. */
 .cal-day[data-written='true']:not([data-mood]) {
-  box-shadow: inset 0 0 0 1.5px var(--hairline);
+  box-shadow: inset 0 0 0 var(--ring-thin) var(--hairline);
   color: var(--ink);
 }
 .cal-day[data-today='true']::after {
   content: '';
   position: absolute;
-  bottom: 0.3125rem;
-  width: 0.25rem;
-  height: 0.25rem;
+  bottom: var(--s-1);
+  width: var(--s-1);
+  height: var(--s-1);
   border-radius: var(--r-full);
   background: currentColor;
 }
@@ -612,7 +664,7 @@
   line-height: var(--lh-tight);
 }
 .cal-stat-l {
-  margin-top: 0.125rem;
+  margin-top: var(--s-05);
   font-size: var(--t-foot);
   font-weight: var(--w-regular);
   color: var(--ink-3);
@@ -620,6 +672,11 @@
 
 /* ----------------------------------------------------------------- menu -- */
 
+/* The scrim is where the blur belongs — it is the layer with the journal
+   actually behind it. It has to be: darkening alone cannot separate anything
+   in dark mode, where the page starts at #101828 and the scrim only takes it
+   to #0A101C. Softening the page instead of dimming it works the same in both
+   schemes, and it is what lets the sheet be a crisp card on a soft field. */
 .menu-scrim {
   position: fixed;
   inset: 0;
@@ -627,8 +684,22 @@
   background: var(--scrim);
   animation: fade var(--d-fast) var(--ease) both;
 }
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .menu-scrim {
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+  }
+}
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
+/* A sheet is the one floating thing that is NOT glass. Glass refracts the
+   journal; a sheet has the scrim behind it, a flat wash with nothing in it to
+   refract, so the blur renders nothing and the white tint composites over the
+   dimmed page to a dead neutral — greyer, cooler and darker than the paper it
+   is supposed to be lifted off. So the sheet is what it looks like: a raised
+   card, and the blur moves down to the scrim where the journal actually is.
+   That also puts the rows back on solid ground — a pressed --paper-sunk row
+   was punching an opaque rectangle through translucent glass. */
 .menu {
   position: fixed;
   z-index: calc(var(--z-sheet) + 1);
@@ -639,6 +710,8 @@
   margin: 0 auto;
   padding: var(--s-2);
   border-radius: var(--r-xl);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--hairline), var(--lift);
   animation: rise var(--d-mid) var(--ease) both;
 }
 .menu-item {
@@ -654,7 +727,15 @@
   font-weight: var(--w-medium);
 }
 .menu-item:active { background: var(--paper-sunk); }
-.menu-item svg { width: 1.25rem; height: 1.25rem; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+.menu-item svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  stroke: currentColor;
+  stroke-width: var(--stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
 .menu-item[data-tone='danger'] { color: var(--danger); }
 .menu-sep { height: 1px; margin: var(--s-1) var(--s-4); background: var(--hairline); }
 
@@ -673,7 +754,7 @@
 }
 .gate-inner {
   width: 100%;
-  max-width: 20rem;
+  max-width: var(--measure-narrow);
   text-align: center;
 }
 .gate h1 {
@@ -714,12 +795,20 @@
   color: var(--accent-ink);
   transition: transform var(--d-fast) var(--ease), opacity var(--d-fast) var(--ease);
 }
-.gate-go svg { width: 1.25rem; height: 1.25rem; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.gate-go:active { transform: scale(0.92); }
+.gate-go svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  stroke: currentColor;
+  stroke-width: var(--stroke-bold);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gate-go:active { transform: scale(var(--press)); }
 
+/* Reserve the line so the form doesn't jump when the message arrives. */
 .gate-error {
   margin-top: var(--s-4);
-  min-height: 1.25rem;
+  min-height: var(--s-5);
   font-size: var(--t-foot);
   font-weight: var(--w-medium);
   color: var(--danger);
@@ -735,19 +824,29 @@
 
 /* ---------------------------------------------------------------- toast -- */
 
+/* Clear of the composer bar by one step of the scale, so it reads as sitting
+   above it rather than floating at an invented height.
+
+   Centred by auto margins against left/right 0 — NOT by translateX(-50%).
+   `rise` and `fade` animate transform, so a translate-centred toast is shoved
+   half its own width to the right for as long as an animation is filling, and
+   snaps back to centre the moment one ends. Centring here is layout's job;
+   transform belongs to the animation alone. */
 .toast {
   position: fixed;
-  left: 50%;
-  bottom: calc(env(safe-area-inset-bottom) + 6rem);
+  left: 0;
+  right: 0;
+  bottom: calc(var(--chrome-bottom) + var(--s-6));
   z-index: var(--z-toast);
-  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - var(--s-8));
+  margin-inline: auto;
   padding: var(--s-3) var(--s-5);
   border-radius: var(--r-full);
   font-size: var(--t-subhead);
   font-weight: var(--w-medium);
   animation: rise var(--d-mid) var(--ease) both;
   pointer-events: none;
-  max-width: calc(100vw - var(--s-8));
   text-align: center;
 }
 .toast[data-leaving='true'] { animation: fade var(--d-mid) var(--ease) reverse both; }

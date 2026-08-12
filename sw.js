@@ -31,7 +31,6 @@ const SHELL = [
   'js/home.js',
   'js/entry.js',
   'js/calendar.js',
-  'js/backup.js',
   'fonts/dmsans-latin.woff2',
   'fonts/dmsans-latin-ext.woff2',
   'icons/icon.svg',

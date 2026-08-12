@@ -15,7 +15,7 @@
    how the entry screen changes the button under itself without re-rendering.
    ========================================================================= */
 
-import { el, icon, menu, toast } from './ui.js';
+import { el, icon, toast } from './ui.js';
 import * as store from './store.js';
 import { requireUnlock } from './gate.js';
 import * as home from './home.js';
@@ -59,8 +59,7 @@ function back() {
   else go('#/', { replace: true });
 }
 
-/* openMenu is a hoisted declaration further down — safe to reference here. */
-const api = { go, back, menu, refreshBar, refreshToolbar, openMenu };
+const api = { go, back, refreshBar, refreshToolbar };
 
 /* ---------------------------------------------------------------- render */
 
@@ -89,18 +88,20 @@ function render() {
 
 /* --------------------------------------------------------------- toolbar */
 
+/* Three slots, always all three. An empty slot still holds its width — that
+   is the CSS's job, not a spacer element's — so the title stays centred
+   whatever a screen puts on either side of it. */
 function refreshToolbar() {
   if (!current) return;
 
-  const left  = current.toolbarLeft || null;
+  const left  = [].concat(current.toolbarLeft  || []).filter(Boolean);
   const right = [].concat(current.toolbarRight || []).filter(Boolean);
 
-  toolbar.replaceChildren(
-    left || el('div', { style: 'width:2.75rem' }),
+  toolbar.replaceChildren(el('div.toolbar-inner',
+    el('div.toolbar-slot', ...left),
     el('h2.toolbar-title', { 'aria-hidden': 'true' }, current.title || ''),
-    right.length ? el('div', { style: 'display:flex;gap:.25rem' }, ...right)
-                 : el('div', { style: 'width:2.75rem' }),
-  );
+    el('div.toolbar-slot', { 'data-side': 'right' }, ...right),
+  ));
 }
 
 function onScroll() {
@@ -114,14 +115,25 @@ function onScroll() {
 
 const compose = el('button.compose.glass', { type: 'button' });
 
-/* The button beside the composer has two jobs, decided by where you are: it
-   opens the calendar from the list, and it is the way back out of the
-   calendar. Same position, same capsule — so the thing that took you in is
-   the thing that brings you back, and the calendar needs no chrome of its
-   own to escape. */
-const calButton = el('button.bar-side.glass', { type: 'button' });
+/* The capsule beside the composer takes whatever job the screen you are on
+   has for it: the calendar from the list, the way back out of the calendar,
+   delete while you are editing. Same position, same capsule — so the thing
+   that took you in is the thing that brings you back, and an entry needs no
+   ⋯ menu to reach the one action that isn't already on screen. */
+const sideButton = el('button.bar-side.glass', { type: 'button' });
 
-bar.append(el('div.bar-inner', compose, calButton));
+bar.append(el('div.bar-inner', compose, sideButton));
+
+/** { icon, label, tone, onSelect }, or null to take the capsule away. */
+function paintSide(spec) {
+  if (!spec) { sideButton.hidden = true; return; }
+  sideButton.hidden = false;
+  sideButton.replaceChildren(icon(spec.icon));
+  sideButton.setAttribute('aria-label', spec.label);
+  if (spec.tone) sideButton.dataset.tone = spec.tone;
+  else delete sideButton.dataset.tone;
+  sideButton.onclick = spec.onSelect;
+}
 
 function startWriting() {
   const created = store.create();
@@ -151,10 +163,9 @@ function refreshBar() {
     compose.onclick = startWriting;
 
     const onCalendar = route?.name === 'calendar';
-    calButton.hidden = false;
-    calButton.replaceChildren(icon(onCalendar ? 'back' : 'calendar'));
-    calButton.setAttribute('aria-label', onCalendar ? 'Back to the list' : 'Mood calendar');
-    calButton.onclick = onCalendar ? back : () => go('#/calendar');
+    paintSide(onCalendar
+      ? { icon: 'back',     label: 'Back to the list', onSelect: back }
+      : { icon: 'calendar', label: 'Mood calendar',    onSelect: () => go('#/calendar') });
     return;
   }
 
@@ -163,7 +174,7 @@ function refreshBar() {
   compose.disabled = !!spec.disabled;
   compose.setAttribute('aria-label', spec.label);
   compose.onclick = spec.onSelect;
-  calButton.hidden = true;
+  paintSide(spec.side);
 }
 
 /* -------------------------------------------------------------- keyboard
@@ -185,23 +196,6 @@ function trackKeyboard() {
   vv.addEventListener('resize', update);
   vv.addEventListener('scroll', update);
   update();
-}
-
-/* --------------------------------------------------------------- the menu
-   Reachable from the list. Export sits at the top because it is the one
-   thing standing between this journal and an iOS storage sweep. */
-
-function openMenu() {
-  import('./backup.js').then(({ exportJournal, importJournal }) => {
-    menu([
-      { label: 'Export journal…', icon: 'export', onSelect: exportJournal },
-      { label: 'Import backup…',  icon: 'import', onSelect: () => importJournal(render) },
-      '-',
-      { label: 'Lock', icon: 'lock', onSelect: () => {
-        import('./gate.js').then(({ lock }) => { lock(); location.reload(); });
-      } },
-    ], { label: 'Journal actions' });
-  });
 }
 
 /* ------------------------------------------------------------------ boot */

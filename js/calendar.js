@@ -10,7 +10,7 @@
    move when the entry is edited later. See store.js.
    ========================================================================= */
 
-import { el, icon, iconButton, monthYear } from './ui.js';
+import { el, iconButton, monthYear } from './ui.js';
 import * as store from './store.js';
 import { MOODS, moodLabel, dayKey } from './store.js';
 
@@ -133,10 +133,11 @@ export function view(params, api) {
     el('header.cal-head',
       el('h1.cal-month', monthYear(month)),
       iconButton('prev', 'Previous month', () => step(-1)),
+      /* Dimming a disabled control is the stylesheet's business — see
+         .icon-btn:disabled. */
       iconButton('next', 'Next month', () => step(1), {
         disabled: atCurrentMonth ? true : null,
         'aria-disabled': atCurrentMonth ? 'true' : null,
-        style: atCurrentMonth ? 'opacity:.35' : null,
       }),
     ),
     el('div.cal-weekdays', { 'aria-hidden': 'true' },

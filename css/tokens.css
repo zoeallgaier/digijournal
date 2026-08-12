@@ -45,13 +45,20 @@
      behind it; a translucent tint so text stays legible over anything; a
      specular hairline along the top edge where the light catches; and a
      soft shadow that lifts it off the page. The tint is doing the
-     accessibility work — never lower its alpha to show more of the blur. */
+     accessibility work — never lower its alpha to show more of the blur.
+
+     Glass needs the journal behind it. Over a --scrim there is no texture to
+     refract and the white tint cannot recover the paper's warmth: it lands at
+     a dead neutral, darker than the page it claims to float above. A surface
+     over a scrim is a --card, not glass.                                  */
   --glass-tint:   rgba(255, 255, 255, 0.68);
   --glass-tint-2: rgba(255, 255, 255, 0.82);
   --glass-filter: blur(28px) saturate(180%);
   --glass-edge:   rgba(255, 255, 255, 0.85);
   --glass-rim:    rgba(20, 28, 46, 0.08);
-  --glass-shadow: 0 1px 2px rgba(20, 28, 46, 0.05),
+
+  /* What lifts a floating surface off the page, glass or card. */
+  --lift:         0 1px 2px rgba(20, 28, 46, 0.05),
                   0 8px 28px rgba(20, 28, 46, 0.10);
 
   --scrim:        rgba(20, 28, 46, 0.28);
@@ -87,14 +94,59 @@
   --tr-title:   -0.015em;
   --tr-flat:     0em;
 
-  /* --- Space (4pt grid) -------------------------------------------------- */
+  /* --- Space (4pt grid) --------------------------------------------------
+     Everything that separates two things is one of these. The half-step is
+     the single exception, and only for optical work next to type — the gap
+     inside a small pill, a label sitting under a number.                  */
+  --s-05: 0.125rem;
   --s-1:  0.25rem; --s-2: 0.5rem;  --s-3: 0.75rem; --s-4: 1rem;
   --s-5:  1.25rem; --s-6: 1.5rem;  --s-7: 1.75rem; --s-8: 2rem;
   --s-10: 2.5rem;  --s-12: 3rem;   --s-16: 4rem;
 
   --gutter: 1.25rem;          /* the page's left/right margin              */
   --measure: 38rem;           /* max line length for reading               */
+  --measure-narrow: 20rem;    /* the gate's one column                     */
   --tap: 2.75rem;             /* 44px — the HIG minimum, never smaller     */
+
+  /* --- The chrome, and the room it takes --------------------------------
+     Both fixed bars are a 44px control plus air, so their heights are
+     calculated from --tap rather than chosen. --chrome-top and
+     --chrome-bottom are how much of the screen each one covers, safe area
+     included; a screen pads itself by exactly those, so text begins where
+     the glass ends and stops before the composer bar — on every device,
+     without a screen knowing anything about the bars.
+
+     The top is TWO numbers and they have to stay two. --toolbar-pad is the
+     air around the button inside the bar; --chrome-air is the gap between
+     the bottom of that bar and the first line of the page. Folding the gap
+     into the pad reads fine at rest and then, the moment you scroll and the
+     toolbar turns to glass, hands you a 90px pane of it.
+
+     At the bottom iOS has already reserved the home indicator's band, so the
+     composer takes the LARGER of its own pad and that inset instead of
+     stacking one on the other. That puts the bar as low as it goes without a
+     tap target landing inside the swipe-up gesture, which iOS eats. On a
+     phone with no indicator the inset is 0 and the pad is what is left.   */
+  --toolbar-pad: var(--s-2);   /* air above and below the toolbar buttons  */
+  --chrome-air:  var(--s-4);   /* …and between the bar and the first line  */
+  --bar-pad:     var(--s-3);   /* air above the composer                   */
+  --bar-bottom:  max(var(--bar-pad), env(safe-area-inset-bottom));
+  --toolbar-h: calc(var(--tap) + var(--toolbar-pad) * 2);          /* 60 */
+  --bar-h:     calc(var(--tap) + var(--bar-pad) + var(--bar-bottom));
+  --chrome-top:    calc(env(safe-area-inset-top) + var(--toolbar-h));
+  --chrome-bottom: var(--bar-h);   /* the inset is already inside --bar-h  */
+
+  /* --- What is drawn inside a control ------------------------------------
+     The 44px box is the target; these are the marks inside it. A glyph is
+     never sized at the point of use.                                      */
+  --icon:      1.375rem;   /* 22 — the bars                                */
+  --icon-sm:   1.25rem;    /* 20 — a menu row                              */
+  --stroke:      1.9;      /* every icon is drawn at this weight…          */
+  --stroke-bold: 2.2;      /* …except on a filled field, which eats it     */
+  --dot:     0.75rem;      /* the mood dot on a list row and in the key    */
+  --dot-lg:  1.75rem;      /* the mood circle inside its 44px target       */
+  --ring:      2px;        /* that circle's outline while it is unfilled   */
+  --ring-thin: 1.5px;      /* a day written but not rated                  */
 
   /* --- Shape ------------------------------------------------------------ */
   --r-sm: 0.625rem;
@@ -109,6 +161,14 @@
   --d-fast: 140ms;
   --d-mid:  260ms;
   --d-slow: 420ms;
+
+  /* --- State ------------------------------------------------------------
+     A press is a scale, and how far it travels is a function of how big the
+     thing is: a round button can shrink visibly, a full-width pill cannot
+     without looking rubbery.                                              */
+  --press:      0.92;
+  --press-wide: 0.985;
+  --o-disabled: 0.45;   /* one opacity for anything switched off           */
 
   --z-bar: 40;
   --z-sheet: 60;
@@ -148,7 +208,7 @@
     --glass-tint-2: rgba(24, 33, 58, 0.82);
     --glass-edge:   rgba(255, 255, 255, 0.14);
     --glass-rim:    rgba(0, 0, 0, 0.45);
-    --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
+    --lift:         0 1px 2px rgba(0, 0, 0, 0.3),
                     0 8px 28px rgba(0, 0, 0, 0.45);
 
     --scrim:        rgba(4, 8, 16, 0.5);

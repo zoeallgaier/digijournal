@@ -6,7 +6,7 @@
    the day was rated, sits as a dot on the title line.
    ========================================================================= */
 
-import { el, iconButton, shortDate, excerpt } from './ui.js';
+import { el, shortDate, excerpt } from './ui.js';
 import * as store from './store.js';
 import { moodLabel } from './store.js';
 
@@ -83,6 +83,7 @@ export function view(_params, api) {
     node,
     title: 'Journal',
     bar: 'compose',
-    toolbarRight: iconButton('more', 'Journal actions', api.openMenu),
+    /* Nothing in the toolbar: the list has no action that isn't already a
+       tap on a row, and an empty top is the point of the screen. */
   };
 }
