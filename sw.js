@@ -23,7 +23,7 @@
    and deletes the app's own static files.
    ========================================================================= */
 
-const VERSION = 'digijournal-v3';
+const VERSION = 'digijournal-v4';
 
 /* Relative so the app works at any base path — it is served from
    /digijournal/ on GitHub Pages, and from / when run locally. */
@@ -43,9 +43,10 @@ const SHELL = [
   'fonts/dmsans-latin.woff2',
   'fonts/dmsans-latin-ext.woff2',
   'icons/icon.svg',
+  /* The only icon iOS reads, now that there is no manifest to list the rest
+     — see the note in index.html. The others stay in icons/ for whatever
+     comes next; they are simply not part of the offline shell. */
   'icons/icon-180.png',
-  'icons/icon-192.png',
-  'manifest.webmanifest',
 ];
 
 self.addEventListener('install', (event) => {
@@ -69,7 +70,7 @@ self.addEventListener('activate', (event) => {
 /* The app's own source, as opposed to the things it is dressed in. These are
    what change when Zoe and Claude change something, so these are the ones
    worth a revalidation round trip. */
-const SOURCE = /\.(?:html|css|js|webmanifest)$/;
+const SOURCE = /\.(?:html|css|js)$/;
 
 function fromNetwork(request, url) {
   if (request.mode !== 'navigate' && !SOURCE.test(url.pathname)) {

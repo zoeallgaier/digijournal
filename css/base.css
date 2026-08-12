@@ -33,6 +33,12 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 
+  /* Painted here as well as on body. The canvas takes its colour from
+     whichever of the two declares one, and if a bar is ever lifted off the
+     bottom edge, what shows underneath should be the page — never a strip
+     of default white sitting under a navy journal. */
+  background: var(--paper);
+
   /* Declared on the root so it inherits into everything, including the
      elements that would otherwise keep the UA's own grey-blue flash — links
      and form controls do not inherit it from <body>. */

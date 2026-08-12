@@ -35,9 +35,10 @@ the CSS, and should not have to. So:
 ## Architecture
 
 ```
-index.html          entry point, PWA meta, the two module tags
-manifest.webmanifest  } together, these make the URL installable
-icons/                }
+index.html          entry point, the Apple metas that make the URL
+                    installable, the two module tags. There is deliberately
+                    NO web app manifest — read the note in its head
+icons/              the homescreen icon; iOS reads icon-180.png
 sw.js               the offline guarantee — nothing else provides one
 js/update.js        how a deploy reaches the phone — registers the worker
                     and reloads the app when the files really changed
@@ -198,25 +199,41 @@ Home Screen time and frozen into the shortcut. A change to
 `apple-mobile-web-app-status-bar-style` has no effect on an icon created
 before it — the only fix is to delete the icon and add it again.
 
-**So if the app is inset from the top or bottom edge, suspect the shortcut
-before the CSS.** Full-bleed rests on three things, and the first two are
-frozen at Add to Home Screen time:
+**So if the app is inset from an edge, suspect the shortcut before the CSS.**
+A band under the composer is off-white in light and navy in dark whatever is
+causing it, because every candidate paints in the page's own colour. The four
+that can do it, in the order worth checking:
 
-| what | where | effect if lost |
+| what | where | who can fix it |
 |---|---|---|
-| `viewport-fit=cover` | the viewport meta | iOS lays the web view out *inside* the safe area and paints the bands itself; `env(safe-area-inset-*)` all report 0 and no stylesheet can reach the gap |
-| `apple-mobile-web-app-status-bar-style: black-translucent` | its own meta | the status bar stops being transparent over the page |
-| `--bar-bottom: 0px` | `tokens.css` | ours, and the only one a deploy can fix |
+| a linked web app manifest | `index.html` — there must not be one | a deploy, then re-adding the icon |
+| `viewport-fit=cover` missing | the viewport meta | a deploy, then re-adding the icon |
+| `apple-mobile-web-app-status-bar-style: black-translucent` missing | its own meta | a deploy, then re-adding the icon |
+| `--kb` lifting the bar when no keyboard is up | `app.js` | a deploy alone |
+| `--bar-bottom` | `tokens.css`, and it is `0px` | a deploy alone |
+
+The first three are read by iOS at Add to Home Screen time and frozen into
+the shortcut, so **fixing them in the repo is only half the job — the icon
+has to be deleted and added again** before the change reaches the phone.
 
 Keep the viewport meta to `viewport-fit=cover` and nothing else. It used to
 also carry `interactive-widget=resizes-content`, which is a Chrome feature
 that did nothing on the only device this app targets, and an unrecognised
 directive sitting next to the one that matters is a risk with no upside.
 
-`manifest.webmanifest` deliberately carries **no `theme_color`**. A single
-hard-coded one there outranks the two scheme-aware `<meta name="theme-color">`
-tags in `index.html`, so the light-mode status bar would be painted the dark
-scheme's navy — and a painted status bar is one iOS insets the app below.
+**There is no web app manifest, and adding one back will bring the band
+back.** A linked manifest takes iOS down its modern path, where the manifest
+configures the app and `apple-mobile-web-app-status-bar-style` is ignored.
+The app is still standalone — but the web view is laid out *inside* the safe
+area, and iOS fills the leftover strip around the home indicator with the
+theme colour itself. That is a block of off-white in light and navy in dark
+sitting under the composer, and **no stylesheet can reach it**: it is screen
+the app was never given.
+
+Everything the manifest carried is in the Apple metas instead — standalone
+from `-capable`, the name from `-title`, the icon from `apple-touch-icon`.
+What was genuinely lost: the portrait lock, and installability on Android and
+desktop. Neither is a target; the iPhone homescreen is the only one.
 
 If a change appears not to land: `sw.js` is network-first, so it serves the
 cache only when the network fails. A stale screen means the request failed,
@@ -227,8 +244,8 @@ never entries.
 Network-first was not sufficient on its own. GitHub Pages sends `max-age=600`,
 so "go to the network" could be answered by Safari's own HTTP cache with a
 build ten minutes old — indistinguishable from a deploy that failed. The
-worker now fetches the app's own source (`.html`, `.css`, `.js`,
-`.webmanifest`) with `cache: 'no-cache'`: always ask the server, and let it
+worker now fetches the app's own source (`.html`, `.css`, `.js`) with
+`cache: 'no-cache'`: always ask the server, and let it
 answer 304 in a few bytes when nothing changed. Fonts and icons keep normal
 caching; they never change.
 
@@ -243,7 +260,7 @@ overflow, where each screen's first line sits relative to the toolbar, that
 the composer reaches the physical bottom edge with nothing under it, that no
 control borrows the system blue, the delete sheet's surface, that the toast
 stays centred through its animation, and that an update-driven reload flushes
-what was being typed and gives the whole journal back afterwards. 122 checks.
+what was being typed and gives the whole journal back afterwards. 133 checks.
 
 The browser it runs in reports **no safe-area inset**, which is the point for
 the bottom checks — it pins the case where nothing external is padding the
@@ -337,6 +354,13 @@ arrow-key support and a roving tabindex.
   (`0px`, never `0` — `--bar-h` adds it inside a `calc()`, where a bare
   `<number>` is not a `<length>` and quietly invalidates every screen's
   padding shorthand.)
+- **`--kb` is a keyboard, not a measurement.** Both `.bar` and `.screen` sit
+  on it, so any stray value lifts the composer off the bottom edge and leaves
+  a band of bare `--paper` under it — which looks exactly like iOS padding
+  the app, and is not. `window.innerHeight` and `visualViewport.height` do
+  not reliably agree by zero on iOS, so `app.js` acts on the difference only
+  when something focusable is focused *and* the gap clears `KEYBOARD_MIN`.
+  Never set `--kb` straight from a measurement.
 - **The top inset is not the same question.** `env(safe-area-inset-top)` stays
   in `--chrome-top`. The page already draws *under* the status bar — that is
   what `black-translucent` buys — and the inset only steps the toolbar buttons

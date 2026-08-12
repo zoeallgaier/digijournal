@@ -18,20 +18,35 @@
 <meta name="robots" content="noindex, nofollow">
 
 <!-- The status bar takes its colour from the page beneath it, in both
-     schemes, so the top of the screen never seams. These two are the ONLY
-     declaration of it — manifest.webmanifest deliberately carries no
-     theme_color, because a single hard-coded one there wins over both of
-     these and paints a band iOS then has to inset the app below. -->
+     schemes, so the top of the screen never seams. Scheme-aware, which a
+     manifest's single theme_color could never be — see the note below on
+     why there is no manifest. -->
 <meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101828" media="(prefers-color-scheme: dark)">
 
+<!-- These four are what make the icon a standalone app, and there is
+     DELIBERATELY NO <link rel="manifest"> beside them.
+
+     A linked web app manifest takes iOS down its modern path, where the
+     manifest configures the app and `apple-mobile-web-app-status-bar-style`
+     is ignored. Standalone still works — but the web view is laid out INSIDE
+     the safe area, and iOS fills the leftover band around the home indicator
+     with the theme colour itself. That is the block of off-white (light) or
+     navy (dark) under the composer: not padding, a strip of screen the app
+     was never given, which no stylesheet can reach into.
+
+     Without the manifest, iOS uses the path below, where viewport-fit=cover
+     plus black-translucent is the combination that hands the app the whole
+     screen. Everything the manifest was carrying is here: standalone from
+     -capable, the name from -title, the icon from apple-touch-icon. The one
+     genuine loss is the portrait lock, and installability on Android and
+     desktop — neither of which this app targets. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Digijournal">
 <meta name="format-detection" content="telephone=no">
 
-<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 

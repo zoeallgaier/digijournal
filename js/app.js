@@ -185,19 +185,47 @@ function refreshBar() {
    When the on-screen keyboard opens, iOS shrinks the visual viewport but
    leaves the layout viewport alone — so a `position: fixed` bar sits under
    the keyboard rather than above it. Measuring the difference and lifting
-   the bar (and shortening the scroll pane) by that much is the fix. */
+   the bar (and shortening the scroll pane) by that much is the fix.
+
+   --kb LIFTS THE COMPOSER OFF THE BOTTOM OF THE SCREEN. That is right for a
+   keyboard and wrong for anything else, and the difference is not academic:
+   both `.bar` and `.screen` sit on it, so any stray value leaves a band of
+   bare --paper under the composer — an off-white block in light, navy in
+   dark, looking for all the world like iOS padding the app.
+
+   window.innerHeight and visualViewport.height do not always agree by zero
+   on iOS. They disagree by a hair while a scroll settles, and can disagree
+   by roughly the home indicator's band depending on how the web view was
+   laid out. So the measurement alone is not enough to act on: a lift is only
+   a keyboard if something is focused that can raise one, AND it is taller
+   than anything else that could shorten the viewport. */
+
+const KEYBOARD_MIN = 120;   /* an iOS keyboard is ~300px. Nothing else is. */
 
 function trackKeyboard() {
   const vv = window.visualViewport;
   if (!vv) return;
 
+  const typing = () => {
+    const active = document.activeElement;
+    return !!active && (active.tagName === 'TEXTAREA'
+                     || active.tagName === 'INPUT'
+                     || active.isContentEditable);
+  };
+
   const update = () => {
     const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    document.documentElement.style.setProperty('--kb', `${Math.round(covered)}px`);
+    const lift = covered >= KEYBOARD_MIN && typing() ? Math.round(covered) : 0;
+    document.documentElement.style.setProperty('--kb', `${lift}px`);
   };
 
   vv.addEventListener('resize', update);
   vv.addEventListener('scroll', update);
+  /* The viewport resize and the focus change arrive in either order, so ask
+     again on both. focusout runs before focus lands — read it on the far
+     side, the same way update.js does. */
+  document.addEventListener('focusin', update);
+  document.addEventListener('focusout', () => setTimeout(update, 0));
   update();
 }
 

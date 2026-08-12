@@ -379,6 +379,40 @@ async function run() {
   flushToBottom('#bar', 'the bar reaches the physical bottom of the screen');
   flushToBottom('.compose', 'and so does the composer pill itself');
 
+  /* --kb lifts BOTH the bar and the scroll pane, so a stray value leaves a
+     band of bare --paper under the composer — which is what iOS padding the
+     app looks like, and is not that. At rest, with nothing focused, it is
+     zero, and no measurement wobble may talk it into anything else. */
+  const kb = () => cs(f.contentDocument.documentElement).getPropertyValue('--kb').trim();
+  ok(kb() === '0px', 'with no keyboard up, the bar is not lifted at all', kb() || '(unset)');
+  $('#screen').focus();
+  f.contentWindow.visualViewport?.dispatchEvent(new f.contentWindow.Event('resize'));
+  await wait(60);
+  ok(kb() === '0px', 'and a viewport resize with nothing focused cannot lift it', kb());
+
+  /* Nothing below the bar to see. Both lifts are zero, so the pane the
+     journal scrolls in reaches the bottom edge too. */
+  flushToBottom('#screen', 'the scroll pane reaches the bottom edge as well');
+
+  /* No manifest. A linked one takes iOS down a path where black-translucent
+     is ignored and the app is laid out inside the safe area, with iOS
+     painting the home-indicator band itself — see the note in index.html.
+     Everything it carried is in the Apple metas beside it. */
+  /* Comments stripped first — index.html names the tag in the note
+     explaining why it is not there. */
+  const head = (await (await fetch('../index.html')).text())
+    .replace(/<!--[\s\S]*?-->/g, '');
+  ok(!/rel=["']manifest["']/.test(head), 'no web app manifest is linked',
+     (head.match(/.*rel=["']manifest["'].*/) || [''])[0].trim());
+  ok(/viewport-fit=cover/.test(head), 'the viewport is still told to cover the screen');
+  ok(/apple-mobile-web-app-status-bar-style"\s+content="black-translucent"/.test(head),
+     'the status bar is still translucent over the page');
+  ok(/apple-mobile-web-app-capable"\s+content="yes"/.test(head),
+     'and the icon still launches standalone without the manifest');
+  ok(/apple-mobile-web-app-title"\s+content="Digijournal"/.test(head),
+     'the app keeps its name');
+  ok(/rel="apple-touch-icon"/.test(head), 'and its icon');
+
   /* Belt and braces on the rule itself, not just this render: no stylesheet
      may reach for the home-indicator inset at all. Comments stripped first —
      tokens.css names it in the doctrine that forbids it. */
@@ -421,6 +455,25 @@ async function run() {
   /* The rating card is the entry's first line now, so it is the one that has
      to land where the other screens' first lines do. */
   startsAtChrome('.mood', 'the entry rating card');
+
+  /* The other half of the --kb gate: it must still do its job. Shorten the
+     visual viewport by a keyboard's worth with a field focused, and the bar
+     has to ride up — otherwise the composer sits under the keyboard, which
+     is the bug --kb exists for. The property is shadowed on the instance
+     rather than faked with a real keyboard, which headless has none of. */
+  const vvp = win.visualViewport;
+  const trueHeight = vvp.height;
+  Object.defineProperty(vvp, 'height', { configurable: true, value: trueHeight - 300 });
+  $('.entry-body-field').focus();
+  vvp.dispatchEvent(new win.Event('resize'));
+  await wait(60);
+  ok(kb() === '300px', 'a real keyboard still lifts the bar clear of it', kb());
+
+  $('.entry-body-field').blur();
+  delete vvp.height;
+  vvp.dispatchEvent(new win.Event('resize'));
+  await wait(60);
+  ok(kb() === '0px', 'and it drops back to the edge when the keyboard goes', kb());
 
   /* ------------------------------------------ 9. the sheet, and the toast */
   $('.toolbar .icon-btn[aria-label="Edit entry"]').click();
