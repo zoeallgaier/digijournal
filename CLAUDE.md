@@ -46,8 +46,6 @@ css/base.css        reset, @font-face, focus, reduced motion
 css/app.css         every component
 fonts/              DM Sans, variable, self-hosted (two files, all weights)
 js/app.js           boot, hash routing, the composer bar, the keyboard
-js/gate.js          the password screen — read its header before calling it
-                    security
 js/store.js         every entry; the ONLY file that touches localStorage
 js/ui.js            el(), icon(), dates, toast, menu — the shared vocabulary
 js/home.js          the list
@@ -133,20 +131,23 @@ The repo ships the app, never the journal.
 
 ---
 
-## The password
+## There is no password
 
-`js/gate.js` — **read its header before describing it as security.** The repo
-is public, so the check runs on the reader's own machine and can be stepped
-over in the dev tools. It is a deterrent.
+The gate was removed on 12 Aug 2026 at Zoe's request — `js/gate.js` and its
+stylesheet block are gone, and the app opens straight onto the list. It had
+been a deterrent rather than a lock in any case: the repo is public, so the
+check ran on the reader's own machine and could be stepped over in the dev
+tools.
 
-What makes that acceptable is that there is nothing behind it: entries are on
-the device, not in the repo, so a stranger who finds the URL and guesses the
-password sees an empty journal, their own. The real risk it does address is
-somebody picking up an unlocked phone — hence the re-lock after five minutes
-in the background.
+**What that costs: anyone holding the unlocked phone can read the journal.**
+That was the one real risk the gate addressed, and it is now the phone's
+passcode's job alone. Nothing else changed — entries were never in the repo
+or on a server, so a stranger who finds the URL still sees an empty journal,
+their own.
 
-The password is **`digijournal`**. Change it: the header of `gate.js` has the
-exact command to regenerate `SALT_HEX` and `HASH_B64`.
+Do not add it back on your own initiative. If it is ever wanted again, it is
+one module and one `await` in `boot()`; `git show 3e2f1f3:js/gate.js` has the
+last version, password `digijournal`.
 
 ---
 
@@ -197,6 +198,26 @@ Home Screen time and frozen into the shortcut. A change to
 `apple-mobile-web-app-status-bar-style` has no effect on an icon created
 before it — the only fix is to delete the icon and add it again.
 
+**So if the app is inset from the top or bottom edge, suspect the shortcut
+before the CSS.** Full-bleed rests on three things, and the first two are
+frozen at Add to Home Screen time:
+
+| what | where | effect if lost |
+|---|---|---|
+| `viewport-fit=cover` | the viewport meta | iOS lays the web view out *inside* the safe area and paints the bands itself; `env(safe-area-inset-*)` all report 0 and no stylesheet can reach the gap |
+| `apple-mobile-web-app-status-bar-style: black-translucent` | its own meta | the status bar stops being transparent over the page |
+| `--bar-bottom: 0px` | `tokens.css` | ours, and the only one a deploy can fix |
+
+Keep the viewport meta to `viewport-fit=cover` and nothing else. It used to
+also carry `interactive-widget=resizes-content`, which is a Chrome feature
+that did nothing on the only device this app targets, and an unrecognised
+directive sitting next to the one that matters is a risk with no upside.
+
+`manifest.webmanifest` deliberately carries **no `theme_color`**. A single
+hard-coded one there outranks the two scheme-aware `<meta name="theme-color">`
+tags in `index.html`, so the light-mode status bar would be painted the dark
+scheme's navy — and a painted status bar is one iOS insets the app below.
+
 If a change appears not to land: `sw.js` is network-first, so it serves the
 cache only when the network fails. A stale screen means the request failed,
 not that the cache is stuck. Bumping `VERSION` in `sw.js` drops every cached
@@ -215,12 +236,18 @@ caching; they never change.
 
 ## Testing
 
-`tools/test.html` drives the real app in an iframe — the gate, writing,
-publishing, drafts, mood, the calendar, the store's bundle merge, tap-target
-sizes, horizontal overflow, where each screen's first line sits relative to
-the toolbar, the delete sheet's surface, that the toast stays centred through
-its animation, and that an update-driven reload flushes what was being typed
-and gives the whole journal back afterwards. 114 checks.
+`tools/test.html` drives the real app in an iframe — that a cold launch opens
+straight onto the list with nothing to unlock, writing, publishing, drafts,
+mood, the calendar, the store's bundle merge, tap-target sizes, horizontal
+overflow, where each screen's first line sits relative to the toolbar, that
+the composer reaches the physical bottom edge with nothing under it, that no
+control borrows the system blue, the delete sheet's surface, that the toast
+stays centred through its animation, and that an update-driven reload flushes
+what was being typed and gives the whole journal back afterwards. 122 checks.
+
+The browser it runs in reports **no safe-area inset**, which is the point for
+the bottom checks — it pins the case where nothing external is padding the
+bar, so the only thing that can float the composer is our own CSS.
 
 The half the suite can't reach is update *detection*, which needs a server
 whose files can change mid-run. That was verified separately with a throwaway
@@ -242,9 +269,6 @@ unless you stand up something that accepts it. **Run headless Chrome with a
 throwaway `--user-data-dir` each time.** Reusing one serves `test.html` from
 Chrome's own HTTP cache, and you will spend an hour reading the results of
 the edit before last.
-
-**Do not test the gate under `--virtual-time-budget`.** It fast-forwards the
-clock past the 200k-iteration PBKDF2, and every assertion after it lies.
 
 ---
 
@@ -302,11 +326,32 @@ arrow-key support and a roving tabindex.
   the air around the button *inside* the top bar; the air is the gap between
   that bar and the page's first line. Growing the pad to buy the gap looks
   right at rest and then hands you a 90px slab of glass the moment you scroll.
-- **The bottom bar takes `max(--bar-pad, safe-area-inset-bottom)`, never the
-  sum.** iOS already reserves the home indicator's band; adding our own pad on
-  top of it floats the composer ~46px off the bottom. The `max()` puts it as
-  low as it goes — anything lower puts a tap target inside the swipe-up
-  gesture, where iOS eats the first tap.
+- **Nothing goes under the composer bar. `--bar-bottom` is `0px`.** Not our
+  own pad, not `env(safe-area-inset-bottom)`, not a `max()` of the two — that
+  inset reserves the whole 34pt band around the home indicator, and any
+  fraction of it floats the bar a thumb's width up the page. The pill's lower
+  edge is the phone's lower edge and the indicator draws across it, which is
+  what Apple's own bottom bars do. The suite pins this: the bar's
+  `padding-bottom` must be `0`, its rect must reach `innerHeight`, and no
+  stylesheet may mention `safe-area-inset-bottom` at all.
+  (`0px`, never `0` — `--bar-h` adds it inside a `calc()`, where a bare
+  `<number>` is not a `<length>` and quietly invalidates every screen's
+  padding shorthand.)
+- **The top inset is not the same question.** `env(safe-area-inset-top)` stays
+  in `--chrome-top`. The page already draws *under* the status bar — that is
+  what `black-translucent` buys — and the inset only steps the toolbar buttons
+  and the first line of type out from behind the clock. Removing it does not
+  make the app more full-bleed; it puts the title under the time.
+- **No borrowed system blue.** iOS supplies three highlights of its own and
+  the app suppresses all three: the tap flash (`-webkit-tap-highlight-color`,
+  declared on `html` so links and form controls inherit it — they do not
+  inherit it from `body`), the long-press callout, and the text-selection
+  wash, which is `--selection`, an ink tint rather than the phone's accent.
+  The fourth was ours: `#screen` is `inset: 0` and `app.js` focuses it on
+  every navigation for screen readers, so the global `:focus-visible` ring
+  drew a blue rectangle around the whole phone. It keeps `tabindex="-1"` and
+  loses the outline. **The ring itself stays** everywhere else — it is how a
+  keyboard user knows where they are.
 - Nothing is sized at the point of use. A glyph is `--icon` or `--icon-sm` at
   `--stroke`; a press is `--press`; a spacing value is a step on the 4pt
   scale. `--s-05` is the one half-step, for optical work next to type only.

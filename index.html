@@ -4,17 +4,24 @@
 <meta charset="utf-8">
 <title>Digijournal</title>
 
-<!-- viewport-fit=cover puts the page under the notch and the home indicator;
-     the CSS pays that back with env(safe-area-inset-*). interactive-widget
-     keeps the layout viewport still when the keyboard opens, which is what
-     lets the composer bar ride above it instead of being shoved off. -->
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<!-- viewport-fit=cover is the whole reason the app reaches the physical edges
+     of the screen: without it iOS lays the standalone web view out INSIDE the
+     safe area and paints the status bar and home-indicator bands itself, which
+     no stylesheet can then reach. Nothing else belongs on this line — an
+     unrecognised directive here is one more thing between us and the only one
+     that matters. (interactive-widget was Chrome-only and did nothing on the
+     one device this app targets; the keyboard is handled by hand from
+     visualViewport in app.js.) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
 <meta name="description" content="A private daily journal.">
 <meta name="robots" content="noindex, nofollow">
 
 <!-- The status bar takes its colour from the page beneath it, in both
-     schemes, so the top of the screen never seams. -->
+     schemes, so the top of the screen never seams. These two are the ONLY
+     declaration of it — manifest.webmanifest deliberately carries no
+     theme_color, because a single hard-coded one there wins over both of
+     these and paints a band iOS then has to inset the app below. -->
 <meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101828" media="(prefers-color-scheme: dark)">
 

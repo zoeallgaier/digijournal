@@ -11,8 +11,8 @@
  *  can write `cond && el(...)` inline. */
 export function el(sel, attrs, ...children) {
   /* Parsed by pattern rather than by splitting, so #id and .class may appear
-     in either order — 'p.gate-error#gate-error' and 'p#gate-error.gate-error'
-     both mean the same thing. */
+     in either order — 'p.entry-date#today' and 'p#today.entry-date' both mean
+     the same thing. */
   const s = String(sel);
   const tag = (s.match(/^[a-zA-Z][\w-]*/) || ['div'])[0];
   const id = (s.match(/#([\w-]+)/) || [])[1];

@@ -27,6 +27,13 @@
   --accent-ink:   #FFFFFF;   /* text on accent           6.9:1              */
   --danger:       #B3261E;
 
+  /* Dragging across your own words. The system default here is iOS blue,
+     which is the one colour in the app that belongs to no one — it is the
+     phone's accent, not the journal's. A wash of the same ink the text is
+     set in says "selected" without introducing a sixth hue. Low enough
+     alpha that the type underneath keeps its measured contrast.          */
+  --selection:    rgba(20, 28, 46, 0.15);
+
   /* --- The mood ramp ---------------------------------------------------
      Cool and dim at 1, warm and bright at 5, so a month reads as a
      temperature at a glance. All ≥4:1 on paper. Colour is never the only
@@ -105,7 +112,6 @@
 
   --gutter: 1.25rem;          /* the page's left/right margin              */
   --measure: 38rem;           /* max line length for reading               */
-  --measure-narrow: 20rem;    /* the gate's one column                     */
   --tap: 2.75rem;             /* 44px — the HIG minimum, never smaller     */
 
   /* --- The chrome, and the room it takes --------------------------------
@@ -122,22 +128,28 @@
      into the pad reads fine at rest and then, the moment you scroll and the
      toolbar turns to glass, hands you a 90px pane of it.
 
-     At the bottom the composer sits a FIXED --bar-bottom above the screen's
-     physical edge and does not consult env(safe-area-inset-bottom) at all.
-     That inset reserves the entire 34pt band iOS keeps around the home
-     indicator, and padding the bar by it leaves the composer hovering a
-     thumb's width up the page — exactly what a native floating bar does not
-     do. Apple's own bottom bars sit inside that band and let the indicator
-     draw across their lower edge. 12pt lands our pill's bottom edge just
-     above the indicator's line, which still keeps the upper ~32pt of a 44pt
-     target clear of the swipe-up strip where iOS eats the first touch.
+     At the bottom there is NOTHING. --bar-bottom is zero: the composer's
+     lower edge is the phone's lower edge, and the home indicator draws
+     across it the way it draws across Apple's own bottom bars. There is no
+     env(safe-area-inset-bottom) anywhere in this app and there must not be —
+     that inset reserves the whole 34pt band around the indicator, and any
+     fraction of it under the bar leaves the composer hovering up the page.
 
-     Do not put the inset back. It is a floor for content that must not be
-     obscured, not a floor for the chrome that the indicator draws on.     */
+     What that costs: the bottom ~20pt of the pill is inside the swipe-up
+     strip, where iOS can take the first touch as the start of a gesture. The
+     upper two thirds of a 44pt target are still clear of it, and the pill is
+     full-width, so there is always somewhere to land.
+
+     Do not put an inset back at the bottom, and do not reintroduce a pad
+     below the bar. Both are the same bug wearing different numbers.        */
   --toolbar-pad: var(--s-2);   /* air above and below the toolbar buttons  */
   --chrome-air:  var(--s-4);   /* …and between the bar and the first line  */
   --bar-pad:     var(--s-3);   /* air above the composer…                  */
-  --bar-bottom:  var(--s-3);   /* …and below it, down to the screen edge   */
+  /* Zero, but 0px and not 0: --bar-h adds this inside a calc(), where a
+     bare <number> is not a <length> and poisons the whole expression —
+     which silently takes --chrome-bottom, and every screen's padding
+     shorthand, down with it. */
+  --bar-bottom:  0px;          /* …and none at all below it                */
   --toolbar-h: calc(var(--tap) + var(--toolbar-pad) * 2);          /* 60 */
   --bar-h:     calc(var(--tap) + var(--bar-pad) + var(--bar-bottom));
   --chrome-top:    calc(env(safe-area-inset-top) + var(--toolbar-h));
@@ -181,7 +193,6 @@
 
   --z-bar: 40;
   --z-sheet: 60;
-  --z-gate: 90;
   --z-toast: 100;
 }
 
@@ -204,6 +215,8 @@
     --accent:       #8AA6FF;   /*  7.6:1 */
     --accent-ink:   #0B111E;
     --danger:       #FF9A90;
+
+    --selection:    rgba(239, 237, 231, 0.22);
 
     --mood-1:       #9BA0E4;   /*  7.2:1 */
     --mood-2:       #5FB2E6;   /*  7.6:1 */

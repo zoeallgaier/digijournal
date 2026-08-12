@@ -10,6 +10,10 @@
      #/calendar          this month
      #/calendar/2026-08  a specific month
 
+   There is no unlock step: the app opens straight onto the list. Anyone
+   holding the phone can read the journal, which is the trade Zoe made on
+   12 Aug 2026 — see the storage note in CLAUDE.md.
+
    A view is a plain object: { node, title, bar, toolbarLeft, toolbarRight,
    onLeave, onHide }. `bar` and the toolbar slots may be getters, which is
    how the entry screen changes the button under itself without re-rendering.
@@ -17,7 +21,6 @@
 
 import { el, icon, toast } from './ui.js';
 import * as store from './store.js';
-import { requireUnlock } from './gate.js';
 import * as home from './home.js';
 import * as entry from './entry.js';
 import * as calendar from './calendar.js';
@@ -200,9 +203,8 @@ function trackKeyboard() {
 
 /* ------------------------------------------------------------------ boot */
 
-async function boot() {
+function boot() {
   store.load();
-  await requireUnlock();
 
   window.addEventListener('hashchange', render);
   screenHost.addEventListener('scroll', onScroll, { passive: true });
@@ -224,8 +226,8 @@ async function boot() {
   trackKeyboard();
   render();
 
-  /* Said here rather than in update.js because everything before this point
-     was behind the password screen, with nobody to read it. */
+  /* Said here rather than in update.js because a toast raised before the
+     first screen exists has nothing to sit above and nobody to read it. */
   if (consumeUpdateNotice()) toast('Updated');
 }
 

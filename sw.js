@@ -23,7 +23,7 @@
    and deletes the app's own static files.
    ========================================================================= */
 
-const VERSION = 'digijournal-v2';
+const VERSION = 'digijournal-v3';
 
 /* Relative so the app works at any base path — it is served from
    /digijournal/ on GitHub Pages, and from / when run locally. */
@@ -36,7 +36,6 @@ const SHELL = [
   'js/app.js',
   'js/store.js',
   'js/ui.js',
-  'js/gate.js',
   'js/home.js',
   'js/entry.js',
   'js/calendar.js',

@@ -32,7 +32,6 @@ const WATCHED = [
   'js/app.js',
   'js/store.js',
   'js/ui.js',
-  'js/gate.js',
   'js/home.js',
   'js/entry.js',
   'js/calendar.js',
@@ -121,8 +120,8 @@ async function check() {
 }
 
 /** True once, if this launch is the result of an update landing. Read by
- *  app.js once the gate is out of the way — a toast behind the password
- *  screen would be announced to nobody. */
+ *  app.js once the first screen is mounted — a toast raised before that has
+ *  nothing to sit above. */
 export function consumeUpdateNotice() {
   try {
     if (sessionStorage.getItem(NOTICE) !== '1') return false;

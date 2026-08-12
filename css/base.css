@@ -32,6 +32,11 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+
+  /* Declared on the root so it inherits into everything, including the
+     elements that would otherwise keep the UA's own grey-blue flash — links
+     and form controls do not inherit it from <body>. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -56,7 +61,25 @@ body {
      actually read or write (see .selectable / inputs below). */
   -webkit-user-select: none;
   user-select: none;
-  -webkit-tap-highlight-color: transparent;
+
+  /* And a long press on anything that isn't text raises iOS's own callout —
+     a share/copy bubble over a mood face, which the app has no use for.
+     Granted back below, where copying your own writing is the point. */
+  -webkit-touch-callout: none;
+}
+
+/* The one highlight the app does draw: dragging across your own words. iOS
+   would paint this in the system blue, which is the phone's accent colour
+   showing through the journal's. --selection is a wash of the ink the text
+   is already set in. */
+::selection {
+  background: var(--selection);
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+}
+::-moz-selection {
+  background: var(--selection);
+  color: inherit;
 }
 
 h1, h2, h3, p, figure, blockquote, ul, ol {
@@ -92,6 +115,7 @@ input, textarea {
   border-radius: 0;
   -webkit-user-select: text;
   user-select: text;
+  -webkit-touch-callout: default;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -100,7 +124,11 @@ textarea { resize: none; }
 
 svg { display: block; fill: none; }
 
-.selectable { -webkit-user-select: text; user-select: text; }
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
 
 /* Visible only to screen readers — used for the live region and for the
    labels on the mood radios. */

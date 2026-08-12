@@ -1,6 +1,6 @@
 /* ============================================================================
    app.css — every component in Digijournal.
-   Order follows the app: shell, glass, bars, home, entry, calendar, gate,
+   Order follows the app: shell, glass, bars, home, entry, calendar, menu,
    toast.
    ========================================================================= */
 
@@ -27,6 +27,14 @@
   scrollbar-width: none;
 }
 .screen::-webkit-scrollbar { display: none; }
+
+/* The screen host is focused on every navigation so a screen reader announces
+   the new page (app.js). It is a destination, not a control — and it is
+   `inset: 0`, so the global focus ring on it is a blue rectangle drawn around
+   the entire phone. tabindex="-1" keeps it out of the tab order, and this
+   keeps it out of sight. */
+.screen:focus,
+.screen:focus-visible { outline: none; }
 
 /* The column, and the only place the chrome is paid for. Top padding is the
    toolbar plus --chrome-air, so the first line of a screen begins a clear
@@ -55,8 +63,8 @@
 
 /* ---------------------------------------------------------------- glass --
    The one liquid-glass primitive. Everything with the journal moving behind
-   it uses this: the top toolbar, the composer bar and its capsule, the toast,
-   the gate's field.
+   it uses this: the top toolbar, the composer bar and its capsule, the mood
+   card, the toast.
 
    Four parts, in order: the blurred backdrop, the tint that guarantees
    contrast, the specular hairline on the lit (top) edge, and the shadow.
@@ -799,7 +807,11 @@
   z-index: calc(var(--z-sheet) + 1);
   left: max(var(--gutter), env(safe-area-inset-left));
   right: max(var(--gutter), env(safe-area-inset-right));
-  bottom: var(--bar-bottom);   /* the same floor the composer stands on */
+  /* The composer's floor is now the screen's own edge, and a card with four
+     rounded corners cannot stand there — the bottom two would be cut off by
+     the edge of the phone. So the sheet keeps the bar's own pad under it.
+     It is a card, not chrome: it is on screen for one tap. */
+  bottom: var(--bar-pad);
   max-width: var(--measure);
   margin: 0 auto;
   padding: var(--s-2);
@@ -832,89 +844,6 @@
 }
 .menu-item[data-tone='danger'] { color: var(--danger); }
 .menu-sep { height: 1px; margin: var(--s-1) var(--s-4); background: var(--hairline); }
-
-/* ----------------------------------------------------------------- gate --
-   The password screen. Covers everything, including during a resume, so a
-   glance at the app switcher shows the lock and not last night's entry. */
-
-.gate {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-gate);
-  display: grid;
-  place-items: center;
-  padding: var(--s-8) var(--gutter);
-  background: var(--paper);
-}
-.gate-inner {
-  width: 100%;
-  max-width: var(--measure-narrow);
-  text-align: center;
-}
-.gate h1 {
-  font-size: var(--t-display);
-  font-weight: var(--w-black);
-  letter-spacing: var(--tr-display);
-}
-.gate p {
-  margin-top: var(--s-2);
-  font-size: var(--t-callout);
-  font-weight: var(--w-light);
-  color: var(--ink-2);
-  line-height: var(--lh-snug);
-}
-.gate-form {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  margin-top: var(--s-8);
-  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-5);
-  border-radius: var(--r-xl);
-}
-.gate-input {
-  flex: 1;
-  min-width: 0;
-  height: var(--tap);
-  font-size: var(--t-body);
-  font-weight: var(--w-regular);
-  text-align: left;
-}
-.gate-go {
-  display: grid;
-  place-items: center;
-  width: var(--tap);
-  height: var(--tap);
-  border-radius: var(--r-full);
-  background: var(--accent);
-  color: var(--accent-ink);
-  transition: transform var(--d-fast) var(--ease), opacity var(--d-fast) var(--ease);
-}
-.gate-go svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  stroke: currentColor;
-  stroke-width: var(--stroke-bold);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.gate-go:active { transform: scale(var(--press)); }
-
-/* Reserve the line so the form doesn't jump when the message arrives. */
-.gate-error {
-  margin-top: var(--s-4);
-  min-height: var(--s-5);
-  font-size: var(--t-foot);
-  font-weight: var(--w-medium);
-  color: var(--danger);
-}
-
-@keyframes shake {
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(4px); }
-  30%, 50%, 70% { transform: translateX(-6px); }
-  40%, 60% { transform: translateX(6px); }
-}
-.gate-form[data-wrong='true'] { animation: shake var(--d-slow) var(--ease); }
 
 /* ---------------------------------------------------------------- toast -- */
 

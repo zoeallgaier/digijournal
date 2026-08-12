@@ -13,8 +13,8 @@ const p = (s) => { log.push(s); out.textContent = log.join('\n'); };
 const ok  = (cond, name, detail = '') => { if (!cond) failures++; p(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* Wait for a condition rather than a duration — PBKDF2 takes as long as it
-   takes, and fixed sleeps make a test that lies on a slow machine. */
+/* Wait for a condition rather than a duration — a fixed sleep is a test that
+   lies on a slow machine. */
 async function until(fn, ms = 8000) {
   const stop = Date.now() + ms;
   while (Date.now() < stop) {
@@ -32,6 +32,8 @@ const f = document.getElementById('f');
 const load = (url) => new Promise((res) => { f.onload = () => res(f.contentWindow); f.src = url; });
 const $ = (sel) => f.contentDocument.querySelector(sel);
 const $$ = (sel) => [...f.contentDocument.querySelectorAll(sel)];
+/* Second argument reads a pseudo-element — '::selection' and friends. */
+const cs = (n, pseudo = null) => f.contentWindow.getComputedStyle(n, pseudo);
 const type = (node, value) => {
   node.value = value;
   node.dispatchEvent(new f.contentWindow.InputEvent('input', { bubbles: true }));
@@ -41,27 +43,14 @@ async function run() {
   localStorage.removeItem('digijournal.v1');
   sessionStorage.clear();
 
-  /* ---------------------------------------------------------- 1. the gate */
+  /* ---------------------------------------------------------- 1. the launch
+     Nothing stands between the icon and the journal. There is no gate, and
+     no field anywhere in the app asking for a password. */
   await load('../index.html');
-  await wait(400);
-  ok(!!$('.gate'), 'gate blocks a cold launch');
-  ok(!!$('#gate-input'), 'gate has a password field');
-
-  const submit = () => $('.gate-form').dispatchEvent(
-    new f.contentWindow.Event('submit', { bubbles: true, cancelable: true }));
-
-  const input = $('#gate-input');
-  input.value = 'wrong-password';
-  submit();
-  await until(() => $('.gate-error').textContent.length > 0);
-  ok(!!$('.gate'), 'wrong password does not unlock');
-  ok($('.gate-error').textContent.length > 0, 'wrong password reports an error');
-
-  $('#gate-input').value = 'digijournal';
-  submit();
-  await until(() => !$('.gate'));
-  ok(!$('.gate'), 'correct password unlocks (hash constant matches)');
-  ok(!!$('.home-title'), 'home renders after unlock');
+  await until(() => $('.home-title'));
+  ok(!!$('.home-title'), 'a cold launch opens straight onto the list');
+  ok(!$('.gate') && !$('#gate-input'), 'no password screen stands in the way');
+  ok(!$('input[type="password"]'), 'the app asks for no password anywhere');
   ok($('.empty h2')?.textContent === 'Nothing written yet', 'empty state shown');
 
   /* ------------------------------------------------------ 2. write & publish */
@@ -224,7 +213,33 @@ async function run() {
   const unlabelled = $$('button').filter((b) => !b.textContent.trim() && !b.getAttribute('aria-label'));
   ok(unlabelled.length === 0, 'every icon button has a label', unlabelled.map((b) => b.className).join());
   ok($('#screen').getAttribute('tabindex') === '-1', 'screen is focusable for route announcements');
-  const group = (f.contentWindow.location.hash, null);
+
+  /* ------------------------------------------- 7a. no borrowed system blue
+     The screen host is focused on every navigation. It is `inset: 0`, so a
+     focus ring on it is a blue rectangle around the whole phone — which is
+     what it was. It stays focusable; it just stops being drawn. */
+  ok(f.contentDocument.activeElement === $('#screen'),
+     'the screen host really does hold focus after a navigation',
+     f.contentDocument.activeElement?.id || f.contentDocument.activeElement?.tagName);
+  ok(cs($('#screen')).outlineStyle === 'none',
+     'the focused screen host draws no ring',
+     `${cs($('#screen')).outlineStyle} ${cs($('#screen')).outlineColor}`);
+
+  const transparent = (c) => /rgba\(0, 0, 0, 0\)|transparent/.test(c || '');
+  ok(transparent(cs(f.contentDocument.documentElement).webkitTapHighlightColor),
+     'the tap flash is off at the root, where everything inherits it',
+     cs(f.contentDocument.documentElement).webkitTapHighlightColor);
+  ok(transparent(cs($('.compose')).webkitTapHighlightColor),
+     'and a button inherits it rather than keeping the UA default',
+     cs($('.compose')).webkitTapHighlightColor);
+
+  /* Selection is the one highlight the app draws, and it is ink, not the
+     phone's accent. Chrome resolves ::selection through getComputedStyle;
+     if a future engine doesn't, read the stylesheet instead of guessing. */
+  const selBg = cs($('.compose'), '::selection').backgroundColor;
+  ok(selBg ? !/rgb\(0, 0, 255\)|rgba?\(\s*0,\s*10[0-9],\s*2[0-9][0-9]/.test(selBg)
+           : /::selection/.test(await (await fetch('../css/base.css')).text()),
+     'selected text is washed in ink, not system blue', selBg || '(read from base.css)');
 
   /* tap targets */
   f.contentWindow.location.hash = '#/calendar';
@@ -246,7 +261,6 @@ async function run() {
 
   const editBtn = $('.toolbar .icon-btn[aria-label="Edit entry"]');
   ok(!!editBtn, 'edit button is in the toolbar');
-  const cs = (n) => f.contentWindow.getComputedStyle(n);
   const editStyle = cs(editBtn);
   const blurOf = (s) => s.backdropFilter || s.webkitBackdropFilter || '';
   ok(blurOf(editStyle).includes('blur'), 'edit icon has the glass blur', blurOf(editStyle));
@@ -276,18 +290,17 @@ async function run() {
   /* The bottom bar is measured once. --chrome-bottom must equal what the bar
      actually covers: if the bar adds the home-indicator inset on top of its
      own pad, or --chrome-bottom counts that inset a second time, these two
-     drift apart and every screen pads for a bar that isn't that tall.
-     This browser reports no safe-area inset, so it also pins the no-indicator
-     case: the bar's bottom padding collapses to --bar-pad exactly. */
+     drift apart and every screen pads for a bar that isn't that tall. */
   const barBox = $('#bar').getBoundingClientRect().height;
   const innerPadBottom = parseFloat(cs($('.screen-inner')).paddingBottom);
   const s12 = 48;
   ok(Math.abs((innerPadBottom - s12) - barBox) <= 1,
      '--chrome-bottom is exactly what the composer bar covers',
      `chrome-bottom ${Math.round(innerPadBottom - s12)} vs bar ${Math.round(barBox)}`);
-  ok(Math.abs(parseFloat(cs($('#bar')).paddingBottom) - parseFloat(cs($('#bar')).paddingTop)) <= 1,
-     'with no home indicator the bar does not stack an inset under itself',
-     `bottom ${cs($('#bar')).paddingBottom} top ${cs($('#bar')).paddingTop}`);
+
+  ok(parseFloat(cs($('#bar')).paddingBottom) === 0,
+     'the composer bar has no padding beneath it at all',
+     cs($('#bar')).paddingBottom);
 
   /* Scrolled, the toolbar is the glass — the buttons must drop theirs so the
      two panes don't stack. Drive the attribute directly: whether a given
@@ -352,6 +365,29 @@ async function run() {
   };
 
   noOverflow('list');
+
+  /* NOTHING SITS UNDER THE COMPOSER. Not our own pad, not a safe-area inset,
+     not a fraction of one: the pill's lower edge is the screen's lower edge.
+     Anything under it floats the bar up the page, which is the complaint this
+     section exists to keep from coming back. Measured on the list, where the
+     bar is actually on screen — while reading, it is translated 120% away. */
+  const flushToBottom = (sel, label) => {
+    const bottom = $(sel).getBoundingClientRect().bottom;
+    ok(Math.abs(bottom - win.innerHeight) <= 1, label,
+       `${Math.round(bottom)} vs viewport ${win.innerHeight}`);
+  };
+  flushToBottom('#bar', 'the bar reaches the physical bottom of the screen');
+  flushToBottom('.compose', 'and so does the composer pill itself');
+
+  /* Belt and braces on the rule itself, not just this render: no stylesheet
+     may reach for the home-indicator inset at all. Comments stripped first —
+     tokens.css names it in the doctrine that forbids it. */
+  const sheets = (await Promise.all(['tokens', 'base', 'app']
+    .map((n) => fetch(`../css/${n}.css`).then((r) => r.text()))))
+    .join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
+  ok(!/safe-area-inset-bottom/.test(sheets),
+     'no stylesheet reaches for the home-indicator inset',
+     (sheets.match(/.*safe-area-inset-bottom.*/) || [''])[0].trim());
 
   /* Every screen begins at the same line — one step of --chrome-air below the
      toolbar — so the three of them agree about where a page starts. It is the
@@ -451,11 +487,10 @@ async function run() {
   const kept = S().all().length;
   ok(kept > 0, 'there is a journal to lose', `${kept} entries`);
 
-  /* The reload itself. Inside the gate's grace period, so it walks straight
-     back in — which is exactly what an update landing looks like. */
+  /* The reload itself — exactly what an update landing looks like. */
   await load('../index.html');
   await until(() => $('.home-title'));
-  ok(!$('.gate'), 'a reload inside the grace period does not re-lock');
+  ok(!$('.gate'), 'the reload lands on the list, with nothing to unlock');
   ok(S().all().length === kept, 'the journal survives the reload', `${S().all().length} of ${kept}`);
   ok(S().get(updateId)?.title === 'Mid-sentence', 'and the entry written just before it is intact');
   ok($$('.entry-title').some((n) => n.textContent === 'Mid-sentence'),
