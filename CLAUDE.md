@@ -53,6 +53,10 @@ js/home.js          the list
 js/entry.js         reading and writing one entry  ← the subtle file
 js/calendar.js      the month, coloured by mood
 tools/test.html     the headless suite (see Testing)
+tools/edges.html    what the phone will actually give the app — add it to the
+                    homescreen and screenshot it when an edge is wrong. It
+                    carries the same launch chrome as index.html on purpose;
+                    opened in a Safari tab it measures a different app
 ```
 
 ### The data model
@@ -260,7 +264,14 @@ overflow, where each screen's first line sits relative to the toolbar, that
 the composer reaches the physical bottom edge with nothing under it, that no
 control borrows the system blue, the delete sheet's surface, that the toast
 stays centred through its animation, and that an update-driven reload flushes
-what was being typed and gives the whole journal back afterwards. 133 checks.
+what was being typed and gives the whole journal back afterwards. 136 checks.
+
+**The suite cannot see an edge problem.** It runs in a browser that reports
+no safe-area inset, so it pins our own arithmetic and nothing else — every
+bottom check can pass while the phone still keeps a band. `tools/edges.html`
+is the instrument for that half: add it to the homescreen and read it there.
+Three rounds were spent guessing at that band from screenshots before it
+existed; do not spend a fourth.
 
 The browser it runs in reports **no safe-area inset**, which is the point for
 the bottom checks — it pins the case where nothing external is padding the

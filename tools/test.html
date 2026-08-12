@@ -463,17 +463,37 @@ async function run() {
      rather than faked with a real keyboard, which headless has none of. */
   const vvp = win.visualViewport;
   const trueHeight = vvp.height;
-  Object.defineProperty(vvp, 'height', { configurable: true, value: trueHeight - 300 });
+  const fakeViewport = (shorterBy) =>
+    Object.defineProperty(vvp, 'height', { configurable: true, value: trueHeight - shorterBy });
+  const settle = async () => { vvp.dispatchEvent(new win.Event('resize')); await wait(60); };
+
+  fakeViewport(300);
   $('.entry-body-field').focus();
-  vvp.dispatchEvent(new win.Event('resize'));
-  await wait(60);
+  await settle();
   ok(kb() === '300px', 'a real keyboard still lifts the bar clear of it', kb());
 
   $('.entry-body-field').blur();
   delete vvp.height;
-  vvp.dispatchEvent(new win.Event('resize'));
-  await wait(60);
+  await settle();
   ok(kb() === '0px', 'and it drops back to the edge when the keyboard goes', kb());
+
+  /* The phone's own standing disagreement between the two viewports is not
+     the keyboard and must not be paid for twice. Stand them 40px apart with
+     nothing focused — that is rest, and rest is zero — then open a keyboard
+     on top of it. The lift is the keyboard alone, not the pair. */
+  fakeViewport(40);
+  await settle();
+  ok(kb() === '0px', 'a standing viewport disagreement at rest lifts nothing', kb());
+
+  fakeViewport(340);
+  $('.entry-body-field').focus();
+  await settle();
+  ok(kb() === '300px', 'and the keyboard on top of it lifts by the keyboard alone', kb());
+
+  $('.entry-body-field').blur();
+  delete vvp.height;
+  await settle();
+  ok(kb() === '0px', 'back to the edge', kb());
 
   /* ------------------------------------------ 9. the sheet, and the toast */
   $('.toolbar .icon-btn[aria-label="Edit entry"]').click();

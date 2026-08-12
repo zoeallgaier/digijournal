@@ -195,16 +195,24 @@ function refreshBar() {
 
    window.innerHeight and visualViewport.height do not always agree by zero
    on iOS. They disagree by a hair while a scroll settles, and can disagree
-   by roughly the home indicator's band depending on how the web view was
-   laid out. So the measurement alone is not enough to act on: a lift is only
-   a keyboard if something is focused that can raise one, AND it is taller
-   than anything else that could shorten the viewport. */
+   by a standing amount depending on how the web view was laid out. So the
+   raw difference is not the keyboard, and is never set as --kb.
+
+   What is the keyboard is the difference from REST. Whatever the two
+   viewports disagree by while nothing is focused is the phone's own, and it
+   is re-read every time focus leaves — so it stays right across a rotation
+   or a resize rather than being sampled once at boot and trusted forever.
+   On top of that, a lift only counts if something focused could have raised
+   a keyboard, and if it clears what a keyboard is. */
 
 const KEYBOARD_MIN = 120;   /* an iOS keyboard is ~300px. Nothing else is. */
 
 function trackKeyboard() {
   const vv = window.visualViewport;
   if (!vv) return;
+
+  /* How far the two viewports stand apart when no keyboard can be up. */
+  let atRest = 0;
 
   const typing = () => {
     const active = document.activeElement;
@@ -213,10 +221,15 @@ function trackKeyboard() {
                      || active.isContentEditable);
   };
 
+  const set = (px) => document.documentElement.style.setProperty('--kb', `${px}px`);
+
   const update = () => {
-    const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    const lift = covered >= KEYBOARD_MIN && typing() ? Math.round(covered) : 0;
-    document.documentElement.style.setProperty('--kb', `${lift}px`);
+    const apart = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+
+    if (!typing()) { atRest = apart; set(0); return; }
+
+    const lift = Math.round(apart - atRest);
+    set(lift >= KEYBOARD_MIN ? lift : 0);
   };
 
   vv.addEventListener('resize', update);
