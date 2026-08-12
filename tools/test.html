@@ -254,9 +254,9 @@ async function run() {
      This is the whole reason .screen-inner pays for the chrome and no screen
      header adds a top padding of its own. */
   const capsuleBottom = Math.max(...$$('.toolbar .icon-btn').map((b) => b.getBoundingClientRect().bottom));
-  const titleTop = $('.entry-title-field').getBoundingClientRect().top;
-  ok(titleTop - capsuleBottom >= 12, 'the entry title clears the toolbar capsules with air',
-     `gap ${Math.round(titleTop - capsuleBottom)}px (title ${Math.round(titleTop)}, capsules ${Math.round(capsuleBottom)})`);
+  const headTop = $('.mood').getBoundingClientRect().top;
+  ok(headTop - capsuleBottom >= 12, 'the rating card clears the toolbar capsules with air',
+     `gap ${Math.round(headTop - capsuleBottom)}px (card ${Math.round(headTop)}, capsules ${Math.round(capsuleBottom)})`);
 
   /* The column starts a real step below the bar, not flush against it. */
   const innerPadTop = parseFloat(cs($('.screen-inner')).paddingTop);
@@ -373,7 +373,9 @@ async function run() {
   f.contentWindow.location.hash = '#/e/L1';
   await wait(400);
   noOverflow('entry');
-  startsAtChrome('.entry-title-field', 'the entry title');
+  /* The rating card is the entry's first line now, so it is the one that has
+     to land where the other screens' first lines do. */
+  startsAtChrome('.mood', 'the entry rating card');
 
   /* ------------------------------------------ 9. the sheet, and the toast */
   $('.toolbar .icon-btn[aria-label="Edit entry"]').click();
@@ -414,6 +416,52 @@ async function run() {
   ok(Math.abs(centreOf(t) - f.contentWindow.innerWidth / 2) < 1, 'and does not jump once it settles',
      `centre ${Math.round(centreOf(t))} vs ${Math.round(f.contentWindow.innerWidth / 2)}`);
   ok(!S().get('L1'), 'the entry is gone');
+
+  /* ------------------------------------------------------ 12. the update path
+     An update reloads the app out from under you. Two things have to hold, or
+     it costs an entry: whatever you had typed is in storage BEFORE the page
+     goes, and the whole journal is still there when it comes back. */
+  $('.compose').click();
+  await wait(300);
+  const updateId = f.contentWindow.location.hash.replace('#/e/', '');
+
+  type($('.entry-title-field'), 'Mid-sentence');
+  type($('.entry-body-field'), 'Typed, not yet saved.');
+  /* Deliberately inside the 400ms debounce — this is the keystroke a naive
+     reload would eat. */
+  ok(S().get(updateId).title === '', 'the debounce really is still holding it');
+
+  f.contentWindow.dispatchEvent(new f.contentWindow.CustomEvent('dj:flush'));
+  await wait(50);
+  ok(S().get(updateId).title === 'Mid-sentence', 'dj:flush writes the title before the reload');
+  ok(S().get(updateId).body === 'Typed, not yet saved.', 'dj:flush writes the body too');
+
+  $('.compose').click();          /* publish it, so it is a row in the list */
+  await wait(300);
+
+  const kept = S().all().length;
+  ok(kept > 0, 'there is a journal to lose', `${kept} entries`);
+
+  /* The reload itself. Inside the gate's grace period, so it walks straight
+     back in — which is exactly what an update landing looks like. */
+  await load('../index.html');
+  await until(() => $('.home-title'));
+  ok(!$('.gate'), 'a reload inside the grace period does not re-lock');
+  ok(S().all().length === kept, 'the journal survives the reload', `${S().all().length} of ${kept}`);
+  ok(S().get(updateId)?.title === 'Mid-sentence', 'and the entry written just before it is intact');
+  ok($$('.entry-title').some((n) => n.textContent === 'Mid-sentence'),
+     'and it is on the list after the reload');
+
+  /* The worker only ever caches and deletes the app's own files. Bumping
+     VERSION is the blunt instrument, and it must stay a blunt instrument
+     pointed at the cache, never at the journal. */
+  if (f.contentWindow.caches) {
+    const cacheNames = await f.contentWindow.caches.keys();
+    ok(cacheNames.every((k) => k.startsWith('digijournal-v')),
+       'the only caches are the worker\'s own', cacheNames.join(', ') || '(none yet)');
+  }
+  ok(localStorage.getItem('digijournal.v1') !== null,
+     'the journal is in localStorage, which no cache operation touches');
 
   p('');
   p(failures === 0 ? `ALL PASS (${log.length - 1} checks)` : `${failures} FAILURE(S)`);

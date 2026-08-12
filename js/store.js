@@ -107,8 +107,23 @@ function emit() {
 
 /* --------------------------------------------------------------- lifecycle */
 
+/* Ask the browser to treat this origin's storage as worth keeping rather than
+   as a cache it may reclaim. Only the installed app asks: in a tab it would
+   be a permission prompt for a stranger who is only looking at the URL.
+   Safari does not implement this today, so on the phone it is a no-op that
+   costs nothing and starts working the day it isn't. */
+function requestPersistence() {
+  const installed = navigator.standalone
+    || matchMedia('(display-mode: standalone)').matches;
+  if (!installed) return;
+  try {
+    navigator.storage?.persist?.()?.catch?.(() => {});
+  } catch { /* not available; nothing to fall back to */ }
+}
+
 export function load() {
   entries = read();
+  requestPersistence();
 }
 
 export function subscribe(fn) {

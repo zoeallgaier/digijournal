@@ -35,10 +35,12 @@ the CSS, and should not have to. So:
 ## Architecture
 
 ```
-index.html          entry point, PWA meta, SW registration
+index.html          entry point, PWA meta, the two module tags
 manifest.webmanifest  } together, these make the URL installable
 icons/                }
 sw.js               the offline guarantee — nothing else provides one
+js/update.js        how a deploy reaches the phone — registers the worker
+                    and reloads the app when the files really changed
 css/tokens.css      the entire visual language — every value lives here
 css/base.css        reset, @font-face, focus, reduced motion
 css/app.css         every component
@@ -108,6 +110,13 @@ holding a year of journal entries.
 Zoe's phone.** Treat it as a risk to design around, not a fact to quote at
 her.
 
+`store.load()` asks for persistent storage — `navigator.storage.persist()`,
+which tells a browser this origin is worth keeping rather than reclaiming.
+Only the installed app asks; in a tab it would be a permission prompt for a
+stranger who is only looking at the URL. Safari does not implement it today,
+so on the phone it is a no-op that costs nothing and starts working the day
+it isn't. **Do not describe it as a fix.**
+
 **There is no longer a way to get the journal off the phone.** Export and
 import were removed on 11 Aug 2026 at Zoe's request, along with the ⋯ menu
 that held them — the list's toolbar is deliberately empty now. What that
@@ -154,6 +163,30 @@ change; screenshots are for when *you* need to see something to debug it.
 
 There is nothing to build before pushing. What is in the repo is what ships.
 
+### How a deploy reaches the icon on her homescreen
+
+Step 5 used to require deleting the app from memory and relaunching it,
+because tapping the homescreen icon *resumes* the app rather than loading it.
+`js/update.js` closes that: when the app comes back to the foreground — and
+once a minute while it is sitting open — it HEADs every file the app is made
+of and compares the ETags to the reading it booted with. Different bytes
+anywhere, and it reloads itself and toasts **Updated**.
+
+Nothing to bump on a deploy. A stylesheet edit changes the stylesheet's ETag,
+and that is the whole signal.
+
+**It cannot cost her an entry.** It fires `dj:flush` first, which app.js turns
+into the same `onHide` the editor already runs when the phone is locked, so
+what is on screen is in storage before the page goes. It will not fire at all
+while a field has focus — an update that arrives mid-sentence waits for the
+caret to leave and lands then. And a reload re-reads localStorage, which no
+cache operation has ever touched.
+
+There is deliberately **no `controllerchange` reload**. It fires on the first
+launch, when nothing is stale, and it does *not* fire when only a stylesheet
+changed — which is most deploys. `sw.js` is in `update.js`'s watch list
+instead, so the one path to a reload is the one that flushes first.
+
 ### Getting it onto the phone
 
 Safari → the URL → Share → **Add to Home Screen**. Once.
@@ -167,7 +200,16 @@ before it — the only fix is to delete the icon and add it again.
 If a change appears not to land: `sw.js` is network-first, so it serves the
 cache only when the network fails. A stale screen means the request failed,
 not that the cache is stuck. Bumping `VERSION` in `sw.js` drops every cached
-byte and is the blunt instrument if one is ever needed.
+byte and is the blunt instrument if one is ever needed — it drops *files*,
+never entries.
+
+Network-first was not sufficient on its own. GitHub Pages sends `max-age=600`,
+so "go to the network" could be answered by Safari's own HTTP cache with a
+build ten minutes old — indistinguishable from a deploy that failed. The
+worker now fetches the app's own source (`.html`, `.css`, `.js`,
+`.webmanifest`) with `cache: 'no-cache'`: always ask the server, and let it
+answer 304 in a few bytes when nothing changed. Fonts and icons keep normal
+caching; they never change.
 
 ---
 
@@ -176,8 +218,15 @@ byte and is the blunt instrument if one is ever needed.
 `tools/test.html` drives the real app in an iframe — the gate, writing,
 publishing, drafts, mood, the calendar, the store's bundle merge, tap-target
 sizes, horizontal overflow, where each screen's first line sits relative to
-the toolbar, the delete sheet's surface, and that the toast stays centred
-through its animation. 104 checks.
+the toolbar, the delete sheet's surface, that the toast stays centred through
+its animation, and that an update-driven reload flushes what was being typed
+and gives the whole journal back afterwards. 114 checks.
+
+The half the suite can't reach is update *detection*, which needs a server
+whose files can change mid-run. That was verified separately with a throwaway
+harness and a POST hook that touches a stylesheet: an unchanged deploy does
+not reload, a changed one does, and one that arrives while the caret is in a
+field waits until the field is blurred.
 
 **It erases this browser's journal before it runs**, so it does nothing until
 told: open it and press the button, or load it with `?run=1`.

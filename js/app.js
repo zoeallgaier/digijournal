@@ -21,6 +21,7 @@ import { requireUnlock } from './gate.js';
 import * as home from './home.js';
 import * as entry from './entry.js';
 import * as calendar from './calendar.js';
+import { consumeUpdateNotice } from './update.js';
 
 const screenHost = document.getElementById('screen');
 const toolbar    = document.getElementById('toolbar');
@@ -212,12 +213,20 @@ async function boot() {
   });
   window.addEventListener('pagehide', () => current?.onHide?.());
 
+  /* update.js is about to reload the page under us. Same flush, same reason:
+     the screen is going away and this is the last frame we get. */
+  window.addEventListener('dj:flush', () => current?.onHide?.());
+
   window.addEventListener('dj:write-failed', () => {
     toast('Could not save — device storage is full', 6000);
   });
 
   trackKeyboard();
   render();
+
+  /* Said here rather than in update.js because everything before this point
+     was behind the password screen, with nobody to read it. */
+  if (consumeUpdateNotice()) toast('Updated');
 }
 
 boot();

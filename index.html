@@ -54,34 +54,9 @@
 
   <script type="module" src="js/app.js"></script>
 
-  <script>
-    /* Offline, and the update path.
-
-       The worker is network-first for the app's own files, so a deploy
-       reaches the phone on the next launch rather than sitting behind a
-       cache. The `controllerchange` reload matters because tapping the
-       homescreen icon usually RESUMES the app rather than navigating — with
-       out it you would keep running last week's code until iOS decided to
-       evict it. It is safe only because the editor flushes on
-       visibilitychange: hidden, so a reload can never eat what you typed. */
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-      });
-
-      let reloading = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (reloading) return;
-        reloading = true;
-        location.reload();
-      });
-
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          navigator.serviceWorker.getRegistration().then((r) => r?.update());
-        }
-      });
-    }
-  </script>
+  <!-- Offline, and the update path: registers the worker, and reloads the app
+       when a deploy has actually changed something. It flushes the open
+       editor before it does, and waits if you are typing. See js/update.js. -->
+  <script type="module" src="js/update.js"></script>
 </body>
 </html>

@@ -6,15 +6,24 @@
    updates the cache. The cache only answers when the network doesn't — on
    the tube, on a plane, on hotel wifi that resolves but never returns.
 
+   Network-first is not enough on its own, though. GitHub Pages serves these
+   files with `max-age=600`, so "go to the network" can be answered by
+   Safari's own HTTP cache with a build up to ten minutes old — which looks
+   exactly like a deploy that didn't land. So the app's own source is fetched
+   with `cache: 'no-cache'`: always ask the server, and let it reply "still
+   the same" in a few bytes when it is. Fonts and icons keep normal caching;
+   they never change.
+
    So a stale screen means the request FAILED, not that the cache is stuck.
    If you ever need the blunt instrument, bump VERSION: it drops every
    cached byte on the next activate.
 
-   Nothing you write passes through here. Entries live in localStorage; this
-   worker only ever sees the app's own static files.
+   Nothing you write passes through here, and bumping VERSION cannot cost you
+   an entry. Entries live in localStorage; this worker only ever sees, caches
+   and deletes the app's own static files.
    ========================================================================= */
 
-const VERSION = 'digijournal-v1';
+const VERSION = 'digijournal-v2';
 
 /* Relative so the app works at any base path — it is served from
    /digijournal/ on GitHub Pages, and from / when run locally. */
@@ -31,6 +40,7 @@ const SHELL = [
   'js/home.js',
   'js/entry.js',
   'js/calendar.js',
+  'js/update.js',
   'fonts/dmsans-latin.woff2',
   'fonts/dmsans-latin-ext.woff2',
   'icons/icon.svg',
@@ -57,6 +67,25 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+/* The app's own source, as opposed to the things it is dressed in. These are
+   what change when Zoe and Claude change something, so these are the ones
+   worth a revalidation round trip. */
+const SOURCE = /\.(?:html|css|js|webmanifest)$/;
+
+function fromNetwork(request, url) {
+  if (request.mode !== 'navigate' && !SOURCE.test(url.pathname)) {
+    return fetch(request);
+  }
+  try {
+    /* "Ask the server, but let it answer 304." Copying a navigation request
+       with an init is legal but has been thin ice in older engines — if it
+       ever throws, a plain fetch is still correct, just cacheable. */
+    return fetch(request, { cache: 'no-cache' });
+  } catch {
+    return fetch(request);
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -66,7 +95,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(request)
+    fromNetwork(request, url)
       .then((response) => {
         /* Only cache a real answer. Opaque and error responses are exactly
            the ones you don't want to serve back offline. */
