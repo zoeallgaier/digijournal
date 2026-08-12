@@ -48,6 +48,18 @@
     pointer-events: none;
   }
 
+  /* The inset probe. LONGHANDS, one per line — env() inside the `padding`
+     shorthand does not resolve in Safari, so a four-value shorthand reads
+     back 0px on all four sides and quietly says "no insets" on a phone that
+     has them. That is exactly what it did the first time this page ran. */
+  #probe {
+    position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden;
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+  }
+
   main { position: relative; z-index: 3; height: 100%; overflow-y: auto; padding: 8px 12px; }
   h1 { margin: 0 0 2px; font-size: 17px; letter-spacing: -0.01em; }
   p.lede { margin: 0 0 10px; color: var(--dim); font-size: 12px; line-height: 1.3; }
@@ -77,12 +89,11 @@
 
 <script>
 /* A probe whose padding is the four insets, so they can be read as numbers
-   rather than inferred. env() is only readable through layout. */
+   rather than inferred — env() is only readable through layout. It takes its
+   padding from the #probe RULE, never from an inline shorthand: see the note
+   on it in the stylesheet. */
 const probe = document.createElement('div');
-probe.style.cssText =
-  'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;' +
-  'padding:env(safe-area-inset-top) env(safe-area-inset-right) ' +
-  'env(safe-area-inset-bottom) env(safe-area-inset-left);';
+probe.id = 'probe';
 document.body.append(probe);
 const inset = getComputedStyle(probe);
 
@@ -140,16 +151,22 @@ for (const row of rows) {
 }
 
 /* Say it in words, so the screenshot answers the question on its own. */
-const bottomInset = parseFloat(inset.paddingBottom) || 0;
-const gap = Math.round(screen.height - bottomRule.bottom);
-document.getElementById('verdict').textContent =
-  window.innerHeight >= screen.height - 1 && bottomInset > 0
-    ? 'FULL-BLEED. The app has the whole screen; any band is ours.'
-    : bottomInset === 0 && window.innerHeight < screen.height - 1
-      ? `iOS KEPT A BAND. The app was given ${window.innerHeight} of ${screen.height}; ` +
-        `${screen.height - window.innerHeight} is iOS’s, and no CSS can reach it.`
-      : `UNCLEAR — inner ${window.innerHeight}, screen ${screen.height}, ` +
-        `bottom inset ${bottomInset}, gap under a fixed bar ${gap}.`;
+/* How much of the screen the app never got, and — the part that names the
+   cause — whether that missing height matches the status bar or the home
+   indicator. black-translucent loses exactly the status bar's height and
+   anchors what is left at the top, so the strip lands at the BOTTOM. */
+const missing = screen.height - window.innerHeight;
+const topInset = parseFloat(inset.paddingTop) || 0;
+const verdict =
+  missing <= 1
+    ? `FULL-BLEED. The app has all ${screen.height} points; any band is ours.`
+    : Math.abs(missing - topInset) <= 1
+      ? `iOS KEPT ${missing}pt, and that is the STATUS BAR's height — the ` +
+        `black-translucent signature. The app is anchored at the top, so the ` +
+        `strip is at the bottom. Fix it with the status bar meta, not CSS.`
+      : `iOS KEPT ${missing}pt of ${screen.height}. Top inset ${topInset}, ` +
+        `bottom inset ${parseFloat(inset.paddingBottom) || 0}. No CSS reaches it.`;
+document.getElementById('verdict').textContent = verdict;
 </script>
 </body>
 </html>

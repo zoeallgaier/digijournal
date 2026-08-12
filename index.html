@@ -43,7 +43,30 @@
      desktop — neither of which this app targets. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<!-- `default`, and NOT `black-translucent`. This is the line that was taking
+     a strip of the screen, and it was measured on the phone, not guessed:
+
+       screen            393 x 852
+       window.inner      393 x 793
+       fixed bottom:0    lands at 793 — 59 short of the screen
+
+     852 - 793 = 59, which is the STATUS BAR's height, not the home
+     indicator's 34. That is black-translucent's long-standing behaviour: it
+     makes the web view the height of the screen minus the status bar and
+     then anchors it at the TOP, so the page does draw under the clock —
+     and an equal strip at the BOTTOM belongs to nobody. iOS paints it with
+     the theme colour, which is why it read as a block of paper under the
+     composer, and why nothing in the stylesheet could reach it.
+     viewport-fit=cover does not rescue this on the no-manifest path.
+
+     With `default` the web view is laid out below the status bar instead and
+     runs to the physical bottom edge. The top does not move: the inset that
+     was pushing the first line down (59) is replaced by the status bar iOS
+     now draws in that same space, and --chrome-top reads 0 there and stops
+     paying for it. The status bar is painted from the theme-color metas
+     above, which are the paper in both schemes — so it does not seam. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Digijournal">
 <meta name="format-detection" content="telephone=no">
 

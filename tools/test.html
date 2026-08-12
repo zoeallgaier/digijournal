@@ -405,8 +405,14 @@ async function run() {
   ok(!/rel=["']manifest["']/.test(head), 'no web app manifest is linked',
      (head.match(/.*rel=["']manifest["'].*/) || [''])[0].trim());
   ok(/viewport-fit=cover/.test(head), 'the viewport is still told to cover the screen');
-  ok(/apple-mobile-web-app-status-bar-style"\s+content="black-translucent"/.test(head),
-     'the status bar is still translucent over the page');
+  /* `default`, never `black-translucent`. black-translucent makes the web
+     view the screen's height MINUS THE STATUS BAR and anchors it at the top,
+     so an equal strip at the bottom belongs to nobody and iOS paints it —
+     measured on the phone as 852 screen, 793 given, 59 lost. */
+  ok(/apple-mobile-web-app-status-bar-style"\s+content="default"/.test(head),
+     'the status bar style is default, so the app runs to the bottom edge');
+  ok(!/black-translucent/.test(head),
+     'black-translucent is gone — it costs the bottom of the screen');
   ok(/apple-mobile-web-app-capable"\s+content="yes"/.test(head),
      'and the icon still launches standalone without the manifest');
   ok(/apple-mobile-web-app-title"\s+content="Digijournal"/.test(head),

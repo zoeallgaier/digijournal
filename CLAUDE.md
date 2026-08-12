@@ -203,22 +203,48 @@ Home Screen time and frozen into the shortcut. A change to
 `apple-mobile-web-app-status-bar-style` has no effect on an icon created
 before it — the only fix is to delete the icon and add it again.
 
-**So if the app is inset from an edge, suspect the shortcut before the CSS.**
-A band under the composer is off-white in light and navy in dark whatever is
-causing it, because every candidate paints in the page's own colour. The four
-that can do it, in the order worth checking:
+**`black-translucent` is what cost the bottom of the screen, and it is not
+coming back.** It is the obvious-looking way to draw under the status bar and
+it does do that — by making the web view the screen's height *minus the
+status bar* and anchoring it at the top. An equal strip at the bottom then
+belongs to nobody, and iOS paints it with the theme colour. Measured on the
+phone, in points:
+
+```
+screen          393 x 852
+window.inner    393 x 793     ← 59 short
+fixed bottom:0  lands at 793  ← the composer, 59 above the screen's edge
+```
+
+**59 is the status bar's height, not the home indicator's 34** — that
+arithmetic is how you recognise it, and `viewport-fit=cover` does not rescue
+it. `default` lays the view out below the status bar and runs it to the
+physical bottom instead. The top does not move: the 59pt inset that was
+pushing the first line down is replaced by the status bar drawn in the same
+space, `env(safe-area-inset-top)` reads 0, and `--chrome-top` stops paying
+for it on its own. The status bar takes the `theme-color` metas, which are
+`--paper` in both schemes, so it does not seam.
+
+**If a band ever appears again, suspect the shortcut before the CSS.** It is
+off-white in light and navy in dark whatever is causing it — every candidate
+paints in the page's own colour, so the colour identifies nothing. The five:
 
 | what | where | who can fix it |
 |---|---|---|
+| `black-translucent` | the status bar meta — it must be `default` | a deploy, then re-adding the icon |
 | a linked web app manifest | `index.html` — there must not be one | a deploy, then re-adding the icon |
 | `viewport-fit=cover` missing | the viewport meta | a deploy, then re-adding the icon |
-| `apple-mobile-web-app-status-bar-style: black-translucent` missing | its own meta | a deploy, then re-adding the icon |
 | `--kb` lifting the bar when no keyboard is up | `app.js` | a deploy alone |
 | `--bar-bottom` | `tokens.css`, and it is `0px` | a deploy alone |
 
 The first three are read by iOS at Add to Home Screen time and frozen into
 the shortcut, so **fixing them in the repo is only half the job — the icon
 has to be deleted and added again** before the change reaches the phone.
+
+Do not reason about which one it is from a screenshot. `tools/edges.html`
+answers it in one reading, and its verdict line now names the
+black-translucent signature specifically. Three rounds were lost to guessing
+before it existed.
 
 Keep the viewport meta to `viewport-fit=cover` and nothing else. It used to
 also carry `interactive-widget=resizes-content`, which is a Chrome feature
@@ -264,7 +290,7 @@ overflow, where each screen's first line sits relative to the toolbar, that
 the composer reaches the physical bottom edge with nothing under it, that no
 control borrows the system blue, the delete sheet's surface, that the toast
 stays centred through its animation, and that an update-driven reload flushes
-what was being typed and gives the whole journal back afterwards. 136 checks.
+what was being typed and gives the whole journal back afterwards. 137 checks.
 
 **The suite cannot see an edge problem.** It runs in a browser that reports
 no safe-area inset, so it pins our own arithmetic and nothing else — every
@@ -372,11 +398,14 @@ arrow-key support and a roving tabindex.
   not reliably agree by zero on iOS, so `app.js` acts on the difference only
   when something focusable is focused *and* the gap clears `KEYBOARD_MIN`.
   Never set `--kb` straight from a measurement.
-- **The top inset is not the same question.** `env(safe-area-inset-top)` stays
-  in `--chrome-top`. The page already draws *under* the status bar — that is
-  what `black-translucent` buys — and the inset only steps the toolbar buttons
-  and the first line of type out from behind the clock. Removing it does not
-  make the app more full-bleed; it puts the title under the time.
+- **`env(safe-area-inset-top)` stays in `--chrome-top`, and reads 0 today.**
+  Under `default` the status bar has its own space above the web view, so
+  there is no unsafe area inside it and the term costs nothing — the first
+  line sits 76pt down, below a status bar iOS draws in `--paper`. Leave the
+  term in. It is what makes the same stylesheet correct on a device or a
+  future iOS that *does* hand the app that strip, without anyone having to
+  notice the difference. What it must never do is measure the same distance
+  twice: the inset, then a screen header's own top padding on top of it.
 - **No borrowed system blue.** iOS supplies three highlights of its own and
   the app suppresses all three: the tap flash (`-webkit-tap-highlight-color`,
   declared on `html` so links and form controls inherit it — they do not
