@@ -128,28 +128,25 @@
      into the pad reads fine at rest and then, the moment you scroll and the
      toolbar turns to glass, hands you a 90px pane of it.
 
-     At the bottom there is NOTHING. --bar-bottom is zero: the composer's
-     lower edge is the phone's lower edge, and the home indicator draws
-     across it the way it draws across Apple's own bottom bars. There is no
-     env(safe-area-inset-bottom) anywhere in this app and there must not be —
-     that inset reserves the whole 34pt band around the indicator, and any
-     fraction of it under the bar leaves the composer hovering up the page.
+     At the bottom, --bar-bottom is the home indicator's own band and not a
+     pixel more. The composer is a floating capsule, so it clears the
+     indicator rather than sharing it: that band is a live gesture target,
+     and a 44pt control overlapping it hands its lower third to the system.
 
-     What that costs: the bottom ~20pt of the pill is inside the swipe-up
-     strip, where iOS can take the first touch as the start of a gesture. The
-     upper two thirds of a 44pt target are still clear of it, and the pill is
-     full-width, so there is always somewhere to land.
+     max(), NEVER a sum. The inset IS the clearance — adding our own pad on
+     top of it is what floats the bar a thumb's width up the page. On a
+     device that has no indicator the inset is 0 and the 12pt takes over, so
+     the capsule still never sits on the glass edge.
 
-     Do not put an inset back at the bottom, and do not reintroduce a pad
-     below the bar. Both are the same bug wearing different numbers.        */
+     This was 0px for exactly one deploy, while the bottom of the screen was
+     being hunted. It was never the cause — read the note on the status bar
+     meta in index.html, which is where the missing 59pt actually went. With
+     that fixed the app genuinely owns the bottom edge, and the only reason
+     to hold the bar off it is this one.                                    */
   --toolbar-pad: var(--s-2);   /* air above and below the toolbar buttons  */
   --chrome-air:  var(--s-4);   /* …and between the bar and the first line  */
   --bar-pad:     var(--s-3);   /* air above the composer…                  */
-  /* Zero, but 0px and not 0: --bar-h adds this inside a calc(), where a
-     bare <number> is not a <length> and poisons the whole expression —
-     which silently takes --chrome-bottom, and every screen's padding
-     shorthand, down with it. */
-  --bar-bottom:  0px;          /* …and none at all below it                */
+  --bar-bottom:  max(var(--s-3), env(safe-area-inset-bottom));
   --toolbar-h: calc(var(--tap) + var(--toolbar-pad) * 2);          /* 60 */
   --bar-h:     calc(var(--tap) + var(--bar-pad) + var(--bar-bottom));
   --chrome-top:    calc(env(safe-area-inset-top) + var(--toolbar-h));

@@ -235,7 +235,7 @@ paints in the page's own colour, so the colour identifies nothing. The five:
 | a linked web app manifest | `index.html` — there must not be one | a deploy, then re-adding the icon |
 | `viewport-fit=cover` missing | the viewport meta | a deploy, then re-adding the icon |
 | `--kb` lifting the bar when no keyboard is up | `app.js` | a deploy alone |
-| `--bar-bottom` | `tokens.css`, and it is `0px` | a deploy alone |
+| `--bar-bottom` | `tokens.css` — the indicator's band via `max()`, never summed with a pad | a deploy alone |
 
 The first three are read by iOS at Add to Home Screen time and frozen into
 the shortcut, so **fixing them in the repo is only half the job — the icon
@@ -290,7 +290,7 @@ overflow, where each screen's first line sits relative to the toolbar, that
 the composer reaches the physical bottom edge with nothing under it, that no
 control borrows the system blue, the delete sheet's surface, that the toast
 stays centred through its animation, and that an update-driven reload flushes
-what was being typed and gives the whole journal back afterwards. 137 checks.
+what was being typed and gives the whole journal back afterwards. 138 checks.
 
 **The suite cannot see an edge problem.** It runs in a browser that reports
 no safe-area inset, so it pins our own arithmetic and nothing else — every
@@ -380,17 +380,24 @@ arrow-key support and a roving tabindex.
   the air around the button *inside* the top bar; the air is the gap between
   that bar and the page's first line. Growing the pad to buy the gap looks
   right at rest and then hands you a 90px slab of glass the moment you scroll.
-- **Nothing goes under the composer bar. `--bar-bottom` is `0px`.** Not our
-  own pad, not `env(safe-area-inset-bottom)`, not a `max()` of the two — that
-  inset reserves the whole 34pt band around the home indicator, and any
-  fraction of it floats the bar a thumb's width up the page. The pill's lower
-  edge is the phone's lower edge and the indicator draws across it, which is
-  what Apple's own bottom bars do. The suite pins this: the bar's
-  `padding-bottom` must be `0`, its rect must reach `innerHeight`, and no
-  stylesheet may mention `safe-area-inset-bottom` at all.
-  (`0px`, never `0` — `--bar-h` adds it inside a `calc()`, where a bare
-  `<number>` is not a `<length>` and quietly invalidates every screen's
-  padding shorthand.)
+- **The composer's floor is the home indicator's band, and nothing more.**
+  `--bar-bottom` is `max(var(--s-3), env(safe-area-inset-bottom))`. The
+  capsule floats, so it *clears* the indicator rather than sharing it — that
+  band is a live gesture target, and a 44pt control overlapping it gives its
+  lower third away to the system. On a device with no indicator the inset is
+  0 and the 12pt takes over, so the capsule never sits on the glass edge.
+  **`max()`, never a sum.** The inset *is* the clearance; adding our own pad
+  on top of it is what floats the bar a thumb's width up the page. The suite
+  pins all of it: the bar element's rect must still reach `innerHeight`, the
+  capsule must clear the edge by exactly `padding-bottom`, and
+  `safe-area-inset-bottom` may appear in exactly one declaration, inside a
+  `max()`.
+  This was `0px` for one deploy while the bottom of the screen was being
+  hunted. **It was never the cause** — see the status bar note above. Do not
+  reach for it again when an edge looks wrong; reach for `tools/edges.html`.
+  (Whatever the value, a bare `0` is not one — `--bar-h` adds it inside a
+  `calc()`, where a `<number>` is not a `<length>` and quietly invalidates
+  every screen's padding shorthand. `0px` if it ever must be zero.)
 - **`--kb` is a keyboard, not a measurement.** Both `.bar` and `.screen` sit
   on it, so any stray value lifts the composer off the bottom edge and leaves
   a band of bare `--paper` under it — which looks exactly like iOS padding

@@ -807,11 +807,7 @@
   z-index: calc(var(--z-sheet) + 1);
   left: max(var(--gutter), env(safe-area-inset-left));
   right: max(var(--gutter), env(safe-area-inset-right));
-  /* The composer's floor is now the screen's own edge, and a card with four
-     rounded corners cannot stand there — the bottom two would be cut off by
-     the edge of the phone. So the sheet keeps the bar's own pad under it.
-     It is a card, not chrome: it is on screen for one tap. */
-  bottom: var(--bar-pad);
+  bottom: var(--bar-bottom);   /* the same floor the composer stands on */
   max-width: var(--measure);
   margin: 0 auto;
   padding: var(--s-2);

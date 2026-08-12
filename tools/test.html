@@ -298,8 +298,11 @@ async function run() {
      '--chrome-bottom is exactly what the composer bar covers',
      `chrome-bottom ${Math.round(innerPadBottom - s12)} vs bar ${Math.round(barBox)}`);
 
-  ok(parseFloat(cs($('#bar')).paddingBottom) === 0,
-     'the composer bar has no padding beneath it at all',
+  /* The bar's floor is the home indicator's band, via max() and never a sum.
+     This browser reports no inset, which is the case worth pinning: the
+     max() has to fall through to --s-3 rather than collapsing to nothing. */
+  ok(parseFloat(cs($('#bar')).paddingBottom) === 12,
+     'with no home indicator the bar stands on --s-3, not on nothing',
      cs($('#bar')).paddingBottom);
 
   /* Scrolled, the toolbar is the glass — the buttons must drop theirs so the
@@ -366,18 +369,26 @@ async function run() {
 
   noOverflow('list');
 
-  /* NOTHING SITS UNDER THE COMPOSER. Not our own pad, not a safe-area inset,
-     not a fraction of one: the pill's lower edge is the screen's lower edge.
-     Anything under it floats the bar up the page, which is the complaint this
-     section exists to keep from coming back. Measured on the list, where the
-     bar is actually on screen — while reading, it is translated 120% away. */
+  /* The bar element itself reaches the physical bottom edge — it is its own
+     padding, never a gap under it, that holds the capsule off the indicator.
+     If the BAR stops short, something outside our CSS is insetting the app
+     and tools/edges.html is the instrument for that, not this file.
+     Measured on the list, where the bar is actually on screen — while
+     reading, it is translated 120% away. */
   const flushToBottom = (sel, label) => {
     const bottom = $(sel).getBoundingClientRect().bottom;
     ok(Math.abs(bottom - win.innerHeight) <= 1, label,
        `${Math.round(bottom)} vs viewport ${win.innerHeight}`);
   };
   flushToBottom('#bar', 'the bar reaches the physical bottom of the screen');
-  flushToBottom('.compose', 'and so does the composer pill itself');
+
+  /* And the capsule sits exactly its floor above that edge — the pad and the
+     inset must not stack, which is the failure the max() exists to prevent. */
+  const floor = parseFloat(cs($('#bar')).paddingBottom);
+  const pillGap = win.innerHeight - $('.compose').getBoundingClientRect().bottom;
+  ok(Math.abs(pillGap - floor) <= 1,
+     'the capsule clears the edge by its floor exactly, with nothing stacked',
+     `gap ${Math.round(pillGap)} vs --bar-bottom ${floor}`);
 
   /* --kb lifts BOTH the bar and the scroll pane, so a stray value leaves a
      band of bare --paper under the composer — which is what iOS padding the
@@ -419,15 +430,19 @@ async function run() {
      'the app keeps its name');
   ok(/rel="apple-touch-icon"/.test(head), 'and its icon');
 
-  /* Belt and braces on the rule itself, not just this render: no stylesheet
-     may reach for the home-indicator inset at all. Comments stripped first —
-     tokens.css names it in the doctrine that forbids it. */
+  /* Belt and braces on the rule itself, not just this render. The inset is
+     the clearance, so it may be reached for exactly once, inside a max().
+     A sum is the bug: pad plus inset floats the bar a thumb's width up.
+     Comments stripped first — tokens.css discusses both forms. */
   const sheets = (await Promise.all(['tokens', 'base', 'app']
     .map((n) => fetch(`../css/${n}.css`).then((r) => r.text()))))
     .join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
-  ok(!/safe-area-inset-bottom/.test(sheets),
-     'no stylesheet reaches for the home-indicator inset',
-     (sheets.match(/.*safe-area-inset-bottom.*/) || [''])[0].trim());
+  const insetUses = sheets.match(/[^;{}]*safe-area-inset-bottom[^;{}]*/g) || [];
+  ok(insetUses.length === 1, 'the home-indicator inset is consulted in exactly one place',
+     `${insetUses.length}: ${insetUses.map((s) => s.trim()).join(' | ')}`);
+  ok(insetUses.every((use) => /max\(/.test(use)),
+     'and only inside a max(), never summed with a pad of our own',
+     insetUses.map((s) => s.trim()).join(' | '));
 
   /* Every screen begins at the same line — one step of --chrome-air below the
      toolbar — so the three of them agree about where a page starts. It is the
