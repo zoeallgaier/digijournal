@@ -52,6 +52,15 @@ js/ui.js            el(), icon(), dates, toast, menu — the shared vocabulary
 js/home.js          the list
 js/entry.js         reading and writing one entry  ← the subtle file
 js/calendar.js      the month, coloured by mood
+js/account.js       signing in, and what sync is doing — the only screen in
+                    the app that knows there is a server
+js/config.js        the Supabase URL and anon key. Both are public by design;
+                    the RLS policy is what makes that safe
+js/net.js           Supabase over plain fetch — the five requests, by hand,
+                    so the app still has no dependencies
+js/sync.js          the journal on more than one device
+supabase/schema.sql the entire server side: one table, one policy. Not served
+                    to anyone — it is run once in the Supabase SQL editor
 tools/test.html     the headless suite (see Testing)
 tools/edges.html    what the phone will actually give the app — add it to the
                     homescreen and screenshot it when an edge is wrong. It
@@ -62,7 +71,7 @@ tools/edges.html    what the phone will actually give the app — add it to the
 ### The data model
 
 ```js
-{ id, title, body, mood, day, createdAt, updatedAt, published }
+{ id, title, body, mood, day, createdAt, updatedAt, published, deletedAt }
 ```
 
 `day` is the calendar day the entry is **about**, fixed at creation.
@@ -74,6 +83,19 @@ A **draft** is `published: false`. It is not a separate species — it is a row
 in the list with a quiet flag on it. An untouched draft (no title, no body, no
 mood) is swept away when you leave it, so tapping "Start writing…" and
 changing your mind leaves nothing behind.
+
+**`deletedAt` is what sync cost the model.** Deleting no longer removes the
+entry from the array — it blanks the text and stamps `deletedAt`, leaving a
+**tombstone**. Every read in `store.js` goes through `live()`, so a deleted
+entry is gone from the list, the calendar and `get()` exactly as before; what
+changed is that there is now a row saying *it was deleted* rather than the
+entry simply being absent. Without one, the iPad still holds the entry, sees
+the phone doesn't, and helpfully sends it back on the next round.
+
+Tombstones are swept for good after `DELETED_TTL` (90 days) — long past when
+a phone could plausibly have been in a drawer since before the deletion.
+The one hard delete left is `discardIfEmpty()`, and it is safe because an
+empty unpublished draft is never pushed in the first place (see `pushable()`).
 
 ### Reading and editing are one screen
 
@@ -101,7 +123,17 @@ editing.
 | what | where | durable? |
 |---|---|---|
 | every entry | `localStorage['digijournal.v1']` | **no** |
+| every entry, again | Supabase, once signed in | yes |
+| the session | `localStorage['digijournal.session']` | no, and fine |
+| the sync watermarks | `localStorage['digijournal.sync']` | no, and fine |
 | the app itself | files in the repo, cached by `sw.js` | yes |
+
+The second row arrived on 12 Aug 2026 and is what closes the hole the rest of
+this section describes. **It does not change the first row.** localStorage is
+still what every screen reads and writes; Supabase is a mirror `sync.js`
+pushes to and pulls from behind the screen that is already up. Nothing on the
+writing path waits for a network, and signed out the app is exactly what it
+was before any of it existed.
 
 iOS treats script-written storage as reclaimable: Safari clears it after
 roughly seven days without opening the app, "Clear Website Data" takes it
@@ -120,19 +152,26 @@ stranger who is only looking at the URL. Safari does not implement it today,
 so on the phone it is a no-op that costs nothing and starts working the day
 it isn't. **Do not describe it as a fix.**
 
-**There is no longer a way to get the journal off the phone.** Export and
-import were removed on 11 Aug 2026 at Zoe's request, along with the ⋯ menu
-that held them — the list's toolbar is deliberately empty now. What that
-costs: if iOS sweeps the storage, or the phone is lost or replaced, the
-entries are gone, and moving to a new phone starts an empty journal.
+**Signing in is what makes any of that survivable.** Once there is a session,
+every entry is mirrored to Supabase, so a swept storage, a lost phone or a new
+one all end the same way: sign in, and the journal comes back. Signed out,
+everything above still applies in full and the entries live on one device
+alone.
 
-`store.exportBundle()` and `store.importBundle()` survive in `store.js` and
-the suite still covers them, including the merge rule that keeps whichever
-copy of an entry was edited later. So restoring the feature is a menu and two
-handlers, not a rewrite — but do not add it back on your own initiative.
+Export and import were removed from the UI on 11 Aug 2026 at Zoe's request,
+along with the ⋯ menu that held them. `store.exportBundle()` and
+`store.importBundle()` survive in `store.js` and the suite still covers them
+— restoring the feature is a menu and two handlers, not a rewrite. Do not add
+it back on your own initiative.
 
-**Entries never leave the browser they were written in.** There is no server.
-The repo ships the app, never the journal.
+**Entries do leave the phone now, and that is the point.** What that costs
+her, said plainly and not buried: the journal exists on Supabase's servers,
+readable in their dashboard by anyone holding that account. Protecting the
+Supabase login is now as load-bearing as the phone's passcode. The alternative
+— end-to-end encryption — was offered and declined on 12 Aug 2026, because a
+forgotten passphrase would have meant the journal was gone with no reset.
+
+**The repo still ships the app, never the journal.** No entry is ever in git.
 
 ---
 
@@ -146,13 +185,60 @@ tools.
 
 **What that costs: anyone holding the unlocked phone can read the journal.**
 That was the one real risk the gate addressed, and it is now the phone's
-passcode's job alone. Nothing else changed — entries were never in the repo
-or on a server, so a stranger who finds the URL still sees an empty journal,
-their own.
+passcode's job alone. A stranger who finds the URL still sees an empty
+journal, their own — entries are not in the repo, and the RLS policy means
+the shipped key cannot reach anyone else's.
 
-Do not add it back on your own initiative. If it is ever wanted again, it is
-one module and one `await` in `boot()`; `git show 3e2f1f3:js/gate.js` has the
-last version, password `digijournal`.
+**Sync did not put the gate back, and must not be allowed to.** There is now
+a password field in the app, on `#/account`, and it is a door rather than a
+gate: a cold launch still opens straight onto the list whether or not anyone
+has ever signed in. Four checks in the suite hold that line — if a change
+ever makes `boot()` await a session, they are the ones that will fail, and
+they are right and the change is wrong.
+
+Do not add the gate back on your own initiative. If it is ever wanted again,
+it is one module and one `await` in `boot()`; `git show 3e2f1f3:js/gate.js`
+has the last version, password `digijournal`.
+
+---
+
+## Syncing
+
+Added 12 Aug 2026. The project is `uwfskykrayezjcazmlrw`; `supabase/schema.sql`
+is the whole server side and has been run.
+
+**RLS is the only lock there is.** The anon key ships in `js/config.js`, in a
+public repo, and anyone can read it out of the running page in ten seconds.
+That is safe for exactly one reason: the policy scopes every row to
+`auth.uid()`, so the key gets a stranger as far as "prove who you are" and no
+further. Measured against the live project, not assumed — an anonymous read
+returns `[]`, an anonymous write is refused with `42501`, and signups are
+closed. **If that policy is ever dropped, the key becomes a skeleton key to
+every entry.** Two checks in the suite guard the schema file and two more
+guard the key itself; `service_role` must never appear in the repo.
+
+**Last edit wins, per entry.** The same rule `importBundle` always used, and
+the only one that behaves after a phone has been offline. What it costs:
+editing the *same* entry on two devices while one is offline loses the older
+edit, silently. Underneath it is an assumption about clock skew — `updatedAt`
+is written by whichever device made the edit — which `SKEW` (2 minutes) is
+sized to absorb.
+
+**The open entry is never overwritten.** `app.js` tells `sync.js` which entry
+is mounted and `mergeRemote` steps over it. Without that, a round landing
+mid-sentence replaces the paragraph under the caret with the server's older
+copy and the next keystroke is typed into it.
+
+Three smaller things worth not rediscovering:
+
+- **`sw.js` never sees a Supabase request** — it returns early on any
+  cross-origin URL, so nothing about sync is cached or replayed.
+- **Push watermarks advance past pulled rows.** A row that arrived *from* the
+  server is already on it; without `pushedThrough` moving past it, every round
+  echoes the other device's entries straight back.
+- **A different account clears the journal first.** The entries in storage
+  belong to whoever was signed in before, and merging one person's journal
+  into another's account is the worst bug this app could have.
 
 ---
 
@@ -290,7 +376,16 @@ overflow, where each screen's first line sits relative to the toolbar, that
 the composer reaches the physical bottom edge with nothing under it, that no
 control borrows the system blue, the delete sheet's surface, that the toast
 stays centred through its animation, and that an update-driven reload flushes
-what was being typed and gives the whole journal back afterwards. 138 checks.
+what was being typed and gives the whole journal back afterwards.
+
+Sync added a second half: that a delete leaves a tombstone the app never shows
+and sync always pushes, that the later edit wins from either direction, that a
+deletion cannot be undone by an older copy, that a round landing mid-sentence
+leaves the open entry alone, that an untouched draft is never pushed, that the
+sync screen is a door off the list rather than a gate in front of it, that the
+shipped key decodes to `role: anon`, that `schema.sql` still enables RLS with
+both `using` and `with check`, that every import is still a relative file in
+this repo, and that a different account starts empty. **177 checks.**
 
 **The suite cannot see an edge problem.** It runs in a browser that reports
 no safe-area inset, so it pins our own arithmetic and nothing else — every
@@ -309,6 +404,22 @@ harness and a POST hook that touches a stylesheet: an unchanged deploy does
 not reload, a changed one does, and one that arrives while the caret is in a
 field waits until the field is blurred.
 
+**The suite never signs in and never touches the network.** It exercises the
+sync *rules* — tombstones, the merge, the guard, the watermarks — against the
+store directly, which is where the logic that can be wrong actually lives. It
+cannot tell you the policy on the live project is correct. That was measured
+separately with curl, and is worth repeating after any change to
+`schema.sql`: an anonymous read must return `[]`, and an anonymous insert must
+be refused with `42501`.
+
+```sh
+URL=https://uwfskykrayezjcazmlrw.supabase.co; KEY=<the anon key from config.js>
+curl -s "$URL/rest/v1/entries?select=id&limit=5" -H "apikey: $KEY"     # []
+curl -s -X POST "$URL/rest/v1/entries" -H "apikey: $KEY" \
+  -H 'Content-Type: application/json' -d '[{"id":"probe","user_id":"00000000-0000-0000-0000-000000000000","day":"2026-08-12","created_at":1,"updated_at":1}]'
+# {"code":"42501", ... "violates row-level security policy" ...}
+```
+
 **It erases this browser's journal before it runs**, so it does nothing until
 told: open it and press the button, or load it with `?run=1`.
 
@@ -319,10 +430,26 @@ python3 -m http.server 8777 --bind 127.0.0.1   # then open:
 
 Headless, it posts its results to a server that accepts POST — the plain
 `http.server` above will 501 the beacon, so read the results in a browser
-unless you stand up something that accepts it. **Run headless Chrome with a
-throwaway `--user-data-dir` each time.** Reusing one serves `test.html` from
-Chrome's own HTTP cache, and you will spend an hour reading the results of
-the edit before last.
+unless you stand up something that accepts it (twenty lines of
+`socketserver`, with `allow_reuse_address` or the second run dies on the port
+the first one is still holding).
+
+**Never launch Zoe's Chrome.** She works with tabs open and a headless run out
+of `/Applications/Google Chrome.app` is not worth the risk of disturbing them.
+Use the Playwright headless shell already on the machine, which is a wholly
+separate binary:
+
+```
+~/Library/Caches/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-mac-arm64/chrome-headless-shell
+```
+
+Two things about driving it. **Give it a throwaway `--user-data-dir` each
+time** — reusing one serves `test.html` from its own HTTP cache and you will
+spend an hour reading the results of the edit before last. And **do not use
+`--virtual-time-budget`**: it kills the page before an async suite full of
+real `await`s and real fetches has finished, and you get silence rather than a
+failure. Launch it in the background, poll the results file for the verdict
+line, then kill it.
 
 ---
 

@@ -257,6 +257,11 @@ export function view(params, api) {
 
   return {
     node,
+    /* Which entry is open, so sync.js can refuse to overwrite it. A round
+       landing mid-sentence would otherwise replace the paragraph under the
+       caret with the server's older copy, and the next keystroke would be
+       typed into it. See the note at the top of sync.js. */
+    entryId: entry.id,
     /* The toolbar title only appears once the big title has scrolled away,
        so it tracks whatever is currently typed. */
     get title() {

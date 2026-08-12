@@ -6,9 +6,10 @@
    the day was rated, sits as a dot on the title line.
    ========================================================================= */
 
-import { el, shortDate, excerpt } from './ui.js';
+import { el, iconButton, shortDate, excerpt } from './ui.js';
 import * as store from './store.js';
 import { moodLabel } from './store.js';
+import * as sync from './sync.js';
 
 /** Apple Notes' rule, which is the right one: if you never typed a title,
  *  the first line of what you wrote is the title. */
@@ -62,8 +63,23 @@ function subtitle(entries) {
   return n ? `${total} · ${n} this month` : total;
 }
 
+/* The state has to reach someone who can't see the icon's tone, so it is in
+   the name rather than only in the colour. */
+function syncLabel(status) {
+  if (status === 'off')     return 'Sync — not signed in';
+  if (status === 'syncing') return 'Sync — syncing now';
+  if (status === 'offline') return 'Sync — no connection';
+  if (status === 'error')   return 'Sync — needs attention';
+  return 'Sync — up to date';
+}
+
 export function view(_params, api) {
   const entries = store.all();
+
+  /* Repaint the cloud when a round finishes, so the label is never describing
+     a sync that ended five minutes ago. */
+  const onSync = () => api.refreshToolbar();
+  window.addEventListener('dj:sync', onSync);
 
   const node = el('div.screen-inner',
     el('header.home-head',
@@ -83,7 +99,20 @@ export function view(_params, api) {
     node,
     title: 'Journal',
     bar: 'compose',
-    /* Nothing in the toolbar: the list has no action that isn't already a
-       tap on a row, and an empty top is the point of the screen. */
+    /* The list's one control, and it is a door rather than an action: it goes
+       to the sync screen. Everything you can do TO the journal is still a tap
+       on a row or the composer — this is the only thing in the app that is
+       about somewhere other than this phone, so it is the only thing that
+       earned a place up here. It carries a tone only when something needs
+       looking at; the rest of the time it is as quiet as the empty toolbar
+       it replaced. */
+    get toolbarRight() {
+      const { status } = sync.state();
+      return iconButton('cloud', syncLabel(status), () => api.go('#/account'),
+        status === 'error' ? { 'data-tone': 'danger' } : {});
+    },
+    onLeave() {
+      window.removeEventListener('dj:sync', onSync);
+    },
   };
 }

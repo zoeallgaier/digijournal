@@ -772,6 +772,111 @@
   color: var(--ink-3);
 }
 
+/* -------------------------------------------------------------- account --
+   The one screen that is about somewhere other than this phone. It is set
+   like a page rather than a control panel: running text at reading weight,
+   the same big Black title every screen opens with, and no small all-caps
+   anywhere near it. */
+
+/* No top padding, like every other screen header — .screen-inner has already
+   paid for the toolbar. */
+.account-head { padding: 0 0 var(--s-2); }
+.account-title {
+  font-size: var(--t-display);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-display);
+  line-height: var(--lh-tight);
+}
+
+.account-note {
+  margin-top: var(--s-4);
+  font-size: var(--t-callout);
+  font-weight: var(--w-light);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+}
+
+.account-email {
+  margin-top: var(--s-6);
+  font-size: var(--t-headline);
+  font-weight: var(--w-bold);
+  /* An address is one long unbreakable word to a line-breaker, and a narrow
+     phone is exactly where it would otherwise run off the edge. */
+  overflow-wrap: anywhere;
+}
+.account-status {
+  margin-top: var(--s-1);
+  font-size: var(--t-foot);
+  font-weight: var(--w-regular);
+  color: var(--ink-3);
+  line-height: var(--lh-snug);
+}
+.account-status[data-tone='problem'] { color: var(--danger); }
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-6);
+}
+/* The same capsule as the composer's publish state — this is the one other
+   place in the app with a primary action sitting in the page. */
+.account-btn {
+  min-height: var(--tap);
+  padding: 0 var(--s-5);
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: var(--t-subhead);
+  font-weight: var(--w-bold);
+  transition: transform var(--d-fast) var(--ease);
+}
+.account-btn:active { transform: scale(var(--press-wide)); }
+/* Sign out is not destructive — you can sign straight back in and nothing on
+   either side is lost — so it is quiet rather than red. Red here would be
+   claiming a consequence the action does not have. */
+.account-btn[data-tone='quiet'] {
+  background: var(--paper-sunk);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.account-form { margin-top: var(--s-6); }
+
+.field-label {
+  display: block;
+  margin-bottom: var(--s-2);
+  font-size: var(--t-foot);
+  font-weight: var(--w-medium);
+  color: var(--ink-2);
+}
+.field-label + .field { margin-bottom: var(--s-5); }
+
+/* A sunk well, not a bordered box. --t-body is 17px and that is not a style
+   choice: iOS zooms the whole page in on a focused field set below 16px, and
+   a page that jumps on the first tap of a password is the app losing its
+   footing at the worst moment. */
+.field {
+  display: block;
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--paper-sunk);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  font-size: var(--t-body);
+  font-weight: var(--w-light);
+  line-height: var(--lh-snug);
+}
+
+.account-problem {
+  font-size: var(--t-foot);
+  font-weight: var(--w-regular);
+  color: var(--danger);
+  line-height: var(--lh-snug);
+}
+.account-problem:empty { display: none; }
+
 /* ----------------------------------------------------------------- menu -- */
 
 /* The scrim is where the blur belongs — it is the layer with the journal
@@ -883,4 +988,6 @@
   .cal-day:not([data-mood]):hover { background: var(--paper-sunk); }
   .compose:hover { color: var(--ink-2); }
   .compose[data-mode='publish']:hover { filter: brightness(1.06); color: var(--accent-ink); }
+  .account-btn:hover { filter: brightness(1.06); }
+  .account-btn[data-tone='quiet']:hover { background: var(--hairline-2); filter: none; }
 }

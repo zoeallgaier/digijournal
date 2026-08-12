@@ -45,12 +45,20 @@ async function run() {
 
   /* ---------------------------------------------------------- 1. the launch
      Nothing stands between the icon and the journal. There is no gate, and
-     no field anywhere in the app asking for a password. */
+     nothing on the way in asks for a password.
+
+     Sync did not change this, and the last two checks are what hold it to
+     that: signing in is a screen you can go to, never one you have to get
+     past. The sync screen has a password field of its own — see section 11 —
+     but a cold launch must never be looking at it. */
+  localStorage.removeItem('digijournal.session');
+  localStorage.removeItem('digijournal.sync');
   await load('../index.html');
   await until(() => $('.home-title'));
   ok(!!$('.home-title'), 'a cold launch opens straight onto the list');
   ok(!$('.gate') && !$('#gate-input'), 'no password screen stands in the way');
-  ok(!$('input[type="password"]'), 'the app asks for no password anywhere');
+  ok(!$('input[type="password"]'), 'nothing on the way in asks for a password');
+  ok(!$('.account-form'), 'and signing in is not what the app opens on');
   ok($('.empty h2')?.textContent === 'Nothing written yet', 'empty state shown');
 
   /* ------------------------------------------------------ 2. write & publish */
@@ -556,6 +564,78 @@ async function run() {
      `centre ${Math.round(centreOf(t))} vs ${Math.round(f.contentWindow.innerWidth / 2)}`);
   ok(!S().get('L1'), 'the entry is gone');
 
+  /* ------------------------------------------------ 10. deleting, with a
+     second device in the world
+
+     Sync turned delete into a tombstone. The entry vanishes from every screen
+     exactly as before, but a row stays behind saying it went — without that,
+     the iPad still holds the entry, notices the phone doesn't, and helpfully
+     sends it back on the next round. */
+  ok(!S().get('L1'), 'a deleted entry is gone from the app');
+  ok(!S().all().some((e) => e.id === 'L1'), 'and out of the list');
+  ok(![...S().byDay().values()].some((e) => e.id === 'L1'), 'and off the calendar');
+
+  const tomb = S().pushable(0).find((e) => e.id === 'L1');
+  ok(!!tomb, 'but a tombstone is still there for sync to push');
+  ok(tomb && tomb.deletedAt > 0, 'which records when it went');
+  ok(tomb && tomb.title === '' && tomb.body === '',
+     'and carries none of the words — a server stops holding what you deleted');
+
+  /* ---------------------------------------------- 11. two devices, one entry
+     Last edit wins, per entry. Everything below is that one rule seen from
+     each side, because it is the only thing keeping two phones convergent. */
+  const T = Date.now();
+  const remote = (patch) => ({
+    id: 'SYNC1', title: '', body: '', mood: null, day: '2026-08-01',
+    createdAt: T - 9000, updatedAt: T, published: true, deletedAt: null, ...patch,
+  });
+
+  S().importBundle({ app: 'digijournal', schema: 1, entries: [
+    { id: 'SYNC1', title: 'Written here', body: 'on the phone', mood: 3,
+      day: '2026-08-01', createdAt: T - 9000, updatedAt: T - 5000, published: true },
+  ] });
+  ok(S().get('SYNC1').title === 'Written here', 'an entry exists on this device');
+
+  S().mergeRemote([remote({ title: 'Edited on the iPad', updatedAt: T - 1000 })]);
+  ok(S().get('SYNC1').title === 'Edited on the iPad',
+     'a copy edited more recently elsewhere wins', S().get('SYNC1').title);
+
+  S().mergeRemote([remote({ title: 'A stale copy', updatedAt: T - 8000 })]);
+  ok(S().get('SYNC1').title === 'Edited on the iPad',
+     'and an older one cannot roll it back', S().get('SYNC1').title);
+
+  /* A tombstone travels the same way any other edit does. */
+  S().mergeRemote([remote({ updatedAt: T, deletedAt: T })]);
+  ok(!S().get('SYNC1'), 'a deletion made on another device lands here too');
+  S().mergeRemote([remote({ title: 'Back from the dead', updatedAt: T - 2000 })]);
+  ok(!S().get('SYNC1'), 'and a copy older than the deletion cannot undo it');
+
+  /* THE ONE ENTRY SYNC MAY NOT TOUCH. A round landing mid-sentence must not
+     replace the paragraph under the caret with the server's copy of it —
+     app.js names the open entry, and the merge steps over it. */
+  const open = S().create('2026-08-02');
+  S().update(open.id, { title: 'Being typed right now' });
+  S().mergeRemote(
+    [remote({ id: open.id, title: 'From the server', updatedAt: Date.now() + 60000 })],
+    { skip: open.id });
+  ok(S().get(open.id).title === 'Being typed right now',
+     'a sync landing mid-sentence leaves the open entry alone',
+     S().get(open.id).title);
+  /* …and stays skipped only while it is open: with no guard, the newer copy
+     wins like anything else. */
+  S().mergeRemote([remote({ id: open.id, title: 'From the server', updatedAt: Date.now() + 60000 })]);
+  ok(S().get(open.id).title === 'From the server',
+     'once it is closed, the ordinary rule applies again');
+
+  /* An abandoned "Start writing…" must not become a blank row on the server,
+     which is also why discarding one needs no tombstone. */
+  const blank = S().create();
+  ok(!S().pushable(0).some((e) => e.id === blank.id), 'an untouched draft is never pushed');
+  S().update(blank.id, { body: 'a word' });
+  ok(S().pushable(0).some((e) => e.id === blank.id),
+     'and starts syncing the moment a character is typed into it');
+  S().remove(blank.id);
+
   /* ------------------------------------------------------ 12. the update path
      An update reloads the app out from under you. Two things have to hold, or
      it costs an entry: whatever you had typed is in storage BEFORE the page
@@ -600,6 +680,108 @@ async function run() {
   }
   ok(localStorage.getItem('digijournal.v1') !== null,
      'the journal is in localStorage, which no cache operation touches');
+
+  /* ------------------------------------------------------- 13. the sync screen
+     A door off the list, never a gate in front of it. */
+  f.contentWindow.location.hash = '#/';
+  await until(() => $('.home-title'));
+  await wait(200);
+
+  const cloud = $('.toolbar .icon-btn[aria-label^="Sync"]');
+  ok(!!cloud, 'the list has exactly one control, and it is the way to sync');
+  ok($$('.toolbar .icon-btn').length === 1, 'and only that one',
+     $$('.toolbar .icon-btn').map((b) => b.getAttribute('aria-label')).join());
+  /* The state has to reach someone who cannot see the icon's tone. */
+  ok(/not signed in/.test(cloud.getAttribute('aria-label')),
+     'whose name carries the state, not just its colour', cloud.getAttribute('aria-label'));
+
+  cloud.click();
+  await wait(350);
+  ok(f.contentWindow.location.hash === '#/account', 'it opens the sync screen',
+     f.contentWindow.location.hash);
+  ok(!!$('.account-form'), 'signed out, the screen is a sign-in form');
+  ok(!!$('input[type="password"]'), 'and this is the one place that asks for a password');
+  ok($('.compose').textContent === 'Sign in',
+     'the composer bar takes the primary action, as it does for Publish',
+     $('.compose').textContent);
+  ok($('.compose').disabled === true, 'which is disabled until there is something to send');
+
+  type($('#account-email'), 'someone@example.com');
+  await wait(80);
+  ok($('.compose').disabled === true, 'still disabled with only an email');
+  type($('#account-password'), 'not-the-real-one');
+  await wait(80);
+  ok($('.compose').disabled === false, 'and live once both fields are filled');
+
+  /* iOS zooms the page in on a focused field set below 16px. A page that
+     jumps on the first tap of a password is the app losing its footing at
+     the worst possible moment. */
+  ok(parseFloat(cs($('#account-password')).fontSize) >= 16,
+     'the fields are 16px or more, so focusing one does not zoom the page',
+     cs($('#account-password')).fontSize);
+
+  f.contentWindow.history.back();
+  await wait(400);
+  ok(!!$('.home-title'), 'backing out returns to a journal that never needed it');
+  ok(!$('input[type="password"]'), 'and no password field survives on the list');
+
+  /* --------------------------------------------- 14. the key, and the lock
+     The anon key ships inside the app, in a public repo. That is safe for
+     exactly one reason: the row-level security policy. These four checks are
+     the only automated thing standing between a slip and a public journal. */
+  /* Comments first, always. These files DISCUSS service_role and imports at
+     length precisely because both matter — reading the prose as if it were
+     code is how a check like this cries wolf. */
+  const stripJS = (src) => src
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  const cfgSrc = stripJS(await (await fetch('../js/config.js')).text());
+  const jwt = (cfgSrc.match(/eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+/) || [''])[0];
+  ok(!!jwt, 'config.js carries a key');
+  let claims = {};
+  if (jwt) {
+    const b64 = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    claims = JSON.parse(atob(b64 + '='.repeat((4 - b64.length % 4) % 4)));
+  }
+  /* service_role bypasses RLS by design. Pasted here it would make every
+     entry readable by anyone who views source. */
+  ok(claims.role === 'anon', 'and it is the anon key, never service_role', `role=${claims.role}`);
+  ok(!/service_role/.test(cfgSrc), 'the service_role key appears nowhere in the app');
+
+  const schemaSrc = await (await fetch('../supabase/schema.sql')).text();
+  ok(/enable row level security/i.test(schemaSrc), 'the table has row-level security switched on');
+  ok(/using\s*\(auth\.uid\(\)\s*=\s*user_id\)/i.test(schemaSrc),
+     'with a policy scoping every row to whoever owns it');
+  ok(/with check\s*\(auth\.uid\(\)\s*=\s*user_id\)/i.test(schemaSrc),
+     'on writes as well as reads — a policy without this lets anyone write into your journal');
+
+  /* --------------------------------------- 15. still no dependencies at all
+     Supabase ships a client library; this app hand-writes the five requests
+     it needs instead. Having no dependencies is a property of this app, and
+     a CDN import is how that quietly stops being true. */
+  const modules = ['app', 'store', 'ui', 'home', 'entry', 'calendar',
+                   'account', 'config', 'net', 'sync', 'update'];
+  const sources = await Promise.all(
+    modules.map((n) => fetch(`../js/${n}.js`).then((r) => r.text()).then(stripJS)));
+  const outsideImports = sources.flatMap((src, i) =>
+    [...src.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)]
+      .map((m) => m[1])
+      .filter((spec) => !spec.startsWith('./'))
+      .map((spec) => `${modules[i]} → ${spec}`));
+  ok(outsideImports.length === 0,
+     'every import is a relative file in this repo', outsideImports.join(', '));
+
+  /* ---------------------------------- 16. one person's journal, one account
+     If a different account ever signs in on this device, the entries in
+     storage belong to whoever was here before. Merging them into the new
+     account would be the worst bug this app could have. Last, because it
+     empties the journal. */
+  ok(S().count() > 0, 'there is a journal here to protect', `${S().count()} entries`);
+  S().clearJournal();
+  ok(S().count() === 0, 'a different account starts empty rather than inheriting');
+  ok(localStorage.getItem('digijournal.sync') === null,
+     'and the sync watermarks go with it, so nothing is pushed into the wrong account');
 
   p('');
   p(failures === 0 ? `ALL PASS (${log.length - 1} checks)` : `${failures} FAILURE(S)`);

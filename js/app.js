@@ -9,10 +9,16 @@
      #/e/<id>            one entry
      #/calendar          this month
      #/calendar/2026-08  a specific month
+     #/account           signing in, and what sync is doing
 
    There is no unlock step: the app opens straight onto the list. Anyone
    holding the phone can read the journal, which is the trade Zoe made on
    12 Aug 2026 — see the storage note in CLAUDE.md.
+
+   SIGNING IN IS NOT AN UNLOCK STEP EITHER. Sync arrived on 12 Aug 2026 and
+   deliberately did not put a form in front of the journal: a cold launch
+   still opens on the list whether or not anyone has ever signed in, and the
+   app is exactly what it was — local only — until someone does.
 
    A view is a plain object: { node, title, bar, toolbarLeft, toolbarRight,
    onLeave, onHide }. `bar` and the toolbar slots may be getters, which is
@@ -24,6 +30,8 @@ import * as store from './store.js';
 import * as home from './home.js';
 import * as entry from './entry.js';
 import * as calendar from './calendar.js';
+import * as account from './account.js';
+import * as sync from './sync.js';
 import { consumeUpdateNotice } from './update.js';
 
 const screenHost = document.getElementById('screen');
@@ -42,10 +50,11 @@ function parse(hash) {
 
   if (head === 'e' && rest[0]) return { name: 'entry', params: { id: rest[0] } };
   if (head === 'calendar')     return { name: 'calendar', params: { month: rest[0] || '' } };
+  if (head === 'account')      return { name: 'account', params: {} };
   return { name: 'home', params: {} };
 }
 
-const VIEWS = { home, entry, calendar };
+const VIEWS = { home, entry, calendar, account };
 
 function go(hash, { replace = false } = {}) {
   if (location.hash === hash) { render(); return; }
@@ -264,8 +273,31 @@ function boot() {
     toast('Could not save — device storage is full', 6000);
   });
 
+  /* Which entry is open, so a sync round cannot overwrite what is being typed
+     into it. The entry screen is the only view that answers. */
+  sync.setGuard(() => current?.entryId ?? null);
+
+  /* Entries that arrived from another device. Only the screens that are a
+     view OF the journal are redrawn — never the entry screen, which may have
+     a caret in it, and never the account screen, which may have half a
+     password in it. Both of those pick the change up when they are next
+     opened, which is the moment they are next correct anyway. */
+  window.addEventListener('dj:sync-changed', () => {
+    if (route?.name !== 'home' && route?.name !== 'calendar') return;
+    /* Keep the reading position: an entry landing from the iPad must not
+       throw the list back to the top under someone's thumb. */
+    const at = screenHost.scrollTop;
+    render();
+    screenHost.scrollTop = at;
+    onScroll();
+  });
+
   trackKeyboard();
   render();
+
+  /* Last, so the first paint never waits on a network. Everything sync does
+     is behind the screen that is already up. */
+  sync.start();
 
   /* Said here rather than in update.js because a toast raised before the
      first screen exists has nothing to sit above and nobody to read it. */

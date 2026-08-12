@@ -62,6 +62,10 @@ const PATHS = {
   next:     ['M10 5l7 7-7 7'],
   go:       ['M5 12h13', 'M12 6l6 6-6 6'],
   trash:    ['M4 7h16', 'M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2', 'M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13'],
+  /* The only mark in the app that refers to somewhere other than this phone.
+     Outline, same 24 grid, same stroke — it is a place to go, not a status
+     light, so it does not fill or pulse. */
+  cloud:    ['M7.6 18.4h9.1a3.7 3.7 0 0 0 .4-7.36 5.6 5.6 0 0 0-10.7-1.42A4.3 4.3 0 0 0 7.6 18.4z'],
 
   /* The five day ratings. No outer circle — the swatch behind the glyph is
      the face. Two dots and a mouth, and only the mouth changes: at 28px an

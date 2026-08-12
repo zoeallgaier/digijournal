@@ -35,6 +35,10 @@ const WATCHED = [
   'js/home.js',
   'js/entry.js',
   'js/calendar.js',
+  'js/account.js',
+  'js/config.js',
+  'js/net.js',
+  'js/sync.js',
   'js/update.js',
   'sw.js',
 ];
