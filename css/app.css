@@ -116,11 +116,13 @@
               box-shadow var(--d-mid) var(--ease),
               backdrop-filter var(--d-mid) var(--ease);
 }
+/* No top specular edge here, unlike every other .glass surface — this pane
+   sits flush against the status bar with no air above it, and that highlight
+   would draw a bright line exactly on the seam, reading as a second bar
+   stacked under the first rather than one continuous blur. */
 .toolbar[data-scrolled='true'] {
   background: var(--glass-tint);
-  box-shadow:
-    inset 0 1px 0 0 var(--glass-edge),
-    0 0.5px 0 0 var(--glass-rim);
+  box-shadow: 0 0.5px 0 0 var(--glass-rim);
 }
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .toolbar[data-scrolled='true'] {
