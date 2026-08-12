@@ -1,9 +1,17 @@
 /* ============================================================================
-   account.js — the one screen that knows there is a server.
+   settings.js — everything about the app that is not an entry.
 
-   Signed out it is a sign-in form; signed in it is a status line and two
-   buttons. Nothing else in the app has an opinion about accounts, which is
-   the point: sync is something the journal does, not something it is.
+   Two things live here and they are deliberately in this order:
+
+     Colour   which of the eight palettes the app is wearing. On this phone
+              only — a palette is a property of the device, not of the
+              journal, so it does not sync and signing out does not undo it.
+     Sync     signed out it is a sign-in form; signed in it is a status line
+              and two buttons.
+
+   Colour first because it is the one that always has something to do. Sync
+   is the deeper of the two and it is the one that can be not configured at
+   all, so it sits underneath rather than greeting you with a password field.
 
    Sign-in is DELIBERATELY NOT A GATE. The app opens straight onto the list
    whether or not anyone has ever signed in, exactly as it did before sync
@@ -14,10 +22,10 @@
    borrows it for Publish. Same capsule, same position, same thumb.
    ========================================================================= */
 
-import { el, iconButton, toast } from './ui.js';
-import * as store from './store.js';
+import { el, icon, iconButton, toast } from './ui.js';
 import * as net from './net.js';
 import * as sync from './sync.js';
+import * as theme from './theme.js';
 import { configured } from './config.js';
 
 /** "just now" / "4 minutes ago" / "at 14:32". Only this screen shows it, so
@@ -47,6 +55,65 @@ export function view(_params, api) {
   const signedIn = net.signedIn();
   const status = el('p.account-status');
   const problem = el('p.account-problem', { role: 'alert' });
+
+  /* -------------------------------------------------------------- colour
+     A radiogroup, the same pattern and the same manners as the mood control
+     on an entry: one tab stop, arrows move within it, and the choice is
+     never carried by colour alone — every swatch is named beside itself and
+     the chosen one takes a tick.
+
+     Each swatch is painted BY the stylesheet, from a data-palette of its
+     own, so this file names the eight and knows none of their colours. That
+     is also why the picker cannot drift out of step with the app: a swatch
+     is showing the same tokens the page would be wearing. */
+
+  const swatchRow = el('div.palette-row', {
+    role: 'radiogroup',
+    'aria-label': 'Colour',
+  });
+
+  const swatches = theme.PALETTES.map(({ id, name }) =>
+    el('button.palette-opt', {
+      type: 'button',
+      role: 'radio',
+      'data-palette': id,
+      onclick: () => choose(id),
+    },
+      el('span.palette-swatch', icon('check')),
+      el('span.palette-name', name),
+    )
+  );
+
+  swatchRow.append(...swatches);
+
+  function paintPalette() {
+    const now = theme.current();
+    swatches.forEach((btn, i) => {
+      const checked = theme.PALETTES[i].id === now;
+      btn.setAttribute('aria-checked', String(checked));
+      /* Roving tabindex: the group is one stop, arrows move within it. */
+      btn.tabIndex = checked ? 0 : -1;
+    });
+  }
+
+  function choose(id, { focus = false } = {}) {
+    theme.set(id);
+    paintPalette();
+    if (focus) swatches[theme.PALETTES.findIndex((p) => p.id === id)]?.focus();
+  }
+
+  swatchRow.addEventListener('keydown', (e) => {
+    const i = theme.PALETTES.findIndex((p) => p.id === theme.current());
+    const last = theme.PALETTES.length - 1;
+    const at = (n) => choose(theme.PALETTES[Math.max(0, Math.min(last, n))].id, { focus: true });
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); at(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); at(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); at(0); }
+    else if (e.key === 'End') { e.preventDefault(); at(last); }
+  });
+
+  paintPalette();
 
   /* --------------------------------------------------------- signed out */
 
@@ -151,41 +218,41 @@ export function view(_params, api) {
 
   const node = el('div.screen-inner',
     el('header.account-head',
-      el('h1.account-title', 'Sync'),
+      el('h1.account-title', 'Settings'),
     ),
 
-    !configured()
-      ? el('p.account-note',
-          'This copy of the app has no Supabase project configured, so the ' +
-          'journal stays on this device only.')
+    el('section.set-section',
+      el('h2.set-title', 'Colour'),
+      swatchRow,
+    ),
 
-    : signedIn
-      ? [
-          el('p.account-note',
-            'This journal is mirrored to your account. Entries written on any ' +
-            'signed-in device appear on the others when the app is opened.'),
-          el('p.account-email', net.currentEmail() || ''),
-          status,
-          actions,
-          el('p.account-note',
-            'Signing out stops the mirroring. The entries already on this ' +
-            'device stay on it, and everything synced so far stays in your ' +
-            'account.'),
-        ]
-      : [
-          el('p.account-note',
-            'Signing in mirrors this journal to your account, so it survives ' +
-            'a lost phone and appears on any other device you sign in on. ' +
-            'Until then the entries live on this device alone.'),
-          form,
-        ],
+    /* No heading of its own: the fields are labelled, the email and the two
+       buttons say what they are. The name is kept for a screen reader, which
+       is the one reader that cannot see the section from its contents. */
+    el('section.set-section', { 'aria-label': 'Sync' },
+
+      /* The only prose left on the screen, and it is a state rather than an
+         explanation: without it this section is empty. */
+      !configured()
+        ? el('p.account-note',
+            'This copy of the app has no Supabase project configured, so the ' +
+            'journal stays on this device only.')
+
+      : signedIn
+        ? [
+            el('p.account-email', net.currentEmail() || ''),
+            status,
+            actions,
+          ]
+        : form,
+    ),
   );
 
   if (signedIn) paint();
 
   return {
     node,
-    title: 'Sync',
+    title: 'Settings',
     get bar() {
       if (signedIn || !configured()) return 'hidden';
       return {

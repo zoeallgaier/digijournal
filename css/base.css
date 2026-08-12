@@ -100,7 +100,9 @@ h1, h2, h3 {
   letter-spacing: var(--tr-title);
 }
 
-a { color: var(--accent); text-decoration: none; }
+/* --accent-deep, not --accent: a mark on paper, not a field to sit on. On
+   Bondi, Tangerine and Lime those are different colours — see tokens.css. */
+a { color: var(--accent-deep); text-decoration: none; }
 
 button {
   font: inherit;
@@ -154,7 +156,7 @@ svg { display: block; fill: none; }
    focus is not ringed (:focus-visible), so taps stay quiet. */
 :focus { outline: none; }
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-deep);
   outline-offset: 2px;
   border-radius: var(--r-sm);
 }

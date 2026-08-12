@@ -20,9 +20,14 @@
 <!-- The status bar takes its colour from the page beneath it, in both
      schemes, so the top of the screen never seams. Scheme-aware, which a
      manifest's single theme_color could never be — see the note below on
-     why there is no manifest. -->
-<meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#101828" media="(prefers-color-scheme: dark)">
+     why there is no manifest.
+
+     These two are the DEFAULT palette, and they are right for the app until
+     js/theme.js runs. It then replaces both with a single meta it keeps in
+     step with --paper, because a Blueberry install needs a blue status bar
+     and no stylesheet can reach that strip of screen. -->
+<meta name="theme-color" content="#F5F4F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151514" media="(prefers-color-scheme: dark)">
 
 <!-- These four are what make the icon a standalone app, and there is
      DELIBERATELY NO <link rel="manifest"> beside them.
@@ -81,6 +86,28 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/app.css">
+
+<!-- The chosen palette, before the first pixel.
+
+     This is the only script in the app that is not a module, and the only
+     code outside js/store.js that touches storage. Both are on purpose. A
+     module is deferred, so it runs after the page has been laid out — which
+     on a Blueberry install means a flash of cream on every single launch.
+     Four inline lines are what buy that frame back.
+
+     It only ever READS, it validates what it finds against the same list
+     tokens.css answers to, and if it were deleted the app would still be
+     correct — js/theme.js sets the same attribute a moment later. Everything
+     else about the palette (the names, the status bar, writing the choice
+     down) is in that module, and the colours are in tokens.css alone. -->
+<script>
+  try {
+    var p = localStorage.getItem('digijournal.palette');
+    if (/^(paper|bondi|blueberry|grape|tangerine|lime|strawberry|graphite)$/.test(p)) {
+      document.documentElement.dataset.palette = p;
+    }
+  } catch (e) { /* private mode: the default palette is a fine answer */ }
+</script>
 </head>
 
 <body>

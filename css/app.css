@@ -192,7 +192,8 @@
   stroke-linejoin: round;
 }
 .icon-btn:active { transform: scale(var(--press)); }
-.icon-btn[data-tone='accent'] { color: var(--accent); }
+/* --accent-deep: a glyph on paper is a mark, not a field. */
+.icon-btn[data-tone='accent'] { color: var(--accent-deep); }
 .icon-btn:disabled { opacity: var(--o-disabled); }
 
 /* Toolbar buttons — back, edit, more — float as their own glass capsules,
@@ -772,15 +773,101 @@
   color: var(--ink-3);
 }
 
-/* -------------------------------------------------------------- account --
-   The one screen that is about somewhere other than this phone. It is set
-   like a page rather than a control panel: running text at reading weight,
-   the same big Black title every screen opens with, and no small all-caps
-   anywhere near it. */
+/* ------------------------------------------------------------- settings --
+   Everything about the app that is not an entry: the palette, and the
+   account. The screen's own Black title, one heading under it for the
+   swatches, and then the account with no heading at all — the fields and the
+   buttons say what they are. No standing prose, and no small all-caps. */
 
 /* No top padding, like every other screen header — .screen-inner has already
    paid for the toolbar. */
 .account-head { padding: 0 0 var(--s-2); }
+
+.set-section + .set-section { margin-top: var(--s-10); }
+
+/* A section heading, and it is a heading rather than a label: the type scale
+   carries it, at the same Black the screen's own title is set in one step
+   down. Never small all-caps — see the house style. */
+.set-title {
+  font-size: var(--t-title-2);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-title);
+  line-height: var(--lh-tight);
+  margin-top: var(--s-6);
+}
+.account-head + .set-section > .set-title { margin-top: var(--s-2); }
+
+/* ------------------------------------------------------------- palette --
+   Eight chips, and each one is a page in miniature. A chip carries its own
+   data-palette, so tokens.css paints it in that palette's paper, its ink and
+   its accent — the swatch is not a picture of the colour scheme, it is the
+   colour scheme, rendered by exactly the declarations the app would use.
+
+   Two columns on a phone, because a name is what tells the palettes apart
+   for anyone who cannot tell the hues apart, and a name does not fit under a
+   44px circle. Colour is never the only channel: the chosen chip takes a
+   ring, a tick and a heavier name. */
+
+.palette-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+}
+
+.palette-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: var(--tap);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-lg);
+  text-align: left;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: transform var(--d-fast) var(--ease),
+              box-shadow var(--d-fast) var(--ease);
+}
+.palette-opt:active { transform: scale(var(--press-wide)); }
+.palette-opt[aria-checked='true'] {
+  box-shadow: inset 0 0 0 var(--ring) var(--accent-deep);
+}
+
+/* The plastic itself. The tick inside it is drawn in --accent-ink, which is
+   the token that already guarantees it reads on this exact field. */
+.palette-swatch {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--swatch);
+  height: var(--swatch);
+  border-radius: var(--r-full);
+  background: var(--accent);
+}
+.palette-swatch svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: var(--accent-ink);
+  stroke-width: var(--stroke-bold);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity var(--d-fast) var(--ease);
+}
+.palette-opt[aria-checked='true'] .palette-swatch svg { opacity: 1; }
+
+.palette-name {
+  min-width: 0;
+  font-size: var(--t-subhead);
+  font-weight: var(--w-medium);
+  line-height: var(--lh-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.palette-opt[aria-checked='true'] .palette-name { font-weight: var(--w-bold); }
 .account-title {
   font-size: var(--t-display);
   font-weight: var(--w-black);
@@ -990,4 +1077,8 @@
   .compose[data-mode='publish']:hover { filter: brightness(1.06); color: var(--accent-ink); }
   .account-btn:hover { filter: brightness(1.06); }
   .account-btn[data-tone='quiet']:hover { background: var(--hairline-2); filter: none; }
+  /* A chip is already wearing its own paper, so a wash would be the wrong
+     colour. The ring is what answers instead. */
+  .palette-opt:hover { box-shadow: inset 0 0 0 var(--ring) var(--hairline); }
+  .palette-opt[aria-checked='true']:hover { box-shadow: inset 0 0 0 var(--ring) var(--accent-deep); }
 }

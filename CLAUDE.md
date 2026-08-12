@@ -36,13 +36,16 @@ the CSS, and should not have to. So:
 
 ```
 index.html          entry point, the Apple metas that make the URL
-                    installable, the two module tags. There is deliberately
-                    NO web app manifest — read the note in its head
+                    installable, the two module tags, and four inline lines
+                    that apply the chosen palette before the first paint.
+                    There is deliberately NO web app manifest — read the
+                    note in its head
 icons/              the homescreen icon; iOS reads icon-180.png
 sw.js               the offline guarantee — nothing else provides one
 js/update.js        how a deploy reaches the phone — registers the worker
                     and reloads the app when the files really changed
-css/tokens.css      the entire visual language — every value lives here
+css/tokens.css      the entire visual language — every value lives here,
+                    including all eight palettes
 css/base.css        reset, @font-face, focus, reduced motion
 css/app.css         every component
 fonts/              DM Sans, variable, self-hosted (two files, all weights)
@@ -52,8 +55,12 @@ js/ui.js            el(), icon(), dates, toast, menu — the shared vocabulary
 js/home.js          the list
 js/entry.js         reading and writing one entry  ← the subtle file
 js/calendar.js      the month, coloured by mood
-js/account.js       signing in, and what sync is doing — the only screen in
-                    the app that knows there is a server
+js/theme.js         which palette the app is wearing — names only, never
+                    colours; and the one thing CSS cannot reach, the
+                    status bar
+js/settings.js      one screen for everything that is not an entry: the
+                    palette picker, and signing in. The only screen in the
+                    app that knows there is a server
 js/config.js        the Supabase URL and anon key. Both are public by design;
                     the RLS policy is what makes that safe
 js/net.js           Supabase over plain fetch — the five requests, by hand,
@@ -96,6 +103,65 @@ Tombstones are swept for good after `DELETED_TTL` (90 days) — long past when
 a phone could plausibly have been in a drawer since before the deletion.
 The one hard delete left is `discardIfEmpty()`, and it is safe because an
 empty unpublished draft is never pushed in the first place (see `pushable()`).
+
+### The palette
+
+Eight of them: `paper` — off-white and off-black, the default — and the seven
+plastics the iMac came in, Bondi Blue (1998), Blueberry, Grape, Tangerine,
+Lime and Strawberry (1999), Graphite (2000).
+
+**A palette is a set of tokens swapped on `<html>`, and nothing else.**
+`js/theme.js` puts a `data-palette` on the root; `[data-palette='lime']` in
+`tokens.css` wins and the whole app repaints. No view holds a colour, so
+nothing has to be told to reconsider one — there is deliberately no
+`dj:palette` event.
+
+Each palette declares **eleven** values and no more. The hairlines, the glass,
+the shadows, the scrim, the selection wash and `--mood-none` are all derived
+from those with an alpha of `--ink-rgb` or `--glass-rgb`, so a hairline on
+Grape is grape and a new palette cannot forget to tint its own shadows.
+
+**`--accent` and `--accent-deep` are two different colours on purpose.**
+`--accent` is a FIELD — what a Publish button is filled with — and is allowed
+to be as bright as the plastic. `--accent-deep` is a MARK on paper: a link,
+the focus ring, the pencil. Tangerine cannot be one token, because a tangerine
+bright enough to be a tangerine button is 2.3:1 on paper. On Bondi, Tangerine
+and Lime the two differ; everywhere else they are the same colour.
+
+**The mood ramp does not change with the palette.** It is data, not chrome — a
+year of Mondays in the calendar has to mean the same thing in Lime as it did
+in Blueberry. All five steps clear 4:1 on all eight papers, which is measured,
+not assumed.
+
+**Every number in `tokens.css` was solved for, not picked.** Each palette's
+ink lands at 15:1 on its own paper in light and 13.5:1 in dark, `--ink-2` at
+5.7:1, `--ink-3` at 4.6:1 against the darkest ground it ever sits on. That is
+why the eight papers do not read as eight different levels of legibility. The
+suite re-measures all of it from the computed values — see Testing.
+
+**The dark papers commit to their colour.** A first pass sat them all near
+black and every one came back as mud; they are held at a lightness where the
+page still reads as dark but with enough chroma to be a colour. `paper` is the
+exception and stays the near-black it is named for — a plain background is
+what it is *for*.
+
+**The choice is a property of the phone, not of the journal.** It lives under
+`digijournal.palette`, it does not sync, signing out does not undo it, and
+`store.clearJournal()` leaves it alone.
+
+**The two things that are easy to get wrong:**
+
+- **The status bar.** Under `apple-mobile-web-app-status-bar-style: default`
+  that strip is iOS's, above the web view, painted from `theme-color` alone —
+  **no stylesheet reaches it.** `theme.js` replaces the two static metas with
+  one it keeps equal to `--paper`. Whether iOS re-reads it while a homescreen
+  app is running is not documented by Apple; if it doesn't, the bar catches up
+  on the next launch.
+- **The first paint.** `js/app.js` is a module, so it runs after layout —
+  long enough for a Blueberry install to flash cream on every launch. The four
+  inline lines in `index.html` are what buy that frame back. They are the only
+  code outside `store.js` that touches storage, they only ever read, and
+  deleting them would leave the app correct and one frame uglier.
 
 ### Reading and editing are one screen
 
@@ -190,7 +256,7 @@ journal, their own — entries are not in the repo, and the RLS policy means
 the shipped key cannot reach anyone else's.
 
 **Sync did not put the gate back, and must not be allowed to.** There is now
-a password field in the app, on `#/account`, and it is a door rather than a
+a password field in the app, on `#/settings`, and it is a door rather than a
 gate: a cold launch still opens straight onto the list whether or not anyone
 has ever signed in. Four checks in the suite hold that line — if a change
 ever makes `boot()` await a session, they are the ones that will fail, and

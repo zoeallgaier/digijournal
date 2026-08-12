@@ -9,7 +9,7 @@
      #/e/<id>            one entry
      #/calendar          this month
      #/calendar/2026-08  a specific month
-     #/account           signing in, and what sync is doing
+     #/settings          the palette, and signing in
 
    There is no unlock step: the app opens straight onto the list. Anyone
    holding the phone can read the journal, which is the trade Zoe made on
@@ -30,8 +30,9 @@ import * as store from './store.js';
 import * as home from './home.js';
 import * as entry from './entry.js';
 import * as calendar from './calendar.js';
-import * as account from './account.js';
+import * as settings from './settings.js';
 import * as sync from './sync.js';
+import * as theme from './theme.js';
 import { consumeUpdateNotice } from './update.js';
 
 const screenHost = document.getElementById('screen');
@@ -50,11 +51,11 @@ function parse(hash) {
 
   if (head === 'e' && rest[0]) return { name: 'entry', params: { id: rest[0] } };
   if (head === 'calendar')     return { name: 'calendar', params: { month: rest[0] || '' } };
-  if (head === 'account')      return { name: 'account', params: {} };
+  if (head === 'settings')     return { name: 'settings', params: {} };
   return { name: 'home', params: {} };
 }
 
-const VIEWS = { home, entry, calendar, account };
+const VIEWS = { home, entry, calendar, settings };
 
 function go(hash, { replace = false } = {}) {
   if (location.hash === hash) { render(); return; }
@@ -256,6 +257,11 @@ function trackKeyboard() {
 function boot() {
   store.load();
 
+  /* Before the first render, so no screen is ever painted in one palette and
+     corrected into another. index.html has already set the attribute inline;
+     this is what keeps the status bar in step with it from here on. */
+  theme.start();
+
   window.addEventListener('hashchange', render);
   screenHost.addEventListener('scroll', onScroll, { passive: true });
 
@@ -279,7 +285,7 @@ function boot() {
 
   /* Entries that arrived from another device. Only the screens that are a
      view OF the journal are redrawn — never the entry screen, which may have
-     a caret in it, and never the account screen, which may have half a
+     a caret in it, and never the settings screen, which may have half a
      password in it. Both of those pick the change up when they are next
      opened, which is the moment they are next correct anyway. */
   window.addEventListener('dj:sync-changed', () => {

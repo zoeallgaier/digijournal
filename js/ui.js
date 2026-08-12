@@ -62,10 +62,20 @@ const PATHS = {
   next:     ['M10 5l7 7-7 7'],
   go:       ['M5 12h13', 'M12 6l6 6-6 6'],
   trash:    ['M4 7h16', 'M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2', 'M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13'],
-  /* The only mark in the app that refers to somewhere other than this phone.
-     Outline, same 24 grid, same stroke — it is a place to go, not a status
-     light, so it does not fill or pulse. */
-  cloud:    ['M7.6 18.4h9.1a3.7 3.7 0 0 0 .4-7.36 5.6 5.6 0 0 0-10.7-1.42A4.3 4.3 0 0 0 7.6 18.4z'],
+  check:    ['M5 12.5l4.5 4.5L19 7.5'],
+
+  /* The list's one control. It was a cloud while sync was the only thing
+     behind it; it is a gear now that the palette is there too — a door to
+     everything about the app that is not an entry.
+
+     Eight teeth on the same 4–20 band as the icons beside it, generated
+     rather than drawn: tips on a 8.35 circle, roots on a 6, so the arcs
+     between them are true and the whole mark stays concentric with the 44px
+     capsule it sits in. */
+  settings: [
+    'M10.3 6.25L10.55 3.78A8.35 8.35 0 0 1 13.45 3.78L13.7 6.25A6 6 0 0 1 14.86 6.73L16.79 5.16A8.35 8.35 0 0 1 18.84 7.21L17.27 9.14A6 6 0 0 1 17.75 10.3L20.22 10.55A8.35 8.35 0 0 1 20.22 13.45L17.75 13.7A6 6 0 0 1 17.27 14.86L18.84 16.79A8.35 8.35 0 0 1 16.79 18.84L14.86 17.27A6 6 0 0 1 13.7 17.75L13.45 20.22A8.35 8.35 0 0 1 10.55 20.22L10.3 17.75A6 6 0 0 1 9.14 17.27L7.21 18.84A8.35 8.35 0 0 1 5.16 16.79L6.73 14.86A6 6 0 0 1 6.25 13.7L3.78 13.45A8.35 8.35 0 0 1 3.78 10.55L6.25 10.3A6 6 0 0 1 6.73 9.14L5.16 7.21A8.35 8.35 0 0 1 7.21 5.16L9.14 6.73A6 6 0 0 1 10.3 6.25Z',
+    'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+  ],
 
   /* The five day ratings. No outer circle — the swatch behind the glyph is
      the face. Two dots and a mouth, and only the mouth changes: at 28px an

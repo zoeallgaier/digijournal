@@ -681,25 +681,26 @@ async function run() {
   ok(localStorage.getItem('digijournal.v1') !== null,
      'the journal is in localStorage, which no cache operation touches');
 
-  /* ------------------------------------------------------- 13. the sync screen
+  /* -------------------------------------------------- 13. the settings screen
      A door off the list, never a gate in front of it. */
   f.contentWindow.location.hash = '#/';
   await until(() => $('.home-title'));
   await wait(200);
 
-  const cloud = $('.toolbar .icon-btn[aria-label^="Sync"]');
-  ok(!!cloud, 'the list has exactly one control, and it is the way to sync');
+  const gear = $('.toolbar .icon-btn[aria-label^="Settings"]');
+  ok(!!gear, 'the list has exactly one control, and it is the way to Settings');
   ok($$('.toolbar .icon-btn').length === 1, 'and only that one',
      $$('.toolbar .icon-btn').map((b) => b.getAttribute('aria-label')).join());
-  /* The state has to reach someone who cannot see the icon's tone. */
-  ok(/not signed in/.test(cloud.getAttribute('aria-label')),
-     'whose name carries the state, not just its colour', cloud.getAttribute('aria-label'));
+  /* The gear is now the only thing carrying the sync state, and that state
+     has to reach someone who cannot see the icon's tone. */
+  ok(/not signed in/.test(gear.getAttribute('aria-label')),
+     'whose name carries the sync state, not just its colour', gear.getAttribute('aria-label'));
 
-  cloud.click();
+  gear.click();
   await wait(350);
-  ok(f.contentWindow.location.hash === '#/account', 'it opens the sync screen',
+  ok(f.contentWindow.location.hash === '#/settings', 'it opens the settings screen',
      f.contentWindow.location.hash);
-  ok(!!$('.account-form'), 'signed out, the screen is a sign-in form');
+  ok(!!$('.account-form'), 'signed out, Settings carries a sign-in form');
   ok(!!$('input[type="password"]'), 'and this is the one place that asks for a password');
   ok($('.compose').textContent === 'Sign in',
      'the composer bar takes the primary action, as it does for Publish',
@@ -720,7 +721,137 @@ async function run() {
      'the fields are 16px or more, so focusing one does not zoom the page',
      cs($('#account-password')).fontSize);
 
-  f.contentWindow.history.back();
+  /* ------------------------------------------------- 13b. the seven colours
+     A palette is a set of tokens swapped on the root, so the checks that
+     matter are: the picker offers all seven, choosing one really repaints the
+     page (not just the swatch), the choice survives a reload, the status bar
+     meta follows the paper, and no palette costs the app its legibility.
+
+     The last one is the important one. Every palette's ink was SOLVED for a
+     contrast ratio rather than picked, and this is what stops a later hand
+     edit from quietly undoing that. */
+  const root = () => f.contentDocument.documentElement;
+  const tok = (name, node = root()) => cs(node).getPropertyValue(name).trim();
+
+  /* WCAG 2.1 relative luminance. A custom property comes back as the text it
+     was declared with rather than as a resolved rgb(), so this reads hex —
+     which is what every palette token in tokens.css is written in. Reading
+     the computed value rather than the stylesheet is the point: it is the
+     colour that will actually be on the glass. */
+  const rgbOf = (c) => {
+    const h = String(c).trim().replace('#', '');
+    if (/^[0-9a-f]{6}$/i.test(h)) return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    return (String(c).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+  };
+  const lum = (c) => {
+    const [r, g, b] = rgbOf(c);
+    const f_ = (x) => (x /= 255) <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+    return 0.2126 * f_(r) + 0.7152 * f_(g) + 0.0722 * f_(b);
+  };
+  const contrast = (a, b) => {
+    const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+    return (x + 0.05) / (y + 0.05);
+  };
+
+  const PALETTES = ['paper', 'bondi', 'blueberry', 'grape', 'tangerine',
+                    'lime', 'strawberry', 'graphite'];
+
+  const opts = $$('.palette-opt');
+  ok(opts.length === PALETTES.length, 'Settings offers all eight palettes', `${opts.length}`);
+  ok(opts.every((o) => o.textContent.trim().length > 1),
+     'each one is named, so the choice is never carried by colour alone',
+     opts.map((o) => o.textContent.trim()).join());
+  ok($('.palette-row')?.getAttribute('role') === 'radiogroup',
+     'and they are a real radiogroup, not seven buttons in a row');
+  ok(opts.every((o) => o.getBoundingClientRect().height >= 44),
+     'every chip clears the 44px minimum',
+     opts.map((o) => Math.round(o.getBoundingClientRect().height)).join());
+
+  ok(root().dataset.palette === 'paper',
+     'an app that has never been to Settings is wearing the default',
+     root().dataset.palette);
+  ok(opts[0].getAttribute('aria-checked') === 'true',
+     'and the picker says so rather than showing nothing chosen');
+
+  /* Colour, and legibility, for every one of the seven. */
+  for (let i = 0; i < PALETTES.length; i++) {
+    opts[i].click();
+    await wait(60);
+    const name = PALETTES[i];
+    ok(root().dataset.palette === name, `choosing ${name} repaints the page`, root().dataset.palette);
+
+    const paper = tok('--paper');
+    const body = contrast(tok('--ink'), paper);
+    const meta = contrast(tok('--ink-2'), paper);
+    const quiet = contrast(tok('--ink-3'), tok('--paper-sunk'));
+    const onField = contrast(tok('--accent-ink'), tok('--accent'));
+    const mark = contrast(tok('--accent-deep'), paper);
+
+    ok(body >= 12, `${name}: body text clears 12:1 on its own paper`, body.toFixed(2));
+    ok(meta >= 4.5, `${name}: secondary text clears 4.5:1`, meta.toFixed(2));
+    ok(quiet >= 4.5, `${name}: the quietest ink clears 4.5:1 in a sunk field`, quiet.toFixed(2));
+    ok(onField >= 4.5, `${name}: the Publish label clears 4.5:1 on the button`, onField.toFixed(2));
+    /* --accent-deep exists precisely so Tangerine and Lime can have a bright
+       button AND a legible link. This is the check that keeps them apart. */
+    ok(mark >= 4.5, `${name}: a link or focus ring clears 4.5:1 on paper`, mark.toFixed(2));
+
+    /* The mood ramp does not change with the palette — it is data, not
+       chrome — so every step of it has to survive every paper. */
+    for (let m = 1; m <= 5; m++) {
+      ok(contrast(tok(`--mood-${m}`), paper) >= 3.5,
+         `${name}: mood ${m} still reads on it`,
+         contrast(tok(`--mood-${m}`), paper).toFixed(2));
+    }
+  }
+
+  /* The chips are the palettes, not pictures of them: a chip carries its own
+     data-palette, so it must resolve its own paper rather than the page's. */
+  const chip = $('.palette-opt[data-palette="tangerine"]');
+  ok(tok('--paper', chip) !== tok('--paper'),
+     'a chip in the picker wears its own palette, not the page it sits on',
+     `${tok('--paper', chip)} vs ${tok('--paper')}`);
+  /* And its own derived tokens with it — a hairline that inherited the page's
+     would be the wrong colour around the right paper. */
+  ok(tok('--hairline', chip) !== tok('--hairline'),
+     'and re-derives its own hairline rather than inheriting the page’s');
+
+  /* Back to the default, then prove the choice is a property of this phone
+     that survives the app being closed. */
+  opts[PALETTES.indexOf('blueberry')].click();
+  await wait(60);
+  ok(localStorage.getItem('digijournal.palette') === 'blueberry',
+     'the choice is written down', localStorage.getItem('digijournal.palette'));
+
+  const bluePaper = tok('--paper');
+  /* A distinct URL each time, so the iframe really navigates rather than
+     being handed the page it is already showing. */
+  await load('../index.html?relaunch=1');
+  await until(() => $('.home-title'));
+  ok(root().dataset.palette === 'blueberry',
+     'and a cold launch opens wearing it', root().dataset.palette);
+  ok(tok('--paper') === bluePaper, 'in the same colour it was left in');
+
+  /* The status bar is iOS's strip of screen, above the web view, painted from
+     theme-color alone — no stylesheet reaches it. If this drifts, Blueberry
+     gets a cream bar over a blue page. */
+  const metas = [...f.contentDocument.querySelectorAll('meta[name="theme-color"]')];
+  ok(metas.length === 1, 'exactly one theme-color meta survives, so none can win over it',
+     `${metas.length}`);
+  ok(contrast(metas[0]?.content || '#000', tok('--paper')) < 1.05,
+     'and it is the palette’s own paper, so the status bar does not seam',
+     `${metas[0]?.content} vs ${tok('--paper')}`);
+
+  localStorage.removeItem('digijournal.palette');
+  await load('../index.html?relaunch=2');
+  await until(() => $('.home-title'));
+  ok(root().dataset.palette === 'paper',
+     'clearing it falls back to the default rather than to no palette at all',
+     root().dataset.palette);
+
+  /* And the way back out is the toolbar's own button, not the phone's. */
+  $('.toolbar .icon-btn[aria-label^="Settings"]').click();
+  await wait(350);
+  $('.toolbar .icon-btn[aria-label="Back"]').click();
   await wait(400);
   ok(!!$('.home-title'), 'backing out returns to a journal that never needed it');
   ok(!$('input[type="password"]'), 'and no password field survives on the list');
@@ -761,7 +892,7 @@ async function run() {
      it needs instead. Having no dependencies is a property of this app, and
      a CDN import is how that quietly stops being true. */
   const modules = ['app', 'store', 'ui', 'home', 'entry', 'calendar',
-                   'account', 'config', 'net', 'sync', 'update'];
+                   'settings', 'theme', 'config', 'net', 'sync', 'update'];
   const sources = await Promise.all(
     modules.map((n) => fetch(`../js/${n}.js`).then((r) => r.text()).then(stripJS)));
   const outsideImports = sources.flatMap((src, i) =>

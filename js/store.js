@@ -32,6 +32,7 @@
 const KEY = 'digijournal.v1';
 const SYNC_KEY = 'digijournal.sync';
 const SESSION_KEY = 'digijournal.session';
+const PALETTE_KEY = 'digijournal.palette';
 
 /* Bumped only when the shape below changes in a way that needs migrating.
    It travels in the export file too, so an old backup stays readable.
@@ -383,6 +384,27 @@ export function session() {
 
 export function setSession(value) {
   writeJSON(SESSION_KEY, value);
+}
+
+/* ------------------------------------------------------------- the palette
+   Which of the seven colour schemes the app is wearing. A bare string, not
+   JSON, and deliberately so: index.html reads this same key from four inline
+   lines before the first stylesheet is painted, and the less that fragment
+   has to understand about our storage format, the better.
+
+   It is a property of this device, not of the journal — which is why
+   clearJournal() leaves it alone. Signing a different account in changes
+   whose entries these are; it does not change what colour the phone is. */
+
+export function palette() {
+  try { return localStorage.getItem(PALETTE_KEY); } catch { return null; }
+}
+
+export function setPalette(id) {
+  try {
+    if (id === null) localStorage.removeItem(PALETTE_KEY);
+    else localStorage.setItem(PALETTE_KEY, id);
+  } catch { /* quota or private mode; the colour resets, the journal does not */ }
 }
 
 /* --------------------------------------------------------- export/import */

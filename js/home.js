@@ -63,20 +63,21 @@ function subtitle(entries) {
   return n ? `${total} · ${n} this month` : total;
 }
 
-/* The state has to reach someone who can't see the icon's tone, so it is in
-   the name rather than only in the colour. */
-function syncLabel(status) {
-  if (status === 'off')     return 'Sync — not signed in';
-  if (status === 'syncing') return 'Sync — syncing now';
-  if (status === 'offline') return 'Sync — no connection';
-  if (status === 'error')   return 'Sync — needs attention';
-  return 'Sync — up to date';
+/* One control, so its name carries everything behind it — and the sync state
+   has to reach someone who can't see the icon's tone, so that is in the name
+   rather than only in the colour. */
+function settingsLabel(status) {
+  if (status === 'off')     return 'Settings — not signed in';
+  if (status === 'syncing') return 'Settings — syncing now';
+  if (status === 'offline') return 'Settings — no connection';
+  if (status === 'error')   return 'Settings — sync needs attention';
+  return 'Settings — sync up to date';
 }
 
 export function view(_params, api) {
   const entries = store.all();
 
-  /* Repaint the cloud when a round finishes, so the label is never describing
+  /* Repaint the gear when a round finishes, so its label is never describing
      a sync that ended five minutes ago. */
   const onSync = () => api.refreshToolbar();
   window.addEventListener('dj:sync', onSync);
@@ -100,15 +101,15 @@ export function view(_params, api) {
     title: 'Journal',
     bar: 'compose',
     /* The list's one control, and it is a door rather than an action: it goes
-       to the sync screen. Everything you can do TO the journal is still a tap
-       on a row or the composer — this is the only thing in the app that is
-       about somewhere other than this phone, so it is the only thing that
-       earned a place up here. It carries a tone only when something needs
-       looking at; the rest of the time it is as quiet as the empty toolbar
-       it replaced. */
+       to Settings, where the palette and the account both live. Everything
+       you can do TO the journal is still a tap on a row or the composer —
+       this is the only thing in the app that is about the app rather than
+       about an entry, so it is the only thing that earned a place up here.
+       It carries a tone only when something needs looking at; the rest of the
+       time it is as quiet as the empty toolbar it replaced. */
     get toolbarRight() {
       const { status } = sync.state();
-      return iconButton('cloud', syncLabel(status), () => api.go('#/account'),
+      return iconButton('settings', settingsLabel(status), () => api.go('#/settings'),
         status === 'error' ? { 'data-tone': 'danger' } : {});
     },
     onLeave() {

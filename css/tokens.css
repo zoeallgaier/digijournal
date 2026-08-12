@@ -3,72 +3,80 @@
    Every colour, size, weight, radius and duration in the app resolves to a
    token declared here. No other file invents a value.
 
-   Palette: off-white paper / off-navy ink, and the same two colours swapped
-   in dark mode. Contrast ratios in the comments are measured, not estimated
-   (WCAG 2.1 relative luminance) — body text clears 4.5:1, mood dots and other
-   non-text UI clear 3:1, in both schemes.
+   THE PALETTE IS A SET OF THESE, SWAPPED. `js/theme.js` puts a
+   `data-palette` on <html> and the block for that name wins; nothing else in
+   the app knows a palette exists. The default is `paper` — off-white and
+   off-black — and beside it are the seven iMac plastics: Bondi Blue,
+   Blueberry, Grape, Tangerine, Lime, Strawberry and Graphite.
+
+   Each palette declares eleven values and no more. Everything else — the
+   hairlines, the glass, the shadows, the scrim, the selection wash — is
+   derived from those, which is why adding a palette is eleven lines rather
+   than thirty, and why a new palette cannot forget to tint its own shadows.
+
+   CONTRAST RATIOS IN THE COMMENTS ARE MEASURED (WCAG 2.1 relative
+   luminance), and they were solved for rather than picked: every palette's
+   ink lands at 15:1 on its own paper, --ink-2 at 5.7:1, --ink-3 at 4.6:1 on
+   the darkest ground it ever sits on. That is why the seven papers do not
+   read as seven different levels of legibility. If you change a colour here,
+   re-measure it — do not eyeball it.
    ========================================================================= */
 
 :root {
   color-scheme: light dark;
 
-  /* --- Paper and ink (light) ------------------------------------------- */
-  --paper:        #F5F3EE;   /* the page                                    */
-  --paper-sunk:   #EEEBE4;   /* wells, pressed states                       */
-  --card:         #FFFFFF;   /* raised surfaces                             */
+  /* --- The default palette: off-white paper, off-black ink ---------------
+     Declared on bare :root as well as under its own name, so an app that
+     has never been to Settings is already wearing it.
 
-  --ink:          #141C2E;   /* titles, body            15.3:1 on paper     */
-  --ink-2:        #565F78;   /* secondary                5.7:1              */
-  --ink-3:        #606983;   /* dates, metadata          4.9:1              */
-  --hairline:     #DFDBD2;   /* the dividing rules                          */
-  --hairline-2:   #E8E4DC;
+     --accent is the FIELD: the colour a Publish button is filled with, and
+     it is allowed to be as bright as the plastic it is named after.
+     --accent-ink is what sits on that field. --accent-deep is the same
+     colour taken down until it carries as a MARK on paper — a link, the
+     focus ring, the pencil. Two tokens, because Tangerine cannot be one:
+     bright enough to be a tangerine button is nowhere near dark enough to
+     be tangerine text. Where a plastic already carries as a mark — every
+     palette but Bondi, Tangerine and Lime — the two are the same colour.
 
-  --accent:       #2F5BD0;   /* publish, links           5.4:1              */
-  --accent-ink:   #FFFFFF;   /* text on accent           6.9:1              */
-  --danger:       #B3261E;
+     --ink-rgb and --glass-rgb are the same colours as space-separated
+     channels, so the derived tokens below can take an alpha of them. */
+  --paper:        #F5F4F2;   /* the page                                    */
+  --paper-sunk:   #EBEAE7;   /* wells, pressed states                       */
+  --card:         #FFFEFD;   /* raised surfaces                             */
+  --ink:          #1F1F1E;   /* titles, body           15.1:1 on paper      */
+  --ink-2:        #616060;   /* secondary               5.7:1               */
+  --ink-3:        #696868;   /* dates, metadata         5.0:1               */
+  --ink-rgb:      31 31 30;
+  --accent:       #242426;   /* the field                                   */
+  --accent-ink:   #FDFDFF;   /* on it                  14.4:1               */
+  --accent-deep:  #242426;   /* the mark               13.4:1 on paper      */
+  --glass-rgb:    255 254 253;
 
-  /* Dragging across your own words. The system default here is iOS blue,
-     which is the one colour in the app that belongs to no one — it is the
-     phone's accent, not the journal's. A wash of the same ink the text is
-     set in says "selected" without introducing a sixth hue. Low enough
-     alpha that the type underneath keeps its measured contrast.          */
-  --selection:    rgba(20, 28, 46, 0.15);
+  /* The hairlines, the glass, the shadows, the scrim and the selection wash
+     are all DERIVED from the eleven above — see the block below the
+     palettes. Nothing here has to restate them.                           */
+
+  --danger:       #B3261E;   /* 5.9:1 on the darkest paper of the eight     */
 
   /* --- The mood ramp ---------------------------------------------------
      Cool and dim at 1, warm and bright at 5, so a month reads as a
-     temperature at a glance. All ≥4:1 on paper. Colour is never the only
+     temperature at a glance. THE RAMP DOES NOT CHANGE WITH THE PALETTE:
+     it is data, not chrome — a year of Mondays plotted in the calendar has
+     to mean the same thing in Lime as it did in Blueberry. All five clear
+     4:1 on every one of the eight papers and cards, and carry --mood-ink at
+     4.6:1 when a calendar day is filled with them. Colour is never the only
      carrier — every dot also has a label, and the calendar prints the
      numeral inside the day.                                              */
-  --mood-1:       #585C93;   /* rough    5.6:1 */
-  --mood-2:       #2E76A6;   /* low      4.5:1 */
-  --mood-3:       #2F856C;   /* even     4.0:1 */
-  --mood-4:       #9C6A16;   /* good     4.2:1 */
-  --mood-5:       #BE4C39;   /* bright   4.4:1 */
-  --mood-none:    #C9C4BA;   /* no entry                                    */
+  --mood-1:       #585C93;   /* rough    ≥5.7:1 */
+  --mood-2:       #2E76A6;   /* low      ≥4.5:1 */
+  --mood-3:       #2C826A;   /* even     ≥4.2:1 */
+  --mood-4:       #9C6A16;   /* good     ≥4.3:1 */
+  --mood-5:       #BE4C39;   /* bright   ≥4.5:1 */
   --mood-ink:     #FFFFFF;   /* text sitting on a filled mood swatch        */
 
-  /* --- Liquid glass -----------------------------------------------------
-     A glass layer is: a blurred, saturation-boosted sample of what is
-     behind it; a translucent tint so text stays legible over anything; a
-     specular hairline along the top edge where the light catches; and a
-     soft shadow that lifts it off the page. The tint is doing the
-     accessibility work — never lower its alpha to show more of the blur.
-
-     Glass needs the journal behind it. Over a --scrim there is no texture to
-     refract and the white tint cannot recover the paper's warmth: it lands at
-     a dead neutral, darker than the page it claims to float above. A surface
-     over a scrim is a --card, not glass.                                  */
-  --glass-tint:   rgba(255, 255, 255, 0.68);
-  --glass-tint-2: rgba(255, 255, 255, 0.82);
+  /* The one part of the glass that is not derived, because it is not a
+     colour: how hard the backdrop is blurred. See the note below.        */
   --glass-filter: blur(28px) saturate(180%);
-  --glass-edge:   rgba(255, 255, 255, 0.85);
-  --glass-rim:    rgba(20, 28, 46, 0.08);
-
-  /* What lifts a floating surface off the page, glass or card. */
-  --lift:         0 1px 2px rgba(20, 28, 46, 0.05),
-                  0 8px 28px rgba(20, 28, 46, 0.10);
-
-  --scrim:        rgba(20, 28, 46, 0.28);
 
   /* --- Type -------------------------------------------------------------
      DM Sans throughout. Black (900) for anything titular, Light (300) for
@@ -163,6 +171,7 @@
   --dot-lg:  2.75rem;      /* the mood face. It needs no target drawn round
                               it: the button is this face stacked over its
                               word, which clears 44 in both directions.    */
+  --swatch:  1.75rem;      /* a palette's plastic, in the Settings picker  */
   --ring:      2px;        /* that circle's outline while it is unfilled   */
   --ring-thin: 1.5px;      /* a day written but not rated                  */
 
@@ -193,43 +202,361 @@
   --z-toast: 100;
 }
 
-/* --- Dark: the same two colours, swapped ---------------------------------
-   Off-navy becomes the paper and off-white becomes the ink. This is not a
-   generic dark theme — it is the light theme inverted through the same
-   pair, which is why the app doesn't change character at sunset.        */
+/* ============================================================================
+   EVERYTHING THE PALETTE DOES NOT HAVE TO SAY
+
+   Derived from the eleven above with an alpha, so they tint themselves: a
+   hairline on Grape is grape, a shadow on Tangerine is warm. This is what
+   stops a palette from being thirty hex values somebody has to keep in step
+   by hand — and what stops a NEW palette from forgetting to tint its own
+   shadows.
+
+   Declared for `[data-palette]` as well as `:root` because a palette is
+   paintable on an element, not only on the page: the picker in Settings is
+   eight chips, each wearing one of the eight, and each has to re-derive its
+   own hairline rather than inherit the page's. A custom property inherits
+   its SUBSTITUTED value, so a chip that did not redeclare these would draw
+   the current palette's hairline around another palette's paper.
+
+   LIQUID GLASS. A glass layer is: a blurred, saturation-boosted sample of
+   what is behind it (--glass-filter, above); a translucent tint so text
+   stays legible over anything; a specular hairline along the top edge where
+   the light catches; and a soft shadow that lifts it off the page. The tint
+   is doing the accessibility work — never lower its alpha to show more of
+   the blur.
+
+   Glass needs the journal behind it. Over a --scrim there is no texture to
+   refract and the tint cannot recover the paper's warmth: it lands at a dead
+   neutral, darker than the page it claims to float above. A surface over a
+   scrim is a --card, not glass.
+
+   The selection wash is here for the same reason it always was: iOS would
+   draw it in the system blue, which is the phone's accent and not the
+   journal's. An alpha of the ink the text is already set in says "selected"
+   without introducing another hue — and now without introducing a different
+   one in each of seven palettes.
+   ========================================================================= */
+
+:root,
+[data-palette] {
+  --hairline:     rgb(var(--ink-rgb) / 0.12);   /* the dividing rules       */
+  --hairline-2:   rgb(var(--ink-rgb) / 0.07);
+  --selection:    rgb(var(--ink-rgb) / 0.15);
+  --mood-none:    rgb(var(--ink-rgb) / 0.22);   /* a day with no entry      */
+  --glass-tint:   rgb(var(--glass-rgb) / 0.68);
+  --glass-tint-2: rgb(var(--glass-rgb) / 0.82);
+  --glass-edge:   rgb(255 255 255 / 0.85);
+  --glass-rim:    rgb(var(--ink-rgb) / 0.08);
+  --lift:         0 1px 2px rgb(var(--ink-rgb) / 0.05),
+                  0 8px 28px rgb(var(--ink-rgb) / 0.10);
+  --scrim:        rgb(var(--ink-rgb) / 0.28);
+}
+
+/* ============================================================================
+   THE PALETTES, LIGHT
+
+   Seven plastics and the paper they replaced. Each one is a hue held at a
+   fixed lightness: the paper is the same brightness in all eight, and so is
+   every grade of ink on it, which is what keeps Tangerine from reading as a
+   brighter app than Blueberry rather than a warmer one.
+
+   The hues are the machines — Bondi Blue in 1998, the five fruits in 1999,
+   Graphite in 2000. What they are NOT is the mood ramp: see the note on it
+   above.
+   ========================================================================= */
+
+/* The one that is not a colour, and the one the app opens on. */
+[data-palette='paper'] {
+  --paper:        #F5F4F2;
+  --paper-sunk:   #EBEAE7;
+  --card:         #FFFEFD;
+  --ink:          #1F1F1E;   /* 15.0:1 */
+  --ink-2:        #616060;   /*  5.7:1 */
+  --ink-3:        #696868;   /*  5.1:1 */
+  --ink-rgb:      31 31 30;
+  --accent:       #242426;
+  --accent-ink:   #FDFDFF;   /* 15.3:1 */
+  --accent-deep:  #242426;   /* 14.1:1 */
+  --glass-rgb:    254 253 252;
+}
+
+/* Bondi Blue — the 1998 original, and the only one of the eight that was
+   ever the ONLY colour an iMac came in. */
+[data-palette='bondi'] {
+  --paper:        #E9F7FC;
+  --paper-sunk:   #DBEEF5;
+  --card:         #FDFFFF;
+  --ink:          #01232C;   /* 15.0:1 */
+  --ink-2:        #4D646D;   /*  5.7:1 */
+  --ink-3:        #566C74;   /*  5.1:1 */
+  --ink-rgb:      1 35 44;
+  --accent:       #0095B6;
+  --accent-ink:   #000F15;   /*  5.5:1 */
+  --accent-deep:  #0E7893;   /*  4.6:1 */
+  --glass-rgb:    251 254 255;
+}
+
+[data-palette='blueberry'] {
+  --paper:        #F0F4FE;
+  --paper-sunk:   #E5EAF8;
+  --card:         #FEFEFF;
+  --ink:          #161E35;   /* 15.0:1 */
+  --ink-2:        #586075;   /*  5.7:1 */
+  --ink-3:        #61687C;   /*  5.0:1 */
+  --ink-rgb:      22 30 53;
+  --accent:       #4B5FB4;
+  --accent-ink:   #FDFDFF;   /*  5.7:1 */
+  --accent-deep:  #4B5FB4;   /*  5.3:1 */
+  --glass-rgb:    253 253 255;
+}
+
+[data-palette='grape'] {
+  --paper:        #F7F2FC;
+  --paper-sunk:   #EEE7F5;
+  --card:         #FFFEFF;
+  --ink:          #261930;   /* 15.1:1 */
+  --ink-2:        #675C70;   /*  5.7:1 */
+  --ink-3:        #6F6477;   /*  5.1:1 */
+  --ink-rgb:      38 25 48;
+  --accent:       #7A4E9E;
+  --accent-ink:   #FEFDFF;   /*  6.1:1 */
+  --accent-deep:  #7A4E9E;   /*  5.6:1 */
+  --glass-rgb:    254 253 255;
+}
+
+/* Tangerine, Lime and Bondi are the three that need --accent-deep to be a
+   different colour from --accent. A tangerine bright enough to be a
+   tangerine button is 2.3:1 on paper; as a link or a focus ring it would be
+   invisible. So the field stays the plastic and the mark is the same hue
+   taken down to 4.6:1 — the button is still a tangerine, and the ring is
+   still legible. */
+[data-palette='tangerine'] {
+  --paper:        #FFF2E9;
+  --paper-sunk:   #F9E7DB;
+  --card:         #FFFEFE;
+  --ink:          #2F1A0C;   /* 15.0:1 */
+  --ink-2:        #6F5C51;   /*  5.8:1 */
+  --ink-3:        #77655A;   /*  5.0:1 */
+  --ink-rgb:      47 26 12;
+  --accent:       #F0801F;
+  --accent-ink:   #190700;   /*  7.3:1 */
+  --accent-deep:  #AC580D;   /*  4.6:1 */
+  --glass-rgb:    255 253 252;
+}
+
+[data-palette='lime'] {
+  --paper:        #F0F7EB;
+  --paper-sunk:   #E4EEDD;
+  --card:         #FDFFFC;
+  --ink:          #17220E;   /* 15.1:1 */
+  --ink-2:        #596452;   /*  5.7:1 */
+  --ink-3:        #626C5C;   /*  5.0:1 */
+  --ink-rgb:      23 34 14;
+  --accent:       #8FC423;
+  --accent-ink:   #080F00;   /*  9.4:1 */
+  --accent-deep:  #57790D;   /*  4.6:1 */
+  --glass-rgb:    251 255 249;
+}
+
+[data-palette='strawberry'] {
+  --paper:        #FEF1F3;
+  --paper-sunk:   #F7E5E8;
+  --card:         #FFFEFE;
+  --ink:          #32161D;   /* 15.1:1 */
+  --ink-2:        #73595E;   /*  5.8:1 */
+  --ink-3:        #7A6266;   /*  5.1:1 */
+  --ink-rgb:      50 22 29;
+  --accent:       #E24A73;
+  --accent-ink:   #1B0408;   /*  5.1:1 */
+  --accent-deep:  #BE4263;   /*  4.6:1 */
+  --glass-rgb:    255 253 253;
+}
+
+[data-palette='graphite'] {
+  --paper:        #F2F5F8;
+  --paper-sunk:   #E7EBEF;
+  --card:         #FEFEFF;
+  --ink:          #1A2026;   /* 15.0:1 */
+  --ink-2:        #5C6168;   /*  5.7:1 */
+  --ink-3:        #64696F;   /*  5.1:1 */
+  --ink-rgb:      26 32 38;
+  --accent:       #5B6266;
+  --accent-ink:   #FCFEFF;   /*  6.1:1 */
+  --accent-deep:  #5B6266;   /*  5.7:1 */
+  --glass-rgb:    252 254 255;
+}
+
+/* ============================================================================
+   DARK
+
+   Not a generic dark theme: each palette is its own light theme inverted
+   through the same hue, which is why the app doesn't change character at
+   sunset. The paper becomes the deep end of the plastic and the ink becomes
+   the pale end — and the accent goes the other way, because a #4B5FB4 button
+   that was right on white is a hole in a navy page.
+
+   THE SIX PLASTICS COMMIT TO THEIR COLOUR HERE. They are held at a lightness
+   where the page still reads as dark, but with enough chroma that it is a
+   colour rather than a grey with a rumour in it — a first pass sat them all
+   near black and every one of them came back as mud. `paper` is the
+   exception and is the near-black it is named for: a plain background is
+   what it is FOR.
+
+   Body text lands at 13.5:1 on the coloured papers rather than the 15:1 it
+   gets in the light. That is the cost of a paper with colour in it, and 13.5
+   is still three times the 4.5 anything is asked for.
+   ========================================================================= */
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper:        #101828;
-    --paper-sunk:   #0B111E;
-    --card:         #18213A;
+    --paper:        #151514;
+    --paper-sunk:   #090908;
+    --card:         #222221;
+    --ink:          #E9E9E8;   /* 15.0:1 */
+    --ink-2:        #ABABAA;   /*  8.0:1 */
+    --ink-3:        #919090;   /*  5.7:1 */
+    --ink-rgb:      233 233 232;
+    --accent:       #E9E9E8;
+    --accent-ink:   #0C0C0D;   /* 16.1:1 */
+    --accent-deep:  #E9E9E8;   /* 15.0:1 */
+    --glass-rgb:    34 34 33;
 
-    --ink:          #EFEDE7;   /* 15.2:1 */
-    --ink-2:        #A3ADC6;   /*  7.9:1 */
-    --ink-3:        #8B95B0;   /*  5.9:1 */
-    --hairline:     #28324C;
-    --hairline-2:   #202940;
+    --danger:       #FF9A90;   /* ≥7.8:1 on all eight dark papers          */
 
-    --accent:       #8AA6FF;   /*  7.6:1 */
-    --accent-ink:   #0B111E;
-    --danger:       #FF9A90;
-
-    --selection:    rgba(239, 237, 231, 0.22);
-
-    --mood-1:       #9BA0E4;   /*  7.2:1 */
-    --mood-2:       #5FB2E6;   /*  7.6:1 */
-    --mood-3:       #4FC5A4;   /*  8.3:1 */
-    --mood-4:       #E3AC4E;   /*  8.7:1 */
-    --mood-5:       #F2836D;   /*  7.0:1 */
-    --mood-none:    #38425E;
+    --mood-1:       #9BA0E4;   /* ≥5.4:1 */
+    --mood-2:       #5FB2E6;   /* ≥5.7:1 */
+    --mood-3:       #4FC5A4;   /* ≥6.3:1 */
+    --mood-4:       #E3AC4E;   /* ≥6.5:1 */
+    --mood-5:       #F2836D;   /* ≥5.2:1 */
     --mood-ink:     #0B111E;
-
-    --glass-tint:   rgba(24, 33, 58, 0.66);
-    --glass-tint-2: rgba(24, 33, 58, 0.82);
-    --glass-edge:   rgba(255, 255, 255, 0.14);
-    --glass-rim:    rgba(0, 0, 0, 0.45);
-    --lift:         0 1px 2px rgba(0, 0, 0, 0.3),
-                    0 8px 28px rgba(0, 0, 0, 0.45);
-
-    --scrim:        rgba(4, 8, 16, 0.5);
   }
+
+  /* The light source is a fact about the dark, not about the palette — so
+     these are re-declared once for all eight, and on [data-palette] too so a
+     Settings chip carries them as well. */
+  :root,
+  [data-palette] {
+    --selection:    rgb(var(--ink-rgb) / 0.22);
+    --glass-edge:   rgb(255 255 255 / 0.14);
+    --glass-rim:    rgb(0 0 0 / 0.45);
+    --lift:         0 1px 2px rgb(0 0 0 / 0.3),
+                    0 8px 28px rgb(0 0 0 / 0.45);
+    --scrim:        rgb(2 4 8 / 0.5);
+  }
+
+  [data-palette='paper'] {
+    --paper:        #151514;
+    --paper-sunk:   #090908;
+    --card:         #222221;
+    --ink:          #E9E9E8;   /* 15.0:1 */
+    --ink-2:        #ABABAA;   /*  8.0:1 */
+    --ink-3:        #919090;   /*  5.7:1 */
+    --ink-rgb:      233 233 232;
+    /* The neutral default inverts rather than tints: in the dark the
+       accent IS the ink, so Publish is a white pill with black on it. */
+    --accent:       #E9E9E8;
+    --accent-ink:   #0C0C0D;   /* 16.1:1 */
+    --accent-deep:  #E9E9E8;   /* 15.0:1 */
+    --glass-rgb:    34 34 33;
+  }
+
+  [data-palette='bondi'] {
+    --paper:        #002530;
+    --paper-sunk:   #00171F;
+    --card:         #003441;
+    --ink:          #E1EEF2;   /* 13.5:1 */
+    --ink-2:        #A4B4B9;   /*  7.5:1 */
+    --ink-3:        #91A1A6;   /*  6.0:1 */
+    --ink-rgb:      225 238 242;
+    --accent:       #32ACCD;
+    --accent-ink:   #000F15;   /*  7.3:1 */
+    --accent-deep:  #32ACCD;   /*  6.1:1 */
+    --glass-rgb:    0 52 65;
+  }
+
+  [data-palette='blueberry'] {
+    --paper:        #0F1C48;
+    --paper-sunk:   #050D39;
+    --card:         #1C2A56;
+    --ink:          #E5E9F4;   /* 13.5:1 */
+    --ink-2:        #AAB0BD;   /*  7.5:1 */
+    --ink-3:        #969CA9;   /*  6.0:1 */
+    --ink-rgb:      229 233 244;
+    --accent:       #7F98F3;
+    --accent-ink:   #060A1F;   /*  7.2:1 */
+    --accent-deep:  #7F98F3;   /*  6.0:1 */
+    --glass-rgb:    28 42 86;
+  }
+
+  [data-palette='grape'] {
+    --paper:        #2D113E;
+    --paper-sunk:   #1F032F;
+    --card:         #3A204C;
+    --ink:          #EBE6F0;   /* 13.6:1 */
+    --ink-2:        #B3ACB9;   /*  7.5:1 */
+    --ink-3:        #9F98A4;   /*  5.9:1 */
+    --ink-rgb:      235 230 240;
+    --accent:       #B689DE;
+    --accent-ink:   #11061B;   /*  7.2:1 */
+    --accent-deep:  #B689DE;   /*  6.0:1 */
+    --glass-rgb:    58 32 76;
+  }
+
+  [data-palette='tangerine'] {
+    --paper:        #361600;
+    --paper-sunk:   #240C00;
+    --card:         #482202;
+    --ink:          #F1E7E0;   /* 13.6:1 */
+    --ink-2:        #B9ADA5;   /*  7.5:1 */
+    --ink-3:        #A49991;   /*  5.9:1 */
+    --ink-rgb:      241 231 224;
+    --accent:       #E68336;
+    --accent-ink:   #190700;   /*  7.2:1 */
+    --accent-deep:  #E68336;   /*  6.0:1 */
+    --glass-rgb:    72 34 2;
+  }
+
+  [data-palette='lime'] {
+    --paper:        #142700;
+    --paper-sunk:   #0A1800;
+    --card:         #203509;
+    --ink:          #E9EEE5;   /* 13.5:1 */
+    --ink-2:        #AEB4A9;   /*  7.5:1 */
+    --ink-3:        #9AA195;   /*  6.0:1 */
+    --ink-rgb:      233 238 229;
+    --accent:       #82AD3A;
+    --accent-ink:   #080F00;   /*  7.4:1 */
+    --accent-deep:  #82AD3A;   /*  6.1:1 */
+    --glass-rgb:    32 53 9;
+  }
+
+  [data-palette='strawberry'] {
+    --paper:        #3F071A;
+    --paper-sunk:   #2E000E;
+    --card:         #4E1927;
+    --ink:          #F2E4E6;   /* 13.5:1 */
+    --ink-2:        #BBAAAC;   /*  7.5:1 */
+    --ink-3:        #A79699;   /*  5.9:1 */
+    --ink-rgb:      242 228 230;
+    --accent:       #ED758F;
+    --accent-ink:   #1B0408;   /*  7.1:1 */
+    --accent-deep:  #ED758F;   /*  6.0:1 */
+    --glass-rgb:    78 25 39;
+  }
+
+  [data-palette='graphite'] {
+    --paper:        #16212F;
+    --paper-sunk:   #091521;
+    --card:         #232F3C;
+    --ink:          #E8EBEE;   /* 13.6:1 */
+    --ink-2:        #ADB1B5;   /*  7.5:1 */
+    --ink-3:        #9A9DA2;   /*  6.0:1 */
+    --ink-rgb:      232 235 238;
+    --accent:       #979FA3;
+    --accent-ink:   #060D12;   /*  7.3:1 */
+    --accent-deep:  #979FA3;   /*  6.0:1 */
+    --glass-rgb:    35 47 60;
+  }
+
+
 }

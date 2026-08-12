@@ -12,7 +12,7 @@
    design and belongs in the Supabase dashboard alone.
 
    Empty either string and the app is what it was before any of this: a purely
-   local journal, with the account screen saying sync isn't configured.
+   local journal, with the Settings screen saying sync isn't configured.
    ========================================================================= */
 
 export const SUPABASE_URL = 'https://uwfskykrayezjcazmlrw.supabase.co';
