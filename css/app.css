@@ -476,6 +476,15 @@
   overflow: hidden;
 }
 
+/* The global focus ring (base.css) is for controls with edges — a button, a
+   circle. These fields have none; a ring boxing the full width of the page
+   reads as an error state, not focus. The caret is the only affordance
+   editing needs. */
+.entry-title-field:focus-visible,
+.entry-body-field:focus-visible {
+  outline: none;
+}
+
 .entry-title-field {
   font-size: var(--t-title);
   font-weight: var(--w-black);
@@ -503,56 +512,121 @@
 }
 
 /* -------------------------------------------------------------- mood ---
-   Five circles. A radiogroup, so it is one tab stop and the arrow keys move
+   Five faces. A radiogroup, so it is one tab stop and the arrow keys move
    the selection — the pattern a rating control is supposed to follow.
-   Each circle carries its own 44px target even though the ink is 28px. */
 
+   It is a glass card, and it is the first thing on the entry. Loose dots
+   under the date read as a footnote to the writing; a pane of its own says
+   the rating is a thing you came here to do. The journal scrolls behind it,
+   which is what glass is for.
+
+   The faces spread the full width rather than huddling left — five evenly
+   spaced points read as a scale. The row is pulled out by exactly the slack
+   each target carries around its face, so the outermost ink and the label
+   below it both start on the card's padding: one left edge, not three. */
+
+/* The pad is 12/16/12, which lands 16 all round once you count the slack each
+   target carries around its face — the row is 52 of box for 44 of ink. */
 .mood {
-  display: flex;
-  align-items: center;
-  gap: var(--s-1);
-  margin: var(--s-5) 0 var(--s-2);
-  margin-left: calc(var(--s-2) * -1);
+  margin: 0 0 var(--s-6);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
 }
 
+.mood-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 calc(((var(--mood-tap) - var(--dot-lg)) / 2) * -1);
+}
+
+/* The target is a plain box with nothing laid out inside it. The swatch and
+   the face are given the SAME absolute box, so they are concentric by
+   construction rather than by two alignment mechanisms agreeing.
+
+   They did not agree. A button keeps the UA's 1px 6px of padding unless it is
+   told otherwise, which leaves the swatch wider than the content box it was
+   being centred in; WebKit resolves that overflow towards the start edge, and
+   the face — positioned from the padding edge — sat a few pixels left of its
+   own circle. Hence `padding: 0`, and hence one box for both. */
 .mood-opt {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: var(--tap);
-  height: var(--tap);
+  display: block;
+  width: var(--mood-tap);
+  height: var(--mood-tap);
+  padding: 0;
   border-radius: var(--r-full);
   transition: transform var(--d-fast) var(--ease);
 }
-.mood-opt::after {
-  content: '';
+.mood-opt::before,
+.mood-opt svg {
+  position: absolute;
+  top: calc((var(--mood-tap) - var(--dot-lg)) / 2);
+  left: calc((var(--mood-tap) - var(--dot-lg)) / 2);
   width: var(--dot-lg);
   height: var(--dot-lg);
+}
+/* The swatch is ::before, not ::after: both layers are positioned now, so
+   tree order is paint order, and the face has to come second. */
+.mood-opt::before {
+  content: '';
   border-radius: var(--r-full);
   background: transparent;
   box-shadow: inset 0 0 0 var(--ring) var(--mood-none);
   transition: background var(--d-fast) var(--ease),
-              box-shadow var(--d-fast) var(--ease),
-              transform var(--d-fast) var(--ease);
+              box-shadow var(--d-fast) var(--ease);
 }
-.mood-opt[data-mood='1']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-1); }
-.mood-opt[data-mood='2']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-2); }
-.mood-opt[data-mood='3']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-3); }
-.mood-opt[data-mood='4']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-4); }
-.mood-opt[data-mood='5']::after { box-shadow: inset 0 0 0 var(--ring) var(--mood-5); }
 
-.mood-opt[aria-checked='true']::after { transform: scale(1.06); }
-.mood-opt[aria-checked='true'][data-mood='1']::after { background: var(--mood-1); }
-.mood-opt[aria-checked='true'][data-mood='2']::after { background: var(--mood-2); }
-.mood-opt[aria-checked='true'][data-mood='3']::after { background: var(--mood-3); }
-.mood-opt[aria-checked='true'][data-mood='4']::after { background: var(--mood-4); }
-.mood-opt[aria-checked='true'][data-mood='5']::after { background: var(--mood-5); }
+/* Unrated, the face is drawn in its own colour inside the ring; rated, it
+   turns to --mood-ink on the fill — the same pairing the calendar prints its
+   numerals with. The heavier stroke is the one tokens.css keeps for a glyph
+   sitting on a filled field, which eats a hairline. */
+.mood-opt svg {
+  color: var(--mood-none);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: color var(--d-fast) var(--ease);
+}
+.mood-opt[data-mood='1']::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-1); }
+.mood-opt[data-mood='2']::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-2); }
+.mood-opt[data-mood='3']::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-3); }
+.mood-opt[data-mood='4']::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-4); }
+.mood-opt[data-mood='5']::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-5); }
+
+.mood-opt[data-mood='1'] svg { color: var(--mood-1); }
+.mood-opt[data-mood='2'] svg { color: var(--mood-2); }
+.mood-opt[data-mood='3'] svg { color: var(--mood-3); }
+.mood-opt[data-mood='4'] svg { color: var(--mood-4); }
+.mood-opt[data-mood='5'] svg { color: var(--mood-5); }
+
+/* The chosen one grows, and it grows from the BUTTON — not from the swatch.
+   A transform on the ::after promotes it into the positioned layer, where,
+   being later in tree order, it paints over the face and you get a plain
+   coloured disc. Scaling the button moves swatch and face together and
+   leaves the paint order alone. */
+.mood-opt[aria-checked='true'] { transform: scale(1.06); }
+.mood-opt[aria-checked='true'] svg {
+  color: var(--mood-ink);
+  stroke-width: var(--stroke-bold);
+}
+.mood-opt[aria-checked='true'][data-mood='1']::before { background: var(--mood-1); }
+.mood-opt[aria-checked='true'][data-mood='2']::before { background: var(--mood-2); }
+.mood-opt[aria-checked='true'][data-mood='3']::before { background: var(--mood-3); }
+.mood-opt[aria-checked='true'][data-mood='4']::before { background: var(--mood-4); }
+.mood-opt[aria-checked='true'][data-mood='5']::before { background: var(--mood-5); }
 .mood-opt:active { transform: scale(var(--press)); }
 
+/* Under the row, aligned to the first circle's ink — the card's one line of
+   type, reading as a prompt until it is answered and as the answer after. */
 .mood-label {
-  margin-left: var(--s-2);
-  font-size: var(--t-foot);
+  display: block;
+  font-size: var(--t-subhead);
   font-weight: var(--w-medium);
+  /* Tight, or the body's 1.6 leaves half a line of air under the word and the
+     card looks bottom-heavy against 12px of pad. */
+  line-height: var(--lh-tight);
   color: var(--ink-2);
   white-space: nowrap;
 }

@@ -62,6 +62,17 @@ const PATHS = {
   next:     ['M10 5l7 7-7 7'],
   go:       ['M5 12h13', 'M12 6l6 6-6 6'],
   trash:    ['M4 7h16', 'M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2', 'M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13'],
+
+  /* The five day ratings. No outer circle — the swatch behind the glyph is
+     the face. Two dots and a mouth, and only the mouth changes: at 28px an
+     eye that also changes reads as noise, and the mouth is what carries a
+     five-step ramp legibly. Drawn on the same 24 grid as everything else, so
+     a face lines up with the icons it sits under. */
+  'mood-1': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 17Q12 12.6 17.1 17'],
+  'mood-2': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 16.4Q12 14 17.1 16.4'],
+  'mood-3': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 15.4h10.2'],
+  'mood-4': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 14.4Q12 16.8 17.1 14.4'],
+  'mood-5': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 13.8Q12 18.2 17.1 13.8'],
 };
 
 export function icon(name) {

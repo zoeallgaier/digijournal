@@ -279,6 +279,16 @@ arrow-key support and a roving tabindex.
   transform, so a translate-centred element is shoved half its width sideways
   for as long as the animation fills, then snaps back — which is what the
   toast used to do. Centring is layout's job: auto margins, or flex.
+- **Two layers that must sit concentric get one box, not two mechanisms.** The
+  mood face and its swatch are both absolutely positioned to the same offset
+  and size. They used to be a centred grid item plus a positioned glyph, and
+  they disagreed twice over: a `<button>` keeps the UA's `1px 6px` padding
+  unless told otherwise, and WebKit resolves the resulting overflow towards
+  the start edge, so the face sat left of its own circle; then a `transform`
+  on the swatch promoted it into the positioned layer, where — being later in
+  tree order — it painted over the face entirely. Hence `padding: 0`, hence
+  the swatch is `::before`, and hence a chosen face scales from the button
+  rather than from the swatch.
 - **The chrome is measured once.** Both fixed bars are `--tap` plus air, so
   their heights are calculated, not chosen; `--chrome-top` and
   `--chrome-bottom` are what they cover, safe area included. `.screen-inner`

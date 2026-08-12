@@ -16,7 +16,7 @@
    "Publish" only moves a draft into the list; it is not the save.
    ========================================================================= */
 
-import { el, iconButton, longDate, toast, confirmDestructive } from './ui.js';
+import { el, icon, iconButton, longDate, toast, confirmDestructive } from './ui.js';
 import * as store from './store.js';
 import { MOODS, moodLabel } from './store.js';
 
@@ -122,7 +122,8 @@ export function view(params, api) {
   /* --------------------------------------------------------------- mood */
 
   const moodValue = el('span.mood-label');
-  const moodGroup = el('div.mood', {
+  const moodRow = el('div.mood-row');
+  const moodGroup = el('div.mood.glass', {
     role: 'radiogroup',
     'aria-label': 'How the day felt',
   });
@@ -134,10 +135,11 @@ export function view(params, api) {
       'data-mood': value,
       'aria-label': `${label} (${value} of 5)`,
       onclick: () => setMood(value === currentMood() ? null : value),
-    })
+    }, icon(`mood-${value}`))
   );
 
-  moodGroup.append(...moodButtons, moodValue);
+  moodRow.append(...moodButtons);
+  moodGroup.append(moodRow, moodValue);
 
   function currentMood() {
     return store.get(entry.id)?.mood ?? null;
@@ -223,11 +225,14 @@ export function view(params, api) {
 
   /* --------------------------------------------------------------- node */
 
+  /* The rating sits above the title, not beside the body: it is the one thing
+     you can answer before you have written a word, and on a day you never get
+     round to writing it is the whole entry. */
   const node = el('div.screen-inner',
     el('article.entry-head',
+      moodGroup,
       titleField,
       dateLine,
-      moodGroup,
       bodyField,
     ),
   );
