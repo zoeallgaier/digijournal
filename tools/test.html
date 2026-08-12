@@ -114,12 +114,21 @@ async function run() {
      $$('.toolbar .icon-btn').map((b) => b.getAttribute('aria-label')).join());
 
   const moods = $$('.mood-opt');
-  ok(moods.length === 5, 'five mood circles');
+  ok(moods.length === 5, 'five mood faces');
   ok(moods.every((m) => m.getAttribute('aria-checked') === 'false'), 'mood starts unrated');
+  /* Every face names itself, so the ramp is readable before you touch it and
+     colour is never the only thing telling them apart. */
+  ok($$('.mood-name').map((n) => n.textContent).join() === 'Rough,Low,Even,Good,Bright',
+     'each face is named under itself', $$('.mood-name').map((n) => n.textContent).join());
+  ok($('.mood-prompt').textContent === 'Rate the day', 'the card asks for the rating');
+  ok($('.mood').getAttribute('aria-labelledby') === $('.mood-prompt').id,
+     "the prompt is the radiogroup's name");
   moods[3].click();
   await wait(200);
   ok(moods[3].getAttribute('aria-checked') === 'true', 'tapping a mood selects it');
-  ok($('.mood-label').textContent === 'Good', 'mood label reads out', $('.mood-label').textContent);
+  ok($('.mood-opt[aria-checked="true"] .mood-name').textContent === 'Good',
+     'the chosen face is the named one',
+     $('.mood-opt[aria-checked="true"] .mood-name').textContent);
   ok(S().all()[0].mood === 4, 'mood persisted', String(S().all()[0].mood));
 
   moods[3].click();

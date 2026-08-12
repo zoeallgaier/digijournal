@@ -151,13 +151,9 @@
   --stroke:      1.9;      /* every icon is drawn at this weight…          */
   --stroke-bold: 2.2;      /* …except on a filled field, which eats it     */
   --dot:     0.75rem;      /* the mood dot on a list row and in the key    */
-  --dot-lg:  2.75rem;      /* the mood face…                               */
-  --mood-tap: 3.25rem;     /* …and its target, the one control bigger than
-                              --tap. The rating is answered with a thumb,
-                              often before a word is written, and the card
-                              has the width to spend on it. 52 keeps five
-                              of them clear of each other down to a 375pt
-                              screen.                                      */
+  --dot-lg:  2.75rem;      /* the mood face. It needs no target drawn round
+                              it: the button is this face stacked over its
+                              word, which clears 44 in both directions.    */
   --ring:      2px;        /* that circle's outline while it is unfilled   */
   --ring-thin: 1.5px;      /* a day written but not rated                  */
 

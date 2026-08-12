@@ -18,7 +18,7 @@
 
 import { el, icon, iconButton, longDate, toast, confirmDestructive } from './ui.js';
 import * as store from './store.js';
-import { MOODS, moodLabel } from './store.js';
+import { MOODS } from './store.js';
 
 const SAVE_DEBOUNCE = 400;
 
@@ -121,11 +121,15 @@ export function view(params, api) {
 
   /* --------------------------------------------------------------- mood */
 
-  const moodValue = el('span.mood-label');
+  /* The card says what it wants, then offers five answers, each named under
+     its own face. Nothing here changes as you choose — the prompt is a
+     heading, not a readout, and which day it was is carried by the face that
+     fills. */
+  const moodPrompt = el('p.mood-prompt#mood-prompt', 'Rate the day');
   const moodRow = el('div.mood-row');
   const moodGroup = el('div.mood.glass', {
     role: 'radiogroup',
-    'aria-label': 'How the day felt',
+    'aria-labelledby': 'mood-prompt',
   });
 
   const moodButtons = MOODS.map(({ value, label }) =>
@@ -135,11 +139,14 @@ export function view(params, api) {
       'data-mood': value,
       'aria-label': `${label} (${value} of 5)`,
       onclick: () => setMood(value === currentMood() ? null : value),
-    }, icon(`mood-${value}`))
+    },
+      el('span.mood-face', icon(`mood-${value}`)),
+      el('span.mood-name', label),
+    )
   );
 
   moodRow.append(...moodButtons);
-  moodGroup.append(moodRow, moodValue);
+  moodGroup.append(moodPrompt, moodRow);
 
   function currentMood() {
     return store.get(entry.id)?.mood ?? null;
@@ -154,7 +161,6 @@ export function view(params, api) {
          nothing is chosen the first circle takes the tab stop. */
       btn.tabIndex = checked || (mood === null && i === 0) ? 0 : -1;
     });
-    moodValue.textContent = mood === null ? 'Rate the day' : moodLabel(mood);
   }
 
   function setMood(value, { focus = false } = {}) {
