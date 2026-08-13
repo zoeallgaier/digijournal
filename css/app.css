@@ -53,13 +53,41 @@
     max(var(--gutter), env(safe-area-inset-right));
 }
 
-/* Entering a screen: a short, shallow rise. Nothing slides sideways —
-   this app is a stack of sheets, not a carousel. */
+/* Entering a screen. WHICH WAY IT MOVES IS INFORMATION, not decoration, and
+   app.js decides it from where you came from: across between the three
+   peers in the bar, up into an entry, back down out of one. So the motion
+   has told you whether you moved sideways or went inside something before
+   you have read a word of the new screen.
+
+   Sideways used to be forbidden here — "a stack of sheets, not a carousel"
+   — and it was right while every screen was a sheet on the one before it.
+   The bar made three of them peers, and peers do sit side by side.
+
+   All four are short and shallow, and all four are CSS on a node that is
+   already in the document. NOTHING WAITS FOR THEM. The keyboard depends on
+   the whole navigation finishing inside the tap that asked for it — see the
+   note at the top of app.js. */
 @keyframes rise {
   from { opacity: 0; transform: translate3d(0, 10px, 0); }
   to   { opacity: 1; transform: none; }
 }
+@keyframes descend {
+  from { opacity: 0; transform: translate3d(0, -10px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes from-right {
+  from { opacity: 0; transform: translate3d(16px, 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes from-left {
+  from { opacity: 0; transform: translate3d(-16px, 0, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
 .screen[data-enter] > .screen-inner { animation: rise var(--d-mid) var(--ease) both; }
+.screen[data-enter='out']   > .screen-inner { animation-name: descend; }
+.screen[data-enter='right'] > .screen-inner { animation-name: from-right; }
+.screen[data-enter='left']  > .screen-inner { animation-name: from-left; }
 
 /* ---------------------------------------------------------------- glass --
    The one liquid-glass primitive. Everything with the journal moving behind
@@ -385,11 +413,37 @@
   line-height: var(--lh-snug);
 }
 
+/* The invitation the composer used to be. "Start writing…" spanned the bar
+   and said "begin here" simply by being field-shaped; the quill that
+   replaced it is a tool, and a tool does not invite. So the invitation lives
+   on the one screen that has nothing else to say — and only there, because
+   a journal with entries in it does not need asking twice. */
+.empty-btn {
+  margin-top: var(--s-6);
+  min-height: var(--tap);
+  padding: 0 var(--s-6);
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: var(--t-subhead);
+  font-weight: var(--w-bold);
+  box-shadow: var(--lift);
+  transition: transform var(--d-fast) var(--ease);
+}
+.empty-btn:active { transform: scale(var(--press-wide)); }
+
 /* ----------------------------------------------------------------- bar --
-   The composer bar. One element, two jobs: on home it is the invitation to
-   write, in the editor it is the publish button. It never unmounts — it
-   morphs — so the transition between the two reads as one object changing
-   state, which is the whole point of the interaction. */
+   THE WHOLE OF THE APP'S NAVIGATION, in one of two shapes.
+
+   Navigate: the three peers in a glass pill — Journal, Calendar, Settings —
+   with the quill beside them. Act: the entry, where the pill is the action
+   and the capsule is Delete.
+
+   The two wide elements share one slot and cross-fade. They cannot be one
+   node — a three-cell group with a sliding selection is not a labelled pill
+   — but they are the same size in the same place, so the bar still reads as
+   one surface changing its mind. `hidden` needs saying explicitly on both:
+   each sets its own `display`, which beats the attribute's default. */
 
 .bar {
   position: fixed;
@@ -425,29 +479,109 @@
   margin: 0 auto;
 }
 
-/* The "Start writing…" field. It is a button that looks like a text field,
-   because tapping it opens a real editor rather than typing in place. */
+/* ---- navigate ------------------------------------------------------------
+   One glass pane holding three 44pt targets. The pane is the surface; the
+   buttons inside it carry no glass of their own, for the same reason the
+   toolbar's capsules drop theirs once the toolbar itself turns to glass —
+   glass on glass reads as a smear rather than two panes. */
+.bar-nav {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  height: var(--tap);
+  border-radius: var(--r-xl);
+  animation: fade var(--d-mid) var(--ease) both;
+}
+.bar-nav[hidden] { display: none; }
+
+/* The selection. NOTHING IN JS KNOWS WHERE THIS SITS — app.js writes
+   `data-tab` and the transform below is what moves it, the same division of
+   labour as the mood card's thumb. Which is also why it slides: it is one
+   element being moved rather than three being repainted.
+
+   The pane carries no padding of its own, so each tab is the full --tap in
+   both directions — the selection is inset instead, which is what keeps a
+   44pt target under a 36pt-tall pill. */
+.bar-nav-sel {
+  position: absolute;
+  top: var(--s-1);
+  bottom: var(--s-1);
+  left: 0;
+  width: calc(100% / 3);
+  border-radius: var(--r-xl);
+  background: rgb(var(--ink-rgb) / 0.10);
+  transition: transform var(--d-mid) var(--ease);
+}
+.bar-nav[data-tab='1'] .bar-nav-sel { transform: translateX(100%); }
+.bar-nav[data-tab='2'] .bar-nav-sel { transform: translateX(200%); }
+
+/* Off a peer screen entirely — an entry that no longer exists. Nothing is
+   current, so nothing is marked. */
+.bar-nav:not([data-tab]) .bar-nav-sel,
+.bar-nav[data-tab=''] .bar-nav-sel { opacity: 0; }
+
+.bar-tab {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: var(--tap);
+  height: 100%;
+  border-radius: var(--r-xl);
+  color: var(--ink-3);
+  transition: color var(--d-mid) var(--ease), transform var(--d-fast) var(--ease);
+}
+.bar-tab svg {
+  width: var(--icon);
+  height: var(--icon);
+  stroke: currentColor;
+  stroke-width: var(--stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* The selected tab is TWO channels, not one: the pill behind it and full-
+   strength ink in it. The pill alone would be a colour difference, and the
+   ink alone would be a colour difference — together they are a shape and a
+   weight. aria-current is the third, for anyone not looking. */
+.bar-tab[aria-current] { color: var(--ink); }
+.bar-tab[aria-current] svg { stroke-width: var(--stroke-bold); }
+.bar-tab[data-tone='danger'] { color: var(--danger); }
+.bar-tab:active { transform: scale(var(--press)); }
+
+/* ---- act -----------------------------------------------------------------
+   The "Start writing…" field became the quill when the bar became
+   navigation; this pill is now the entry's, and it is a button that looks
+   like a field for the same reason it always was. */
 .compose {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   height: var(--tap);
   padding: 0 var(--s-5);
   border-radius: var(--r-xl);
-  text-align: left;
   font-size: var(--t-subhead);
   font-weight: var(--w-regular);
   color: var(--ink-3);
+  animation: fade var(--d-mid) var(--ease) both;
   transition: transform var(--d-fast) var(--ease),
               color var(--d-mid) var(--ease),
               background var(--d-mid) var(--ease);
 }
+.compose[hidden] { display: none; }
 .compose:active { transform: scale(var(--press-wide)); }
 
-/* Publish state: same pill, now solid accent and centred. */
+/* Reading an entry: the pencil, as glass rather than a field. Reading is not
+   the moment to shout, and the accent belongs to the thing that commits. */
+.compose[data-mode='quiet'] {
+  color: var(--ink);
+  font-size: var(--t-headline);
+  font-weight: var(--w-bold);
+}
+
+/* Publish state: same pill, now solid accent. */
 .compose[data-mode='publish'] {
-  justify-content: center;
   background: var(--accent);
   color: var(--accent-ink);
   font-size: var(--t-headline);
@@ -461,7 +595,10 @@
   pointer-events: none;
 }
 
-/* The calendar button sits in its own glass capsule beside the field. */
+/* The capsule beside it. On the three peers it is the quill and nothing
+   else — one job, one position, every screen. In the editor it is Delete,
+   and it is only ever that when the pill beside it is a filled Publish, so
+   the whole bar has visibly changed species first. */
 .bar-side {
   display: grid;
   place-items: center;
@@ -470,6 +607,14 @@
   border-radius: var(--r-full);
   color: var(--ink);
   transition: transform var(--d-fast) var(--ease), opacity var(--d-mid) var(--ease);
+}
+/* The one verb in the app, so it is the one filled thing in the bar. */
+.bar-side[data-tone='accent'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--lift);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 .bar-side svg {
   width: var(--icon);
@@ -1050,6 +1195,12 @@
   transition: transform var(--d-fast) var(--ease);
 }
 .account-btn:active { transform: scale(var(--press-wide)); }
+/* Sign in, with nothing typed in yet. The same switched-off opacity the
+   Publish pill wears for the same reason — there is nothing to submit. */
+.account-btn:disabled {
+  opacity: var(--o-disabled);
+  pointer-events: none;
+}
 /* Sign out is not destructive — you can sign straight back in and nothing on
    either side is lost — so it is quiet rather than red. Red here would be
    claiming a consequence the action does not have. */

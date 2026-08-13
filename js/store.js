@@ -370,7 +370,7 @@ export function remove(id) {
 }
 
 /** True when an entry holds nothing a person typed. Used to sweep away the
- *  drafts created by tapping "Start writing…" and then changing your mind —
+ *  drafts created by tapping the quill and then changing your mind —
  *  those should not become rows in the list.
  *
  *  It asks about words alone now. A rating is no longer something an entry
@@ -404,7 +404,7 @@ export function discardIfEmpty(id) {
 
 /** Everything sync should push, tombstones included.
  *
- *  An empty unpublished draft is excluded on purpose. Tapping "Start writing…"
+ *  An empty unpublished draft is excluded on purpose. Tapping the quill
  *  makes a real entry immediately, and most of those are abandoned — pushing
  *  them would fill the table with blank rows and, worse, make the tombstone in
  *  discardIfEmpty necessary. Nothing is lost: the moment a character is typed

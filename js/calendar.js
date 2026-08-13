@@ -189,8 +189,9 @@ export function view(params, api) {
   return {
     node,
     title: monthYear(month),
-    bar: 'compose',
-    /* No back button up here: the calendar capsule in the composer bar is
-       the way out, and two ways back would be one too many. */
+    /* No back button anywhere on this screen, and nothing to go back TO: the
+       calendar is a peer of the list, not a detour off it, so the bar holds
+       the Journal tab rather than a way out. */
+    bar: 'nav',
   };
 }

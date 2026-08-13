@@ -49,7 +49,8 @@ css/tokens.css      the entire visual language — every value lives here,
 css/base.css        reset, @font-face, focus, reduced motion
 css/app.css         every component
 fonts/              DM Sans, variable, self-hosted (two files, all weights)
-js/app.js           boot, hash routing, the composer bar, the keyboard
+js/app.js           boot, hash routing, the bar — which is the whole of the
+                    app's navigation — and the keyboard
 js/store.js         every entry; the ONLY file that touches localStorage
 js/ui.js            el(), icon(), dates, toast, menu — the shared vocabulary
 js/home.js          the list, with today's rating card above it
@@ -61,7 +62,8 @@ js/theme.js         which palette the app is wearing — names only, never
                     status bar
 js/settings.js      one screen for everything that is not an entry: the
                     palette picker, and signing in. The only screen in the
-                    app that knows there is a server
+                    app that knows there is a server. A peer of the list and
+                    the calendar — a tab in the bar, not a door off one
 js/config.js        the Supabase URL and anon key. Both are public by design;
                     the RLS policy is what makes that safe
 js/net.js           Supabase over plain fetch — the five requests, by hand,
@@ -146,7 +148,7 @@ actually has. The consequences, all of them wanted:
 
 A **draft** is `published: false`. It is not a separate species — it is a row
 in the list with a quiet flag on it. An untouched draft (no title, no body) is
-swept away when you leave it, so tapping "Start writing…" and changing your
+swept away when you leave it, so tapping the quill and changing your
 mind leaves nothing behind. `isEmpty()` asks about words alone now — a rating
 is no longer something an entry can be holding.
 
@@ -270,6 +272,59 @@ distance apart they were solved for instead of flattening as the ground fell.
   code outside `store.js` that touches storage, they only ever read, and
   deleting them would leave the app correct and one frame uglier.
 
+### The navigation is the bar, and it has two states
+
+Rebuilt 13 Aug 2026. **`view.bar` is either the string `'nav'` or an object,
+and there is deliberately no third shape.**
+
+`'nav'` is the three peer screens — **Journal, Calendar, Settings** — as a
+glass pill of three tabs with the **quill** beside it. An object is a screen
+with a primary action in front of it, and **only the entry is one**: it is the
+only screen you go *into* rather than across to, and the only one with a back
+button.
+
+What that replaced, and why, because each of these will look like something
+to "tidy up" later:
+
+- **One capsule was doing three unrelated jobs in one position** — calendar on
+  the list, back on the calendar, and *delete* in the editor. Muscle memory
+  built on the list landed on a destructive action inside an entry. The
+  capsule is the quill on all three peers now; Delete only ever appears
+  beside a filled Publish, so the whole bar has visibly changed species
+  first.
+- **Back lived in two places.** Top left on entries and Settings, bottom right
+  on the calendar. There is one back button in the app now and the entry
+  owns it.
+- **Settings had one door and it was the list's gear.** From the calendar it
+  was back, then gear. It is a tab.
+- **`--kb`, `--bar-h`, `--bar-bottom` and `--chrome-bottom` did not change.**
+  The nav is the same single `--tap` row with the same pads, which is why
+  every bottom-edge check reads exactly what it read before. This change goes
+  nowhere near the band at the bottom of the screen — see the status bar note
+  under *Getting it onto the phone* if one ever appears.
+
+**A tab replaces rather than pushes** (`goTab` resets `depth` and calls `go`
+with `replace: true`). Three peers are not a trail, and it is what makes the
+entry's back button always land on the tab you left.
+
+**The direction a screen enters from is information.** `enterDirection()` in
+`app.js` reads the tab order: laterally between peers, `rise` into an entry,
+`descend` back out, and the plain rise for a re-render of the same route (a
+month step must not claim you moved sideways). All four are CSS animations on
+a node already in the document — **nothing on the path from a tap to a focused
+field may wait for one**, which is the same rule the keyboard has always had.
+
+**Sign in is no longer in the bar**, and that is the price this cost. Settings
+is a peer, so its bar is the way *off* the screen and cannot also be the
+button on it — that would strand you there. The button is a real submit at the
+foot of its own form, which is also where the phone's Go key was already
+pressing. Do not move it back into the bar.
+
+**The empty list carries the invitation instead.** "Start writing…" was a
+field-shaped button spanning the bar and said *begin here* simply by being
+that shape; a quill is a tool, and a tool is a poor greeting. `.empty-btn`
+exists on that one screen only.
+
 ### Reading and editing are one screen
 
 `entry.js` keeps two textareas mounted and toggles `readOnly`. A textarea and
@@ -298,12 +353,15 @@ Everything saves as you type (400ms debounce, plus a flush on
 `visibilitychange: hidden`). **Publish is not the save** — it only moves a
 draft into the list.
 
-Which mode you are in is the whole navigation. Reading offers one control, the
-pencil; editing swaps it for the bar, where Delete sits beside Done. There is
-no ⋯ on an entry and nothing hidden behind one — if you can do it to an entry,
-you can see it. The capsule beside the composer is the one slot that changes
-job by screen: calendar on the list, back on the calendar, delete while
-editing.
+Which mode you are in is the whole navigation. Reading offers one control and
+it is **Edit, in the bar**; editing turns that pill into Publish and puts
+Delete in the capsule beside it. There is no ⋯ on an entry and nothing hidden
+behind one — if you can do it to an entry, you can see it.
+
+The pencil used to be an icon in the top right and the bar slid away entirely
+while reading, which made this the one screen in the app with no bottom chrome
+and put the control you reach for most at the corner hardest to reach. It came
+down into the bar on 13 Aug 2026 with the rest of the navigation.
 
 ---
 
@@ -590,15 +648,27 @@ leaves the open entry alone, that an untouched draft is never pushed, that the
 sync screen is a door off the list rather than a gate in front of it, that the
 shipped key decodes to `role: anon`, that `schema.sql` still enables RLS with
 both `using` and `with check`, that every import is still a relative file in
-this repo, and that a different account starts empty. **302 checks.**
+this repo, and that a different account starts empty.
+
+The bar has its own set: that a peer screen shows three tabs and not an
+action, that the selection follows the screen and says so with `aria-current`
+rather than colour alone, that the capsule is the quill on all three peers,
+that an entry swaps the tabs for Publish and Delete, that reading keeps the
+bar and offers a quiet Edit, that stepping between tabs stacks no history,
+that the entry's back button is the only one left in the app, that the list's
+toolbar is empty, that Sign in is a visible submit inside its own form and the
+bar stays navigation so Settings can never be a trap, and that every tab is a
+44pt target. **317 checks.**
 
 **One check is deliberately not awaited**, and it is the keyboard's. iOS
 raises the on-screen keyboard only for a `focus()` that happens inside the tap
-that asked for it — so tapping "Start writing…" must have navigated, mounted
-the entry and taken the caret by the time `click()` returns. The check reads
-`activeElement` on the next line, with no `await` between. A desktop browser
-does not care when the caret lands, so this is the only way the suite can see
-a keyboard it has no way to raise.
+that asked for it — so tapping the quill must have navigated, mounted the
+entry and taken the caret by the time `click()` returns. The check reads
+`activeElement` on the next line, with no `await` between. **There are two of
+them now**: the quill, and Edit on a published entry, which focuses a field
+from the bar and is under exactly the same deadline. A desktop browser does
+not care when the caret lands, so this is the only way the suite can see a
+keyboard it has no way to raise.
 
 **The settings screen is backed out of from a cold landing on `#/settings`,
 not by tapping in and then backing out.** That is the case worth pinning —

@@ -60,6 +60,11 @@ async function run() {
   ok(!$('input[type="password"]'), 'nothing on the way in asks for a password');
   ok(!$('.account-form'), 'and signing in is not what the app opens on');
   ok($('.empty h2')?.textContent === 'Nothing written yet', 'empty state shown');
+  /* The invitation "Start writing…" used to be, now that the bar is
+     navigation and the quill is a tool rather than a greeting. It is on this
+     screen only — a journal with entries in it does not need asking twice. */
+  ok($('.empty-btn')?.textContent === 'Write the first entry',
+     'an empty journal asks for the first entry in words', $('.empty-btn')?.textContent);
 
   /* --------------------------------------------- 1b. the day's rating
      The card is on the LIST and it rates today. Everything below is the
@@ -105,9 +110,17 @@ async function run() {
 
   /* ------------------------------------------------------ 2. write & publish */
   const bar = $('#bar');
-  ok(!bar.hidden, 'composer bar visible on home');
-  ok($('.compose').textContent === 'Start writing…', 'bar reads "Start writing…"');
-  ok(!$('.bar-side').hidden, 'calendar button present on home');
+  ok(!bar.hidden, 'the bar is visible on home');
+  ok(!$('.bar-nav').hidden && $('.compose').hidden,
+     'on a peer screen the bar is the three tabs, not an action');
+  ok($$('.bar-tab').length === 3, 'three tabs: Journal, Calendar, Settings');
+  ok($('.bar-nav').dataset.tab === '0', 'the Journal tab is the current one',
+     $('.bar-nav').dataset.tab);
+  ok($$('.bar-tab')[0].getAttribute('aria-current') === 'page',
+     'and says so with aria-current, not colour alone');
+  ok($('.bar-side').getAttribute('aria-label') === 'Write a new entry',
+     'the capsule is the quill', $('.bar-side').getAttribute('aria-label'));
+  ok($('.bar-side').dataset.tone === 'accent', 'the quill is the one filled thing in the bar');
 
   /* NOT AWAITED, ON PURPOSE — this is the keyboard check, and the only one
      the suite can make. iOS raises the on-screen keyboard for a focus() that
@@ -116,13 +129,15 @@ async function run() {
      render to a hashchange or the focus to a requestAnimationFrame and the
      caret lands a turn later: this fails, and on the phone the draft opens
      with a caret in it and no keyboard under it. See go() in app.js. */
-  $('.compose').click();
+  $('.bar-side').click();
   ok(f.contentWindow.document.activeElement === $('.entry-title-field'),
      'the caret is in the new draft before the tap returns',
      f.contentWindow.document.activeElement?.className);
 
   await wait(300);
-  ok(f.contentWindow.location.hash.startsWith('#/e/'), 'compose opens a new entry', f.contentWindow.location.hash);
+  ok(f.contentWindow.location.hash.startsWith('#/e/'), 'the quill opens a new entry', f.contentWindow.location.hash);
+  ok($('.bar-nav').hidden && !$('.compose').hidden,
+     'inside an entry the tabs give way to the action');
   ok($('.compose').dataset.mode === 'publish', 'bar became the publish button');
   ok($('.compose').textContent === 'Publish', 'publish button labelled Publish');
   ok($('.compose').disabled === true, 'publish disabled while the entry is empty');
@@ -153,14 +168,20 @@ async function run() {
   $('.entry-row').click();
   await wait(300);
   ok($('.entry-title-field').readOnly === true, 'a published entry opens in read mode');
-  ok($('#bar').hidden === true, 'bar hides while reading');
-  ok(!!$('.icon-btn[aria-label="Edit entry"]'), 'edit icon is present');
+  /* The bar used to slide away here, which made this the one screen in the
+     app with no bottom chrome and put the pencil in the far top corner. */
+  ok($('#bar').hidden === false, 'reading keeps the bar');
+  ok($('.compose').dataset.mode === 'quiet' && $('.compose').textContent === 'Edit',
+     'and the bar is a quiet Edit, not a filled field', $('.compose').dataset.mode);
+  ok($('.bar-side').hidden === true, 'nothing beside it — reading is read-only in every sense');
   ok($('.entry-date').textContent.startsWith('Edited'), 'date line shows last edited', $('.entry-date').textContent);
 
-  /* The ⋯ is gone: the pencil is the only way in, and delete lives beside
-     Done once you are there. */
+  /* The ⋯ is gone, and so is the pencil that used to sit up here: delete
+     lives beside Done, and Edit lives under the thumb. */
   ok(!$('.toolbar .icon-btn[aria-label="More actions"]'), 'no ⋯ menu on the entry screen');
-  ok($$('.toolbar .icon-btn').length === 2, 'the entry toolbar holds back and pencil only',
+  ok($$('.toolbar .icon-btn').length === 1
+     && $$('.toolbar .icon-btn')[0].getAttribute('aria-label') === 'Back',
+     'the entry toolbar holds back and nothing else',
      $$('.toolbar .icon-btn').map((b) => b.getAttribute('aria-label')).join());
 
   /* The rating went with it. The entry screen is the writing and nothing
@@ -169,13 +190,18 @@ async function run() {
   ok(!('mood' in S().all()[0]), 'and an entry no longer holds a mood at all',
      Object.keys(S().all()[0]).join());
 
-  $('.icon-btn[aria-label="Edit entry"]').click();
+  /* Not awaited either, and for the same reason as the quill: Edit focuses a
+     field, so it has to have done it by the time the tap returns. */
+  $('.compose').click();
+  ok(f.contentWindow.document.activeElement === $('.entry-body-field'),
+     'Edit takes the caret inside the tap, so iOS raises the keyboard',
+     f.contentWindow.document.activeElement?.className);
   await wait(250);
-  ok($('.entry-title-field').readOnly === false, 'edit icon enters edit mode');
+  ok($('.entry-title-field').readOnly === false, 'Edit enters edit mode');
   ok($('.compose').textContent === 'Done', 'published entry says Done, not Publish');
-  ok(!$('.toolbar .icon-btn[aria-label="Edit entry"]'), 'the pencil steps aside while editing');
+  ok($('.compose').dataset.mode === 'publish', 'and the quiet pill becomes the filled one');
   ok($('.bar-side').getAttribute('aria-label') === 'Delete entry',
-     'the pencil opens an editor with Delete beside Done');
+     'Edit opens an editor with Delete beside Done');
   /* Beside, not under: same row, delete to the right of the primary action. */
   const doneBox = $('.compose').getBoundingClientRect();
   const delBox = $('.bar-side').getBoundingClientRect();
@@ -186,16 +212,19 @@ async function run() {
   $('.compose').click();
   await wait(250);
   ok($('.entry-title-field').readOnly === true, 'Done returns to read mode');
-  ok($('#bar').hidden === true, 'Done takes the delete capsule away with the bar');
+  ok($('.bar-side').hidden === true, 'Done takes the delete capsule away');
+  ok($('#bar').hidden === false, 'but leaves the bar, now offering Edit again');
 
   /* ------------------------------------------------------- 4. the calendar */
   f.contentWindow.history.back();
   await wait(350);
   ok(f.contentWindow.location.hash === '#/' || f.contentWindow.location.hash === '', 'back returns to the list');
 
-  $('.bar-side').click();
+  $$('.bar-tab')[1].click();
   await wait(350);
-  ok(f.contentWindow.location.hash.startsWith('#/calendar'), 'calendar button opens the calendar');
+  ok(f.contentWindow.location.hash.startsWith('#/calendar'), 'the Calendar tab opens the calendar');
+  ok($('.bar-nav').dataset.tab === '1', 'and the selection moved with it',
+     $('.bar-nav').dataset.tab);
   ok($$('.cal-day:not([data-empty])').length >= 28, 'month grid rendered', String($$('.cal-day:not([data-empty])').length));
   const todayCell = $('.cal-day[data-today="true"]');
   ok(!!todayCell, 'today is marked');
@@ -227,29 +256,34 @@ async function run() {
   const future = $$('.cal-day[aria-disabled="true"]');
   ok(future.every((d) => d.disabled), 'future days are not writable');
 
-  /* The capsule that opened the calendar is the way back out of it. */
-  ok($('.bar-side').hidden === false, 'the bar capsule stays on the calendar');
-  ok($('.bar-side').getAttribute('aria-label') === 'Back to the list',
-     'on the calendar the capsule is a back button', $('.bar-side').getAttribute('aria-label'));
-  ok(!$('.toolbar .icon-btn[aria-label="Back"]'), 'no duplicate back button in the toolbar');
-  $('.bar-side').click();
+  /* The calendar is a PEER of the list, not a detour off it: no back button
+     anywhere on it, and the capsule is the same quill it is everywhere. */
+  ok($('.bar-side').getAttribute('aria-label') === 'Write a new entry',
+     'the capsule is still the quill on the calendar', $('.bar-side').getAttribute('aria-label'));
+  ok(!$('.toolbar .icon-btn[aria-label="Back"]'), 'no back button on a peer screen');
+
+  /* A tab REPLACES rather than pushes: three peers are not a trail. */
+  const beforeTabs = f.contentWindow.history.length;
+  $$('.bar-tab')[0].click();
   await wait(400);
   ok(f.contentWindow.location.hash === '#/' || f.contentWindow.location.hash === '',
-     'the capsule returns to the list', f.contentWindow.location.hash);
-  ok($('.bar-side').getAttribute('aria-label') === 'Mood calendar',
-     'back on the list it is the calendar button again');
+     'the Journal tab returns to the list', f.contentWindow.location.hash);
+  ok(f.contentWindow.history.length === beforeTabs,
+     'and stepping between tabs stacks no history',
+     `${beforeTabs} → ${f.contentWindow.history.length}`);
+  ok($('.bar-nav').dataset.tab === '0', 'the selection is back on the Journal');
 
   /* --------------------------------------------------- 5. drafts behaviour */
   f.contentWindow.location.hash = '#/';
   await wait(300);
   const before = S().count();
-  $('.compose').click();
+  $('.bar-side').click();
   await wait(300);
   f.contentWindow.history.back();
   await wait(400);
   ok(S().count() === before, 'an untouched draft is discarded on leaving', `${before} → ${S().count()}`);
 
-  $('.compose').click();
+  $('.bar-side').click();
   await wait(300);
   type($('.entry-body-field'), 'half a thought');
   await wait(600);
@@ -308,7 +342,7 @@ async function run() {
   /* tap targets */
   f.contentWindow.location.hash = '#/calendar';
   await wait(300);
-  const small = $$('.cal-day:not([data-empty]), .icon-btn, .bar-side, .mood-opt, .compose').filter((n) => {
+  const small = $$('.cal-day:not([data-empty]), .icon-btn, .bar-side, .bar-tab, .mood-opt, .compose').filter((n) => {
     if (n.hidden || n.offsetParent === null) return false;   /* not on screen */
     const r = n.getBoundingClientRect();
     return r.width < 44 || r.height < 44;
@@ -318,22 +352,25 @@ async function run() {
   /* ------------------------------------------- 7b. the glass on the chrome */
   f.contentWindow.location.hash = '#/';
   await until(() => f.contentDocument.querySelector('.entry-row'));
-  /* A draft opens straight into edit mode, where there is no pencil — the
-     pencil belongs to read mode, so open something published. */
   $$('.entry-row').find((r) => !r.querySelector('.entry-flag')).click();
   await wait(350);
 
-  const editBtn = $('.toolbar .icon-btn[aria-label="Edit entry"]');
-  ok(!!editBtn, 'edit button is in the toolbar');
-  const editStyle = cs(editBtn);
+  /* The entry's back button is the ONLY toolbar capsule left in the app —
+     the pencil came down into the bar and the gear became a tab — so it is
+     what the glass rules are read off now. */
+  const backBtn = $('.toolbar .icon-btn[aria-label="Back"]');
+  ok(!!backBtn, 'the entry carries a back button, and it is the app\'s only one');
+  ok(!$('.toolbar .icon-btn[aria-label="Edit entry"]'),
+     'the pencil is not in the toolbar — it is the bar');
+  const editStyle = cs(backBtn);
   const blurOf = (s) => s.backdropFilter || s.webkitBackdropFilter || '';
-  ok(blurOf(editStyle).includes('blur'), 'edit icon has the glass blur', blurOf(editStyle));
-  ok(editStyle.boxShadow !== 'none', 'edit icon has the specular edge and lift');
+  ok(blurOf(editStyle).includes('blur'), 'the capsule has the glass blur', blurOf(editStyle));
+  ok(editStyle.boxShadow !== 'none', 'the capsule has the specular edge and lift');
   ok(!/rgba\(0, 0, 0, 0\)|transparent/.test(editStyle.backgroundColor),
-     'edit icon has the glass tint', editStyle.backgroundColor);
-  ok(cs($('.bar-side') || editBtn).borderRadius === editStyle.borderRadius ||
+     'the capsule has the glass tint', editStyle.backgroundColor);
+  ok(cs($('.bar-side')).borderRadius === editStyle.borderRadius ||
      editStyle.borderRadius.startsWith('999'),
-     'edit icon wears the same capsule as the bar button', editStyle.borderRadius);
+     'and wears the same capsule as the bar button', editStyle.borderRadius);
 
   /* The capsules float over the column, so the column has to start below
      them — and not by a hairline. Clearing them by 1px still reads as the
@@ -375,7 +412,7 @@ async function run() {
      rule being tested. */
   $('#toolbar').dataset.scrolled = 'true';
   await wait(250);
-  const scrolledStyle = cs($('.toolbar .icon-btn[aria-label="Edit entry"]'));
+  const scrolledStyle = cs($('.toolbar .icon-btn[aria-label="Back"]'));
   ok(!blurOf(scrolledStyle).includes('blur'), 'button glass gives way to the toolbar glass',
      blurOf(scrolledStyle) || '(none)');
   ok(cs($('#toolbar')).backdropFilter.includes('blur'), 'the toolbar itself is the glass when scrolled');
@@ -449,7 +486,9 @@ async function run() {
   /* And the capsule sits exactly its floor above that edge — the pad and the
      inset must not stack, which is the failure the max() exists to prevent. */
   const floor = parseFloat(cs($('#bar')).paddingBottom);
-  const pillGap = win.innerHeight - $('.compose').getBoundingClientRect().bottom;
+  /* Whichever wide element is up — on the list that is the nav pill, and it
+     is the same slot the composer occupied. */
+  const pillGap = win.innerHeight - $('.bar-nav').getBoundingClientRect().bottom;
   ok(Math.abs(pillGap - floor) <= 1,
      'the capsule clears the edge by its floor exactly, with nothing stacked',
      `gap ${Math.round(pillGap)} vs --bar-bottom ${floor}`);
@@ -579,7 +618,7 @@ async function run() {
   ok(kb() === '0px', 'back to the edge', kb());
 
   /* ------------------------------------------ 9. the sheet, and the toast */
-  $('.toolbar .icon-btn[aria-label="Edit entry"]').click();
+  $('.compose').click();          /* Edit — it is in the bar now, not the toolbar */
   await wait(250);
   $('.bar-side[aria-label="Delete entry"]').click();
   await wait(350);
@@ -735,7 +774,7 @@ async function run() {
      An update reloads the app out from under you. Two things have to hold, or
      it costs an entry: whatever you had typed is in storage BEFORE the page
      goes, and the whole journal is still there when it comes back. */
-  $('.compose').click();
+  $('.bar-side').click();         /* the quill */
   await wait(300);
   const updateId = f.contentWindow.location.hash.replace('#/e/', '');
 
@@ -782,32 +821,44 @@ async function run() {
   await until(() => $('.home-title'));
   await wait(200);
 
-  const gear = $('.toolbar .icon-btn[aria-label^="Settings"]');
-  ok(!!gear, 'the list has exactly one control, and it is the way to Settings');
-  ok($$('.toolbar .icon-btn').length === 1, 'and only that one',
+  /* Settings is a tab now, not a gear in the corner of one screen — so the
+     list's toolbar is empty and the door is in the bar, on every screen. */
+  ok($$('.toolbar .icon-btn').length === 0, 'the list toolbar holds nothing at all',
      $$('.toolbar .icon-btn').map((b) => b.getAttribute('aria-label')).join());
-  /* The gear is now the only thing carrying the sync state, and that state
-     has to reach someone who cannot see the icon's tone. */
-  ok(/not signed in/.test(gear.getAttribute('aria-label')),
-     'whose name carries the sync state, not just its colour', gear.getAttribute('aria-label'));
+  const settingsTab = $$('.bar-tab')[2];
+  /* The tab carries the sync state, and that state has to reach someone who
+     cannot see its tone — so it is in the name. */
+  ok(/not signed in/.test(settingsTab.getAttribute('aria-label')),
+     "the Settings tab's name carries the sync state, not just its colour",
+     settingsTab.getAttribute('aria-label'));
 
-  gear.click();
+  settingsTab.click();
   await wait(350);
   ok(f.contentWindow.location.hash === '#/settings', 'it opens the settings screen',
      window.__dbg);
+  ok($('.bar-nav').dataset.tab === '2', 'and the selection followed it there',
+     $('.bar-nav').dataset.tab);
   ok(!!$('.account-form'), 'signed out, Settings carries a sign-in form');
   ok(!!$('input[type="password"]'), 'and this is the one place that asks for a password');
-  ok($('.compose').textContent === 'Sign in',
-     'the composer bar takes the primary action, as it does for Publish',
-     $('.compose').textContent);
-  ok($('.compose').disabled === true, 'which is disabled until there is something to send');
+
+  /* SIGN IN IS IN THE FORM, NOT THE BAR. The bar is the way OFF this screen
+     now, so it cannot also be the button on it — that is what would strand
+     someone here. It is still the same accent capsule, and still the button
+     the phone's Go key presses. */
+  const signIn = $('.account-form button[type="submit"]');
+  ok(!!signIn && signIn.textContent === 'Sign in',
+     'the sign-in button is a real submit at the foot of its own form',
+     signIn?.textContent);
+  ok(!signIn.classList.contains('sr-only'), 'and it is visible, not a hidden submit');
+  ok(signIn.disabled === true, 'disabled until there is something to send');
+  ok(!$('.bar-nav').hidden, 'the bar stays the three tabs, so Settings is never a trap');
 
   type($('#account-email'), 'someone@example.com');
   await wait(80);
-  ok($('.compose').disabled === true, 'still disabled with only an email');
+  ok(signIn.disabled === true, 'still disabled with only an email');
   type($('#account-password'), 'not-the-real-one');
   await wait(80);
-  ok($('.compose').disabled === false, 'and live once both fields are filled');
+  ok(signIn.disabled === false, 'and live once both fields are filled');
 
   /* iOS zooms the page in on a focused field set below 16px. A page that
      jumps on the first tap of a password is the app losing its footing at
@@ -943,23 +994,23 @@ async function run() {
      'clearing it falls back to the default rather than to no palette at all',
      root().dataset.palette);
 
-  /* And the way back out is the toolbar's own button, not the phone's.
-
-     LANDED ON DIRECTLY, and that is the case worth pinning: the app opened
-     cold on #/settings, so there is no in-app history to step back through
-     and the button has to find the list on its own. It is also the only
-     version of this an iframe can measure honestly. Reaching settings by
-     tapping and then backing out uses history.back(), and Chrome will not
-     do it here — a frame the harness navigated by assigning `src` has no
-     user activation behind those entries, so the traversal skips them and
-     lands on an older document instead. That is the harness, not the app;
-     on the phone a tap carries activation and back steps once. */
+  /* And the way out is the Journal tab, LANDED ON DIRECTLY — cold on
+     #/settings, so there is no in-app history at all and the way out has to
+     find the list without any. Settings has no back button any more; it does
+     not need one, which is the point. A tab replaces rather than traverses,
+     so this is also the version an iframe can measure honestly: history.back()
+     is what Chrome refuses here, because a frame the harness navigated by
+     assigning `src` carries no user activation behind those entries. */
   await load('../index.html?relaunch=3#/settings');
-  await until(() => $('.toolbar .icon-btn[aria-label="Back"]'));
+  await until(() => $('.bar-tab'));
   ok(!!$('input[type="password"]'), 'settings is reachable as a screen of its own');
-  $('.toolbar .icon-btn[aria-label="Back"]').click();
+  ok(!$('.toolbar .icon-btn[aria-label="Back"]'),
+     'and carries no back button — a peer has nothing behind it');
+  ok($('.bar-nav').dataset.tab === '2', 'the bar knows which screen it landed on',
+     $('.bar-nav').dataset.tab);
+  $$('.bar-tab')[0].click();
   await until(() => $('.home-title'));
-  ok(!!$('.home-title'), 'backing out returns to a journal that never needed it',
+  ok(!!$('.home-title'), 'the Journal tab returns to a journal that never needed unlocking',
      f.contentWindow.location.hash);
   ok(!$('input[type="password"]'), 'and no password field survives on the list');
 

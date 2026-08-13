@@ -18,11 +18,17 @@
    existed — a cold launch shows the journal, not a password field. Signing in
    starts mirroring; it does not stand between the icon and the entries.
 
-   The primary action borrows the composer bar, the same way the editor
-   borrows it for Publish. Same capsule, same position, same thumb.
+   SIGN IN NO LONGER BORROWS THE COMPOSER, and that is not a downgrade — it
+   is what the bar becoming navigation cost, paid deliberately on 13 Aug
+   2026. Settings is a peer screen now, so its bar holds the three tabs; a
+   bar that is the way off this screen cannot also be the button on it, or
+   signing in would strand you here. So the button sits at the foot of its
+   own form, which is where a form's submit belongs anyway — it is the same
+   accent capsule as before, and it is the one the phone's Go key was
+   already pressing.
    ========================================================================= */
 
-import { el, icon, iconButton, toast } from './ui.js';
+import { el, icon, toast } from './ui.js';
 import * as net from './net.js';
 import * as sync from './sync.js';
 import * as theme from './theme.js';
@@ -139,11 +145,21 @@ export function view(_params, api) {
 
   const ready = () => !busy && email.value.trim() !== '' && password.value !== '';
 
+  /* The visible button AND the one the phone's Go key presses — they used to
+     be two, a capsule in the bar and an `.sr-only` submit in here keeping
+     Enter working. One real submit button is both. */
+  const submitBtn = el('button.account-btn', { type: 'submit' }, 'Sign in');
+
+  function paintSubmit() {
+    submitBtn.textContent = busy ? 'Signing in…' : 'Sign in';
+    submitBtn.disabled = !ready();
+  }
+
   async function submit() {
     if (!ready()) return;
     busy = true;
     problem.textContent = '';
-    api.refreshBar();
+    paintSubmit();
     try {
       await net.signIn(email.value, password.value);
       password.value = '';
@@ -157,7 +173,7 @@ export function view(_params, api) {
         ? 'No connection — sign-in needs the network, just this once.'
         : humanise(err?.message);
       busy = false;
-      api.refreshBar();
+      paintSubmit();
       password.focus();
     }
   }
@@ -170,16 +186,14 @@ export function view(_params, api) {
     el('label.field-label', { for: 'account-password' }, 'Password'),
     password,
     problem,
-    /* Enter on the phone's keyboard has to submit, and the visible button is
-       down in the composer bar outside this form. A real submit button here
-       is what makes the Go key work; it is a control, so it stays reachable
-       rather than being hidden from the keyboard too. */
-    el('button.sr-only', { type: 'submit' }, 'Sign in'),
+    el('div.account-actions', submitBtn),
   );
 
   for (const field of [email, password]) {
-    field.addEventListener('input', () => api.refreshBar());
+    field.addEventListener('input', paintSubmit);
   }
+
+  paintSubmit();
 
   /* ---------------------------------------------------------- signed in */
 
@@ -253,19 +267,9 @@ export function view(_params, api) {
   return {
     node,
     title: 'Settings',
-    get bar() {
-      if (signedIn || !configured()) return 'hidden';
-      return {
-        mode: 'publish',
-        label: busy ? 'Signing in…' : 'Sign in',
-        disabled: !ready(),
-        side: null,
-        onSelect: submit,
-      };
-    },
-    get toolbarLeft() {
-      return iconButton('back', 'Back', () => api.back());
-    },
+    /* A peer, not a detour — so the three tabs, and no back button in the
+       toolbar. There is nothing behind this screen to step back to. */
+    bar: 'nav',
     onLeave() {
       window.removeEventListener('dj:sync', onSync);
     },

@@ -1,5 +1,5 @@
 /* ============================================================================
-   app.js — boot, routing, the composer bar, and the keyboard.
+   app.js — boot, routing, the bar, and the keyboard.
 
    Routes are hashes because this is a static site: GitHub Pages will not
    rewrite /entry/abc123 back to index.html, so a real path would 404 the
@@ -25,6 +25,15 @@
    which is how the entry screen changes the button under itself without
    re-rendering. `onMount` runs once the node is in the document; returning
    true means the view has taken the caret and app.js must not move it.
+
+   THE BAR HAS TWO STATES AND THERE IS NO THIRD. `bar` is either the string
+   'nav' — the three peer screens, Journal, Calendar and Settings, with the
+   quill beside them — or an object, which is a screen with a primary action
+   in front of it. Only the entry is the second kind, and it is the only
+   screen you go INTO rather than across to. Rebuilt 13 Aug 2026; before it,
+   one capsule in one position was the calendar on the list, back on the
+   calendar and DELETE in the editor, so muscle memory built on the list
+   landed on a destructive action inside an entry.
    ========================================================================= */
 
 import { el, icon, toast } from './ui.js';
@@ -64,7 +73,7 @@ const VIEWS = { home, entry, calendar, settings };
    render. hashchange is a task, so the new screen was built one turn after
    the tap that asked for it — outside it, as far as iOS is concerned. WebKit
    raises the on-screen keyboard only for a focus() that happens inside the
-   gesture that asked for it, so "Start writing…" opened a draft with a caret
+   gesture that asked for it, so the quill opened a draft with a caret
    in it and no keyboard under it. pushState changes the URL without firing
    hashchange, so rendering here keeps the whole navigation inside the tap.
    The back button still arrives as a hashchange, which is what that listener
@@ -85,19 +94,59 @@ function back() {
   else go('#/', { replace: true });
 }
 
-const api = { go, back, refreshBar, refreshToolbar };
+/* The three peer screens, in the order they sit in the bar. That order is
+   also what the enter animation reads to decide which way a screen comes
+   in, so moving a tab moves the motion with it. */
+const TABS = [
+  { route: 'home',     hash: '#/',          icon: 'journal',  label: 'Journal' },
+  { route: 'calendar', hash: '#/calendar',  icon: 'calendar', label: 'Mood calendar' },
+  { route: 'settings', hash: '#/settings',  icon: 'settings', label: 'Settings' },
+];
+
+const TAB_INDEX = Object.fromEntries(TABS.map((t, i) => [t.route, i]));
+
+/* A tab REPLACES rather than pushes: the three are peers, not a trail, so
+   stepping between them must not stack history to be walked back through.
+   Which also means the entry's back button always finds the tab you left —
+   the entry is the one thing in the app that is pushed. */
+function goTab(index) {
+  depth = 0;
+  go(TABS[index].hash, { replace: true });
+}
+
+const api = { go, back, refreshBar, refreshToolbar, compose: startWriting };
+
+/* Which way the new screen arrives, and it is information rather than
+   decoration: across between peers, up into a detail, back down out of one.
+   Same route (a month step, a sync repaint) keeps the plain rise it always
+   had — a lateral slide there would be describing a move that didn't
+   happen. */
+function enterDirection(from, to) {
+  const a = TAB_INDEX[from?.name];
+  const b = TAB_INDEX[to.name];
+  if (a !== undefined && b !== undefined) return a === b ? 'rise' : (b > a ? 'right' : 'left');
+  if (b === undefined) return 'in';
+  return 'out';
+}
 
 /* ---------------------------------------------------------------- render */
 
 function render() {
   const next = parse(location.hash);
   const previous = current;
+  const from = route;
 
   current = null;                 /* so onLeave can't re-enter render()     */
   previous?.onLeave?.();
 
   route = next;
   current = VIEWS[next.name].view(next.params, api);
+
+  /* Set before the node lands, so the animation is right from its first
+     frame rather than restarting one frame in. It is CSS on an element that
+     is already in the document — nothing here waits for it, and nothing may
+     ever be made to. See onMount below. */
+  screenHost.dataset.enter = enterDirection(from, next);
 
   screenHost.replaceChildren(current.node);
   screenHost.scrollTop = 0;
@@ -111,8 +160,6 @@ function render() {
      the tap, still early enough for iOS to raise the keyboard for it. A view
      that took the caret says so, and keeps it. */
   const claimed = current.onMount?.() === true;
-
-  screenHost.dataset.enter = '';
 
   /* Move focus to the top of the new screen so a screen reader announces it
      and the keyboard doesn't stay on the button that got us here. */
@@ -142,20 +189,42 @@ function onScroll() {
 }
 
 /* ------------------------------------------------------------------- bar
-   One button, two lives. On the list it is the invitation to write; in the
-   editor it is Publish. It is never rebuilt, only relabelled, so the change
-   reads as the same object taking a new job. */
+   The whole of the app's navigation, and one of two shapes at any moment.
+
+   NAVIGATE — the three peers. A glass pill holding Journal, Calendar and
+   Settings, with the quill beside it. Every screen is then one tap from
+   every other, which is what retired the gear from the list's toolbar (the
+   only door Settings had) and the back button from three screens that no
+   longer have anywhere to go back to.
+
+   ACT — the entry. The pill is the action and the capsule is Delete, which
+   is the bar as it always was. It is deliberately the only screen of this
+   kind: a bar that is navigation everywhere else must not be an action
+   somewhere you can get stranded, which is why signing in is a button in
+   its own form rather than borrowing this pill.
+
+   The two are separate elements sharing one slot rather than one element
+   morphing — a three-cell group and a labelled pill cannot be the same
+   node. They cross-fade, so the bar still reads as one surface changing
+   its mind rather than two bars swapping. */
 
 const compose = el('button.compose.glass', { type: 'button' });
 
-/* The capsule beside the composer takes whatever job the screen you are on
-   has for it: the calendar from the list, the way back out of the calendar,
-   delete while you are editing. Same position, same capsule — so the thing
-   that took you in is the thing that brings you back, and an entry needs no
-   ⋯ menu to reach the one action that isn't already on screen. */
+const navSel = el('span.bar-nav-sel', { 'aria-hidden': 'true' });
+
+const tabButtons = TABS.map((tab, i) =>
+  el('button.bar-tab', { type: 'button', onclick: () => goTab(i) }, icon(tab.icon)));
+
+/* Not role=tablist: these are four separate screens, not panels of one, and
+   aria-current="page" is what says which you are on. */
+const navPill = el('nav.bar-nav.glass', { 'aria-label': 'Sections' }, navSel, ...tabButtons);
+
+/* The capsule. In the nav state it is the quill on all three screens — one
+   job, one position, everywhere — and in the act state it is whatever the
+   entry has for it. */
 const sideButton = el('button.bar-side.glass', { type: 'button' });
 
-bar.append(el('div.bar-inner', compose, sideButton));
+bar.append(el('div.bar-inner', navPill, compose, sideButton));
 
 /** { icon, label, tone, onSelect }, or null to take the capsule away. */
 function paintSide(spec) {
@@ -166,6 +235,36 @@ function paintSide(spec) {
   if (spec.tone) sideButton.dataset.tone = spec.tone;
   else delete sideButton.dataset.tone;
   sideButton.onclick = spec.onSelect;
+}
+
+/* The sync state has to reach someone who cannot see the tone on the gear,
+   so it is in the tab's NAME rather than only in its colour. It moved here
+   from the list's toolbar with the gear itself. */
+function settingsLabel(status) {
+  if (status === 'off')     return 'Settings — not signed in';
+  if (status === 'syncing') return 'Settings — syncing now';
+  if (status === 'offline') return 'Settings — no connection';
+  if (status === 'error')   return 'Settings — sync needs attention';
+  return 'Settings — sync up to date';
+}
+
+/* Nothing about the selection's POSITION lives here: CSS moves it from
+   `data-tab`, the same way the mood card's thumb is moved. */
+function paintNav() {
+  const at = TAB_INDEX[route?.name];
+  navPill.dataset.tab = at ?? '';
+
+  const { status } = sync.state();
+  tabButtons.forEach((btn, i) => {
+    const here = i === at;
+    btn.setAttribute('aria-label', TABS[i].route === 'settings'
+      ? settingsLabel(status)
+      : TABS[i].label);
+    if (here) btn.setAttribute('aria-current', 'page');
+    else btn.removeAttribute('aria-current');
+    if (TABS[i].route === 'settings' && status === 'error') btn.dataset.tone = 'danger';
+    else delete btn.dataset.tone;
+  });
 }
 
 function startWriting() {
@@ -188,21 +287,20 @@ function refreshBar() {
   bar.hidden = false;
   bar.removeAttribute('aria-hidden');
 
-  if (spec === 'compose') {
-    compose.dataset.mode = 'compose';
-    compose.textContent = 'Start writing…';
-    compose.disabled = false;
-    compose.setAttribute('aria-label', 'Start writing a new entry');
-    compose.onclick = startWriting;
-
-    const onCalendar = route?.name === 'calendar';
-    paintSide(onCalendar
-      ? { icon: 'back',     label: 'Back to the list', onSelect: back }
-      : { icon: 'calendar', label: 'Mood calendar',    onSelect: () => go('#/calendar') });
+  if (spec === 'nav') {
+    navPill.hidden = false;
+    compose.hidden = true;
+    paintNav();
+    /* THE ONE VERB, and it must stay synchronous: startWriting creates the
+       draft and navigates inside the tap, which is the only way iOS raises
+       a keyboard for the caret entry.js takes on the far side. */
+    paintSide({ icon: 'quill', label: 'Write a new entry', tone: 'accent', onSelect: startWriting });
     return;
   }
 
-  compose.dataset.mode = 'publish';
+  navPill.hidden = true;
+  compose.hidden = false;
+  compose.dataset.mode = spec.mode === 'quiet' ? 'quiet' : 'publish';
   compose.textContent = spec.label;
   compose.disabled = !!spec.disabled;
   compose.setAttribute('aria-label', spec.label);
@@ -297,6 +395,11 @@ function boot() {
   window.addEventListener('dj:write-failed', () => {
     toast('Could not save — device storage is full', 6000);
   });
+
+  /* The Settings tab carries how sync is doing, in its name and — when
+     something needs looking at — in its tone. It is in the bar on every
+     screen now, so repainting it is the bar's job rather than the list's. */
+  window.addEventListener('dj:sync', refreshBar);
 
   /* Which entry is open, so a sync round cannot overwrite what is being typed
      into it. The entry screen is the only view that answers. */

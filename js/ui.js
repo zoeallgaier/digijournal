@@ -5,7 +5,7 @@
 
 /* ------------------------------------------------------------------- el() */
 
-/** el('button.compose', { 'aria-label': 'Write' }, 'Start writing…')
+/** el('button.compose', { 'aria-label': 'Publish' }, 'Publish')
  *  Tag defaults to div. `.class` and `#id` in the selector. Children may be
  *  nodes, strings, or nested arrays; null and false are skipped so callers
  *  can write `cond && el(...)` inline. */
@@ -64,9 +64,29 @@ const PATHS = {
   trash:    ['M4 7h16', 'M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2', 'M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13'],
   check:    ['M5 12.5l4.5 4.5L19 7.5'],
 
-  /* The list's one control. It was a cloud while sync was the only thing
-     behind it; it is a gear now that the palette is there too — a door to
-     everything about the app that is not an entry.
+  /* The journal tab. A closed book: the cover, and the spine as a rule down
+     the inside of the left edge.
+
+     THE SPINE HAS TO BE A FULL-HEIGHT LINE, not a curve. It was drawn first
+     as a cover with a 2px flap folded under the bottom edge, which at 22px
+     is a rounded rectangle and nothing else — and it sits next to the
+     calendar's rounded rectangle. The two rules are what separate them now:
+     the calendar's runs across the top under two tabs, the book's runs down
+     the left. Different axis, told apart at a glance. */
+  journal:  ['M6 4h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+             'M8 4v16'],
+
+  /* The app's one verb. It replaced the "Start writing…" field when the bar
+     became navigation and there was no longer a full width to spend on an
+     invitation — see the note on .bar-nav in app.css. A feather rather than a
+     plus: a plus makes a row in a database, a quill writes something. */
+  quill:    ['M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z', 'M16 8L2 22', 'M17.5 15H9'],
+
+  /* The Settings tab. It was a cloud while sync was the only thing behind
+     it, then a gear once the palette was there too — everything about the
+     app that is not an entry. It sat in the list's toolbar until the bar
+     became navigation; it is one of the three tabs now, reachable from every
+     screen rather than from one.
 
      Eight teeth on the same 4–20 band as the icons beside it, generated
      rather than drawn: tips on a 8.35 circle, roots on a 6, so the arcs

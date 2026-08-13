@@ -5,6 +5,10 @@
    the list, where it belongs to the day rather than to whatever was written
    that day. See mood.js and store.js.
 
+   This is the one screen in the app you go INTO rather than across to, and
+   the only one whose bar is an action rather than the three tabs. It is also
+   the only screen with a back button.
+
    THE SUBTLE PART. Reading and editing are not two screens. They are one
    screen with the fields switched between `readonly` and not.
 
@@ -176,7 +180,7 @@ export function view(params, api) {
        THIS MUST NOT BE DEFERRED TO A FRAME. It used to be a
        requestAnimationFrame, and a frame is one turn too late: iOS raises the
        keyboard only for a focus() that happens inside the tap that asked for
-       it, so tapping "Start writing…" opened the draft with the caret sitting
+       it, so tapping the quill opened the draft with the caret sitting
        in it and no keyboard underneath. */
     onMount() {
       autoGrow(titleField);
@@ -196,7 +200,22 @@ export function view(params, api) {
       return titleField.value.trim() || bodyField.value.trim().split('\n')[0].slice(0, 40) || 'Entry';
     },
     get bar() {
-      if (!editing) return 'hidden';
+      /* Reading has a bar now, and the pencil is in it. It used to be an
+         icon in the top right and the bar slid away entirely, which left
+         this the one screen in the app with no bottom chrome — and put the
+         one thing you reach for while reading at the hardest corner of the
+         phone to reach. Quiet glass rather than the accent field: reading is
+         not the moment to shout, and it is the same pill Publish fills in. */
+      if (!editing) {
+        return {
+          mode: 'quiet',
+          label: 'Edit',
+          /* Synchronous, inside the tap — setEditing focuses a field and iOS
+             raises the keyboard only for a focus() the gesture caused. */
+          onSelect: () => setEditing(true),
+          side: null,
+        };
+      }
       const current = store.get(entry.id);
       return {
         mode: 'publish',
@@ -221,20 +240,15 @@ export function view(params, api) {
         },
       };
     },
+    /* The app's ONLY back button, on the app's only pushed screen. The three
+       peers are reachable from each other in the bar and have nothing behind
+       them to step back to; an entry is the one thing you are inside of. */
     get toolbarLeft() {
       return iconButton('back', 'Back', () => api.back());
     },
-    /* Read mode offers exactly one thing, and it is the pencil. Everything
-       else you can do to an entry belongs to editing it and lives in the bar,
-       so there is no ⋯ here and nothing hidden behind one. */
-    get toolbarRight() {
-      return editing
-        ? []
-        : iconButton('pencil', 'Edit entry', () => setEditing(true), { 'data-tone': 'accent' });
-    },
     onLeave() {
       flush();
-      /* "Start writing…", then second thoughts: an untouched draft should
+      /* The quill, then second thoughts: an untouched draft should
          not survive as a row in the list. */
       store.discardIfEmpty(entry.id);
     },

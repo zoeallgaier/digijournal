@@ -14,11 +14,10 @@
    wrote anything. See mood.js.
    ========================================================================= */
 
-import { el, iconButton, shortDate, excerpt } from './ui.js';
+import { el, shortDate, excerpt } from './ui.js';
 import * as store from './store.js';
 import { moodLabel } from './store.js';
 import { card } from './mood.js';
-import * as sync from './sync.js';
 
 /** Apple Notes' rule, which is the right one: if you never typed a title,
  *  the first line of what you wrote is the title. */
@@ -73,17 +72,6 @@ function subtitle(entries) {
   return n ? `${total} · ${n} this month` : total;
 }
 
-/* One control, so its name carries everything behind it — and the sync state
-   has to reach someone who can't see the icon's tone, so that is in the name
-   rather than only in the colour. */
-function settingsLabel(status) {
-  if (status === 'off')     return 'Settings — not signed in';
-  if (status === 'syncing') return 'Settings — syncing now';
-  if (status === 'offline') return 'Settings — no connection';
-  if (status === 'error')   return 'Settings — sync needs attention';
-  return 'Settings — sync up to date';
-}
-
 export function view(_params, api) {
   const entries = store.all();
   const ratings = store.ratingsByDay();
@@ -91,11 +79,6 @@ export function view(_params, api) {
   /* Which day the card is rating, fixed at render. */
   const today = store.dayKey();
   const rating = card(today);
-
-  /* Repaint the gear when a round finishes, so its label is never describing
-     a sync that ended five minutes ago. */
-  const onSync = () => api.refreshToolbar();
-  window.addEventListener('dj:sync', onSync);
 
   /* Two things can happen while this screen sits open behind a locked phone:
      midnight, and a rating arriving from another device. The first makes the
@@ -119,30 +102,29 @@ export function view(_params, api) {
       ? el('div.entry-list', { role: 'list' },
           entries.map((entry) => el('div', { role: 'listitem' },
             row(entry, api.go, ratings.get(entry.day) ?? null))))
+      /* The invitation the composer used to be. "Start writing…" was a
+         field-shaped button spanning the bar, which said "begin here"
+         without having to; the quill that replaced it is a tool, and a tool
+         is a poor greeting for a journal with nothing in it. So the
+         invitation moved to the one screen that has room for it and nothing
+         else to say. It calls the same thing the quill does, in the same
+         tap, for the same reason — see api.compose. */
       : el('div.empty',
           el('h2', 'Nothing written yet'),
-          el('p', 'Tap Start writing to make the first entry.'),
+          el('p', 'A day is worth writing down even when nothing happened.'),
+          el('button.empty-btn', { type: 'button', onclick: api.compose },
+            'Write the first entry'),
         ),
   );
 
   return {
     node,
     title: 'Journal',
-    bar: 'compose',
-    /* The list's one control, and it is a door rather than an action: it goes
-       to Settings, where the palette and the account both live. Everything
-       you can do TO the journal is still a tap on a row or the composer —
-       this is the only thing in the app that is about the app rather than
-       about an entry, so it is the only thing that earned a place up here.
-       It carries a tone only when something needs looking at; the rest of the
-       time it is as quiet as the empty toolbar it replaced. */
-    get toolbarRight() {
-      const { status } = sync.state();
-      return iconButton('settings', settingsLabel(status), () => api.go('#/settings'),
-        status === 'error' ? { 'data-tone': 'danger' } : {});
-    },
+    bar: 'nav',
+    /* Nothing in the toolbar. The gear that used to sit here was Settings'
+       only door in the whole app; it is a tab in the bar now, reachable from
+       every screen rather than from this one. */
     onLeave() {
-      window.removeEventListener('dj:sync', onSync);
       document.removeEventListener('visibilitychange', onVisible);
     },
   };
