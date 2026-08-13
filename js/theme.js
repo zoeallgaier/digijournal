@@ -61,23 +61,24 @@ export function current() {
    --paper is the page's own colour, and asking the browser for it is what
    keeps this file from holding a second copy of the palette.
 
-   Whether iOS re-reads it while a homescreen app is running is not something
-   Apple documents. If it doesn't, the status bar catches up on the next
-   launch; everything below the status bar is correct immediately either way. */
-let meta = null;
-
+   Whether iOS re-reads a theme-color meta's CONTENT while a homescreen app
+   is running is not something Apple documents — and in practice it mostly
+   doesn't: switching palette or flipping light/dark left the bar wearing
+   the old colour until the app was force-quit and relaunched. What iOS does
+   reliably notice is a new meta ELEMENT landing in the document, so every
+   repaint removes the old one and inserts a fresh one rather than editing
+   `.content` in place. Still not documented behaviour, just the version of
+   it that has actually been observed to repaint live. */
 function paintStatusBar() {
   const paper = getComputedStyle(document.documentElement)
     .getPropertyValue('--paper').trim();
   if (!paper) return;
 
-  if (!meta) {
-    for (const old of document.querySelectorAll('meta[name="theme-color"]')) old.remove();
-    meta = document.createElement('meta');
-    meta.name = 'theme-color';
-    document.head.append(meta);
-  }
+  for (const old of document.querySelectorAll('meta[name="theme-color"]')) old.remove();
+  const meta = document.createElement('meta');
+  meta.name = 'theme-color';
   meta.content = paper;
+  document.head.append(meta);
 }
 
 /* --------------------------------------------------------------- applying */
