@@ -66,12 +66,15 @@ export function current() {
    element — that was tried on 12 Aug 2026 and reverted the same day. There
    is no DOM mutation that reaches the strip; do not go looking for one.
 
-   WHAT IT DOES RE-READ IS A NAVIGATION. The app is hash-routed, so leaving
-   Settings is a same-document navigation, and that is the moment the bar
-   catches up — which is exactly why choosing a palette appeared to do
-   nothing and then swiping back appeared to fix it. Nothing was broken in
-   between; the strip was simply waiting for a navigation that a tap inside
-   one screen never performs. nudge() below performs it. */
+   A SAME-DOCUMENT NAVIGATION IS NOT ENOUGH EITHER. pushState to the URL we
+   are already on, popped straight back, was tried on 12 Aug 2026 on the
+   theory that the bar caught up when you left Settings. It does not work.
+   Two negative results, both measured on the phone, both worth keeping:
+   iOS re-reads this meta on a DOCUMENT LOAD and on nothing else.
+
+   So a palette change reloads the app — see relaunch(). That is a real cost
+   and it is deliberate: the alternative is a strip that stays three colours
+   behind until the next cold launch. */
 let meta = null;
 
 function paintStatusBar() {
@@ -88,27 +91,32 @@ function paintStatusBar() {
   meta.content = paper;
 }
 
-/** Make iOS look at the meta again, without moving the user.
+/** Load the app again, because that is the only thing the status bar reads.
  *
- *  A push followed straight back is a same-document navigation to the URL we
- *  are already on: the hash never changes, so no `hashchange` fires, `render()`
- *  is never called, and no screen is rebuilt or scrolled. app.js listens to
- *  hashchange alone and keeps its own `depth`, so a push-and-pop that nets to
- *  zero leaves the back capsule counting exactly what it did before.
+ *  The choice is already in storage before this runs, and the four inline
+ *  lines in index.html read it before the first stylesheet is applied — so
+ *  the app comes back up already wearing the colour, with iOS reading the
+ *  meta fresh on the way in. What you see is a repaint, not a relaunch.
  *
- *  Only the installed app, because only the installed app has the strip — in
- *  a tab this is history churn for nothing, and the suite would be driving a
- *  page that navigates under it. And never while a field has focus: the same
- *  rule update.js already follows, so a palette change at sunset cannot take
- *  the keyboard out from under a sentence. */
-function nudge() {
+ *  IT CANNOT COST AN ENTRY. `dj:flush` is the same signal update.js sends
+ *  before its own reload, and app.js turns it into the onHide the editor
+ *  already runs when the phone is locked, so anything half-typed is in
+ *  storage before the document goes. A reload re-reads localStorage, which
+ *  no part of this touches.
+ *
+ *  It does NOT set update.js's notice, so this reload is silent — "Updated"
+ *  belongs to a deploy, and a palette is not one.
+ *
+ *  Installed app only. In a tab there is no strip to repaint, and the suite
+ *  clicks all eight palettes in a row — unguarded, this would tear down the
+ *  page mid-run. Never while a text field has focus, so this can never take
+ *  a half-written email or password away with it. */
+function relaunch() {
   if (!navigator.standalone) return;
   const el = document.activeElement;
   if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) return;
-  try {
-    history.pushState(history.state, '', location.href);
-    history.back();
-  } catch { /* a browser that refuses is a browser with nothing to repaint */ }
+  window.dispatchEvent(new CustomEvent('dj:flush'));
+  location.reload();
 }
 
 /* --------------------------------------------------------------- applying */
@@ -128,20 +136,20 @@ export function set(id) {
   const next = known(id) ? id : DEFAULT;
   store.setPalette(next);
   apply(next);
-  nudge();
+  relaunch();
   return next;
 }
 
 export function start() {
-  /* No nudge on boot. The launch IS the navigation — iOS has just read the
-     meta the inline lines in index.html left it, and pushing history around
-     before the first screen is mounted buys nothing. */
+  /* Nothing to force on boot: the launch IS the document load, and iOS has
+     just read the meta the inline lines in index.html left it. */
   apply(current());
-  /* The palette does not change when the phone goes dark, but the paper does
-     — so the status bar has to be re-read, not just re-applied, and then
-     looked at again. */
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    paintStatusBar();
-    nudge();
-  });
+  /* The palette does not change when the phone goes dark, but the paper
+     does, so the meta has to be re-read rather than just re-applied — and
+     it is right for the next load even though the strip cannot act on it
+     now. Deliberately NOT a relaunch: reloading the journal out from under
+     someone who is reading, because the sun went down, is a worse thing
+     than a strip that catches up when they next choose a colour or open
+     the app. One line here if that trade is ever wanted the other way. */
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', paintStatusBar);
 }
