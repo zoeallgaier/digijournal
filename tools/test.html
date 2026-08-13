@@ -71,7 +71,7 @@ async function run() {
   ok(moods.every((m) => m.getAttribute('aria-checked') === 'false'), 'the day starts unrated');
   /* Every face names itself, so the ramp is readable before you touch it and
      colour is never the only thing telling them apart. */
-  ok($$('.mood-name').map((n) => n.textContent).join() === 'Rough,Low,Even,Good,Stellar',
+  ok($$('.mood-name').map((n) => n.textContent).join() === 'Awful,Low,Neutral,Good,Stellar',
      'each face is named under itself', $$('.mood-name').map((n) => n.textContent).join());
   ok($('.mood-prompt').textContent === 'Today I feel…', 'the card asks for the rating',
      $('.mood-prompt').textContent);

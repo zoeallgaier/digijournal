@@ -108,7 +108,7 @@
      cyan and teal (0.10). So the five are spent where the colour is:
      violet, blue, teal, GREEN, scarlet.
 
-     The dull band is spent on "Even" on purpose. It is the middle of the
+     The dull band is spent on "Neutral" on purpose. It is the middle of the
      ramp — the day that was neither — and a muted teal is the right colour
      for it. The step that had to be quiet is the step that had no choice.
 
@@ -118,9 +118,9 @@
      reads as a temperature.
 
      The two figures are white's contrast on each end of the gradient. */
-  --mood-1-a:  #6C1EF5;  --mood-1-b:  #241DF5;  /* rough   6.68 / 8.17:1 */
+  --mood-1-a:  #6C1EF5;  --mood-1-b:  #241DF5;  /* awful   6.68 / 8.17:1 */
   --mood-2-a:  #1677E5;  --mood-2-b:  #1881AF;  /* low     4.37 / 4.38:1 */
-  --mood-3-a:  #198595;  --mood-3-b:  #198780;  /* even    4.35 / 4.36:1 */
+  --mood-3-a:  #198595;  --mood-3-b:  #198780;  /* neutral 4.35 / 4.36:1 */
   --mood-4-a:  #188B43;  --mood-4-b:  #4D8715;  /* good    4.36 / 4.38:1 */
   --mood-5-a:  #EA2051;  --mood-5-b:  #D14E16;  /* stellar 4.35 / 4.36:1 */
 
@@ -623,9 +623,9 @@
        it in the dark. They are still declared five times rather than folded
        into one — the light half needs them to differ, and a ramp whose ink
        happens to be uniform in one scheme is not a ramp with one ink. */
-    --mood-1-a:  #9E90FA;  --mood-1-b:  #789AFA;  /* rough   7.03 / 7.01:1 */
+    --mood-1-a:  #9E90FA;  --mood-1-b:  #789AFA;  /* awful   7.03 / 7.01:1 */
     --mood-2-a:  #5BA0F9;  --mood-2-b:  #28BAFA;  /* low     7.04 / 8.53:1 */
-    --mood-3-a:  #2CC9E0;  --mood-3-b:  #2CCCC2;  /* even    9.47 / 9.45:1 */
+    --mood-3-a:  #2CC9E0;  --mood-3-b:  #2CCCC2;  /* neutral 9.47 / 9.45:1 */
     --mood-4-a:  #2BD269;  --mood-4-b:  #77CD26;  /* good    9.46 / 9.47:1 */
     --mood-5-a:  #FA7381;  --mood-5-b:  #FA7747;  /* stellar 7.04 / 7.00:1 */
 

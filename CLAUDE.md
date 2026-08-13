@@ -222,7 +222,7 @@ raised to 22px Black to clear 3:1 rather than 4.5:1.
 ink, yellow's chroma collapses to about 0.12 — a mustard, which Zoe rejected
 in exactly those terms. The five are spent where chroma survives: violet,
 blue, teal, green, scarlet. The dull teal band is given deliberately to
-"Even", the neutral middle, so the one muted step is the one that means
+"Neutral", the middle of the ramp, so the one muted step is the one that means
 muted. The reference orange Zoe drew from is 2.2:1 with white and under the
 bar even for a 34px title.
 

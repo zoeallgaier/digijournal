@@ -67,9 +67,9 @@ export const SCHEMA = 2;
 const DELETED_TTL = 90 * 24 * 60 * 60 * 1000;
 
 export const MOODS = [
-  { value: 1, label: 'Rough' },
+  { value: 1, label: 'Awful' },
   { value: 2, label: 'Low' },
-  { value: 3, label: 'Even' },
+  { value: 3, label: 'Neutral' },
   { value: 4, label: 'Good' },
   { value: 5, label: 'Stellar' },
 ];
