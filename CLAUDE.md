@@ -321,7 +321,11 @@ to "tidy up" later:
   on the calendar. There is one back button in the app now and the entry
   owns it.
 - **Settings had one door and it was the list's gear.** From the calendar it
-  was back, then gear. It is a tab.
+  was back, then gear. It is a tab — and the gear became a painter's palette
+  on the same day. The glyph names only half of what is behind it, the
+  colours and not the account; the tab's accessible name carries the sync
+  half (`Settings — sync needs attention`), and `PATHS.settings` is kept in
+  `ui.js` so going back is one word in `TABS`.
 - **`--kb`, `--bar-h`, `--bar-bottom` and `--chrome-bottom` did not change.**
   The nav is the same single `--tap` row with the same pads, which is why
   every bottom-edge check reads exactly what it read before. This change goes

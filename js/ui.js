@@ -82,11 +82,46 @@ const PATHS = {
      plus: a plus makes a row in a database, a quill writes something. */
   quill:    ['M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z', 'M16 8L2 22', 'M17.5 15H9'],
 
-  /* The Settings tab. It was a cloud while sync was the only thing behind
-     it, then a gear once the palette was there too — everything about the
-     app that is not an entry. It sat in the list's toolbar until the bar
-     became navigation; it is one of the three tabs now, reachable from every
-     screen rather than from one.
+  /* The Settings tab, since 13 Aug 2026 — a painter's palette rather than
+     the gear that was there before.
+
+     THE WELLS ARE TINY CIRCLES, NOT ZERO-LENGTH CAPS. The mood faces draw
+     their eyes as caps and lean on a heavier stroke to give them a diameter;
+     that needs a rule keyed to path position, which is fine for one face and
+     wrong for an icon anybody might reuse. A 1.2-radius circle stroked at
+     --stroke closes to about 4.3px of its own accord, which is a paint well
+     at 26 and needs no special-casing anywhere.
+
+     Three wells, not four: the fourth crowds the thumb notch at this size
+     and the whole mark goes to mush.
+
+     THEY ARE SPREAD ALONG THE PALETTE'S ARC, not clustered. Drawn tighter
+     first, and at 26 the three ran together into one smudge — which is the
+     only size that matters, since this is only ever a tab. Rendered at 52
+     the tight version looked fine, so do not judge these at the size they
+     are comfortable to draw at.
+
+     THE RADIUS IS 0.85 AND THAT IS THE POINT OF THEM. A stroked circle this
+     small closes into a solid dot — 1.7 of radius plus 1.9 of stroke is
+     about 3.6, with no hole left in the middle — so the wells read as spots
+     of paint rather than as three more little rings in an icon already made
+     of outlines. Opening the radius is what turns them back into rings. */
+  palette: [
+    'M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z',
+    'M7.3 11.75a0.85 0.85 0 1 0 0 1.7 0.85 0.85 0 1 0 0-1.7',
+    'M10.2 6.75a0.85 0.85 0 1 0 0 1.7 0.85 0.85 0 1 0 0-1.7',
+    'M15.3 6.55a0.85 0.85 0 1 0 0 1.7 0.85 0.85 0 1 0 0-1.7',
+  ],
+
+  /* THE GEAR THE PALETTE REPLACED, AND NOTHING DRAWS IT TODAY. It was a
+     cloud while sync was the only thing behind it, then a gear once the
+     palette was there too, then the palette itself.
+
+     It is kept rather than deleted because the tab is still a door to BOTH
+     things — the colours and the account — and a palette says only the first
+     of those. If it ever reads as "this tab is only about colour", the way
+     back is one word in the TABS table in app.js. The screen's own accessible
+     name is what carries the sync half in the meantime.
 
      Eight teeth on the same 4–20 band as the icons beside it, generated
      rather than drawn: tips on a 8.35 circle, roots on a 6, so the arcs

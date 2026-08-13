@@ -100,7 +100,7 @@ function back() {
 const TABS = [
   { route: 'home',     hash: '#/',          icon: 'journal',  label: 'Journal' },
   { route: 'calendar', hash: '#/calendar',  icon: 'calendar', label: 'Mood calendar' },
-  { route: 'settings', hash: '#/settings',  icon: 'settings', label: 'Settings' },
+  { route: 'settings', hash: '#/settings',  icon: 'palette',  label: 'Settings' },
 ];
 
 const TAB_INDEX = Object.fromEntries(TABS.map((t, i) => [t.route, i]));
