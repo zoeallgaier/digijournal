@@ -161,7 +161,10 @@ Grape is grape and a new palette cannot forget to tint its own shadows.
 to be as bright as the plastic. `--accent-deep` is a MARK on paper: a link,
 the focus ring, the pencil. Tangerine cannot be one token, because a tangerine
 bright enough to be a tangerine button is 2.3:1 on paper. On Bondi, Tangerine
-and Lime the two differ; everywhere else they are the same colour.
+and Grape the two differ; everywhere else they are the same colour. Lime used
+to be in that group and left it when it became a forest green — a green that
+dark is already both. Grape joined it going the other way: a lavender pale
+enough to read as lavender is nowhere near a mark on paper.
 
 **The mood ramp does not change with the palette.** It is data, not chrome — a
 year of Mondays in the calendar has to mean the same thing in Lime as it did
@@ -169,16 +172,26 @@ in Blueberry. All five steps clear 4:1 on all eight papers, which is measured,
 not assumed.
 
 **Every number in `tokens.css` was solved for, not picked.** Each palette's
-ink lands at 15:1 on its own paper in light and 13.5:1 in dark, `--ink-2` at
-5.7:1, `--ink-3` at 4.6:1 against the darkest ground it ever sits on. That is
-why the eight papers do not read as eight different levels of legibility. The
-suite re-measures all of it from the computed values — see Testing.
+ink lands at 15:1 on its own paper in *both* schemes, `--ink-2` at 5.7:1 light
+and 7.5:1 dark, `--ink-3` at 5:1 light and 6:1 dark against the darkest ground
+it ever sits on. That is why the eight papers do not read as eight different
+levels of legibility. The suite re-measures all of it from the computed values
+— see Testing.
 
 **The dark papers commit to their colour.** A first pass sat them all near
 black and every one came back as mud; they are held at a lightness where the
 page still reads as dark but with enough chroma to be a colour. `paper` is the
 exception and stays the near-black it is named for — a plain background is
 what it is *for*.
+
+**The dark grounds came down a stop on 12 Aug 2026**, at Zoe's ask: every dark
+paper, well and card is about half the luminance it was. The hue and the
+chroma were held while the lightness fell, which is the whole trick — dropping
+lightness alone is how the first pass turned into mud. Dark body text used to
+sit at 13.5:1 against the 15:1 it got in the light; the darker grounds bought
+that back, and `--ink-2` and `--ink-3` were **re-solved** against the new
+papers rather than left where they were, so the three grades of ink stay the
+distance apart they were solved for instead of flattening as the ground fell.
 
 **The choice is a property of the phone, not of the journal.** It lives under
 `digijournal.palette`, it does not sync, signing out does not undo it, and

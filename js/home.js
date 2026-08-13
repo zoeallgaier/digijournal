@@ -111,7 +111,7 @@ export function view(_params, api) {
 
   const node = el('div.screen-inner',
     el('header.home-head',
-      el('h1.home-title', 'Journal'),
+      el('h1.home-title', 'Digijournal'),
       entries.length ? el('p.home-sub', subtitle(entries)) : null,
     ),
     rating.node,

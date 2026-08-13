@@ -3,13 +3,13 @@
 
    Two things live here and they are deliberately in this order:
 
-     Colour   which of the eight palettes the app is wearing. On this phone
+     Color    which of the eight palettes the app is wearing. On this phone
               only — a palette is a property of the device, not of the
               journal, so it does not sync and signing out does not undo it.
      Sync     signed out it is a sign-in form; signed in it is a status line
               and two buttons.
 
-   Colour first because it is the one that always has something to do. Sync
+   Color first because it is the one that always has something to do. Sync
    is the deeper of the two and it is the one that can be not configured at
    all, so it sits underneath rather than greeting you with a password field.
 
@@ -69,7 +69,7 @@ export function view(_params, api) {
 
   const swatchRow = el('div.palette-row', {
     role: 'radiogroup',
-    'aria-label': 'Colour',
+    'aria-label': 'Color',
   });
 
   const swatches = theme.PALETTES.map(({ id, name }) =>
@@ -222,7 +222,7 @@ export function view(_params, api) {
     ),
 
     el('section.set-section',
-      el('h2.set-title', 'Colour'),
+      el('h2.set-title', 'Color'),
       swatchRow,
     ),
 

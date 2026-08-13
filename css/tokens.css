@@ -16,10 +16,11 @@
 
    CONTRAST RATIOS IN THE COMMENTS ARE MEASURED (WCAG 2.1 relative
    luminance), and they were solved for rather than picked: every palette's
-   ink lands at 15:1 on its own paper, --ink-2 at 5.7:1, --ink-3 at 4.6:1 on
-   the darkest ground it ever sits on. That is why the seven papers do not
-   read as seven different levels of legibility. If you change a colour here,
-   re-measure it — do not eyeball it.
+   ink lands at 15:1 on its own paper in both schemes, --ink-2 at 5.7:1 light
+   and 7.5:1 dark, --ink-3 at 5:1 light and 6:1 dark on the darkest ground it
+   ever sits on. That is why the eight papers do not read as eight different
+   levels of legibility. If you change a colour here, re-measure it — do not
+   eyeball it.
    ========================================================================= */
 
 :root {
@@ -592,106 +593,113 @@
        accent IS the ink, so Publish is a white pill with black on it. */
     --accent:       #E9E9E8;
     --accent-ink:   #0C0C0D;   /* 16.1:1 */
-    --accent-deep:  #E9E9E8;   /* 15.0:1 */
-    --glass-rgb:    34 34 33;
+    --accent-deep:  #E9E9E8;   /* 16.0:1 */
+    --glass-rgb:    26 26 25;
   }
 
   [data-palette='bondi'] {
-    --paper:        #002530;
-    --paper-sunk:   #00171F;
-    --card:         #003441;
-    --ink:          #E1EEF2;   /* 13.5:1 */
-    --ink-2:        #A4B4B9;   /*  7.5:1 */
-    --ink-3:        #91A1A6;   /*  6.0:1 */
+    --paper:        #001A22;
+    --paper-sunk:   #001016;
+    --card:         #002733;
+    --ink:          #E1EEF2;   /* 15.1:1 */
+    --ink-2:        #99ABB0;   /*  7.5:1 */
+    --ink-3:        #839296;   /*  6.0:1 in a sunk field */
     --ink-rgb:      225 238 242;
     --accent:       #32ACCD;
     --accent-ink:   #000F15;   /*  7.3:1 */
-    --accent-deep:  #32ACCD;   /*  6.1:1 */
-    --glass-rgb:    0 52 65;
+    --accent-deep:  #32ACCD;   /*  6.8:1 */
+    --glass-rgb:    0 39 51;
   }
 
+  /* Navy, in the dark as in the light: the paper is the deep end of a blue
+     held near 225°, not the indigo it used to sit at. */
   [data-palette='blueberry'] {
-    --paper:        #0F1C48;
-    --paper-sunk:   #050D39;
-    --card:         #1C2A56;
-    --ink:          #E5E9F4;   /* 13.5:1 */
-    --ink-2:        #AAB0BD;   /*  7.5:1 */
-    --ink-3:        #969CA9;   /*  6.0:1 */
-    --ink-rgb:      229 233 244;
-    --accent:       #7F98F3;
-    --accent-ink:   #060A1F;   /*  7.2:1 */
-    --accent-deep:  #7F98F3;   /*  6.0:1 */
-    --glass-rgb:    28 42 86;
+    --paper:        #070F2A;
+    --paper-sunk:   #03081C;
+    --card:         #121B3C;
+    --ink:          #E4E8F4;   /* 15.4:1 */
+    --ink-2:        #9DA3B4;   /*  7.5:1 */
+    --ink-3:        #888D9C;   /*  6.0:1 in a sunk field */
+    --ink-rgb:      228 232 244;
+    --accent:       #6F8DF2;
+    --accent-ink:   #060A1F;   /*  6.3:1 */
+    --accent-deep:  #6F8DF2;   /*  6.1:1 */
+    --glass-rgb:    18 27 60;
   }
 
+  /* The lavender's own dark: the paper is that hue at the bottom of its range,
+     and the accent is the lavender itself, which in the dark needs no second
+     colour to carry as a mark. */
   [data-palette='grape'] {
-    --paper:        #2D113E;
-    --paper-sunk:   #1F032F;
-    --card:         #3A204C;
-    --ink:          #EBE6F0;   /* 13.6:1 */
-    --ink-2:        #B3ACB9;   /*  7.5:1 */
-    --ink-3:        #9F98A4;   /*  5.9:1 */
+    --paper:        #1E0A2C;
+    --paper-sunk:   #140420;
+    --card:         #2A1440;
+    --ink:          #EBE6F0;   /* 15.1:1 */
+    --ink-2:        #ABA2B3;   /*  7.5:1 */
+    --ink-3:        #948B9C;   /*  6.0:1 in a sunk field */
     --ink-rgb:      235 230 240;
-    --accent:       #B689DE;
-    --accent-ink:   #11061B;   /*  7.2:1 */
-    --accent-deep:  #B689DE;   /*  6.0:1 */
-    --glass-rgb:    58 32 76;
+    --accent:       #C1A6EC;
+    --accent-ink:   #11061B;   /*  9.3:1 */
+    --accent-deep:  #C1A6EC;   /*  8.8:1 */
+    --glass-rgb:    42 20 64;
   }
 
   [data-palette='tangerine'] {
-    --paper:        #361600;
-    --paper-sunk:   #240C00;
-    --card:         #482202;
-    --ink:          #F1E7E0;   /* 13.6:1 */
-    --ink-2:        #B9ADA5;   /*  7.5:1 */
-    --ink-3:        #A49991;   /*  5.9:1 */
+    --paper:        #250F00;
+    --paper-sunk:   #170800;
+    --card:         #341800;
+    --ink:          #F1E7E0;   /* 15.0:1 */
+    --ink-2:        #B1A49A;   /*  7.5:1 */
+    --ink-3:        #998C85;   /*  6.0:1 in a sunk field */
     --ink-rgb:      241 231 224;
     --accent:       #E68336;
     --accent-ink:   #190700;   /*  7.2:1 */
-    --accent-deep:  #E68336;   /*  6.0:1 */
-    --glass-rgb:    72 34 2;
+    --accent-deep:  #E68336;   /*  6.7:1 */
+    --glass-rgb:    52 24 0;
   }
 
+  /* The forest green's dark is the same hue further down — green with a little
+     blue in it, never the yellow-green the plastic used to be. */
   [data-palette='lime'] {
-    --paper:        #142700;
-    --paper-sunk:   #0A1800;
-    --card:         #203509;
-    --ink:          #E9EEE5;   /* 13.5:1 */
-    --ink-2:        #AEB4A9;   /*  7.5:1 */
-    --ink-3:        #9AA195;   /*  6.0:1 */
-    --ink-rgb:      233 238 229;
-    --accent:       #82AD3A;
-    --accent-ink:   #080F00;   /*  7.4:1 */
-    --accent-deep:  #82AD3A;   /*  6.1:1 */
-    --glass-rgb:    32 53 9;
+    --paper:        #0A1A0E;
+    --paper-sunk:   #04100A;
+    --card:         #16281A;
+    --ink:          #E7EEE7;   /* 15.2:1 */
+    --ink-2:        #A0AAA1;   /*  7.5:1 */
+    --ink-3:        #88928B;   /*  6.0:1 in a sunk field */
+    --ink-rgb:      231 238 231;
+    --accent:       #5FA96E;
+    --accent-ink:   #04120A;   /*  6.7:1 */
+    --accent-deep:  #5FA96E;   /*  6.3:1 */
+    --glass-rgb:    22 40 26;
   }
 
   [data-palette='strawberry'] {
-    --paper:        #3F071A;
-    --paper-sunk:   #2E000E;
-    --card:         #4E1927;
-    --ink:          #F2E4E6;   /* 13.5:1 */
-    --ink-2:        #BBAAAC;   /*  7.5:1 */
-    --ink-3:        #A79699;   /*  5.9:1 */
+    --paper:        #2B0511;
+    --paper-sunk:   #1D000A;
+    --card:         #3A1020;
+    --ink:          #F2E4E6;   /* 15.0:1 */
+    --ink-2:        #B5A0A5;   /*  7.5:1 */
+    --ink-3:        #9D888E;   /*  6.0:1 in a sunk field */
     --ink-rgb:      242 228 230;
     --accent:       #ED758F;
     --accent-ink:   #1B0408;   /*  7.1:1 */
-    --accent-deep:  #ED758F;   /*  6.0:1 */
-    --glass-rgb:    78 25 39;
+    --accent-deep:  #ED758F;   /*  6.7:1 */
+    --glass-rgb:    58 16 32;
   }
 
   [data-palette='graphite'] {
-    --paper:        #16212F;
-    --paper-sunk:   #091521;
-    --card:         #232F3C;
-    --ink:          #E8EBEE;   /* 13.6:1 */
-    --ink-2:        #ADB1B5;   /*  7.5:1 */
-    --ink-3:        #9A9DA2;   /*  6.0:1 */
+    --paper:        #0E1721;
+    --paper-sunk:   #050C14;
+    --card:         #1A242F;
+    --ink:          #E8EBEE;   /* 15.1:1 */
+    --ink-2:        #A3A8AD;   /*  7.5:1 */
+    --ink-3:        #8A8F94;   /*  6.0:1 in a sunk field */
     --ink-rgb:      232 235 238;
     --accent:       #979FA3;
     --accent-ink:   #060D12;   /*  7.3:1 */
-    --accent-deep:  #979FA3;   /*  6.0:1 */
-    --glass-rgb:    35 47 60;
+    --accent-deep:  #979FA3;   /*  6.7:1 */
+    --glass-rgb:    26 36 47;
   }
 
 
