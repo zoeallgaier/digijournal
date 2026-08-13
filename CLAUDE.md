@@ -95,6 +95,15 @@ writing twice on one day gave the day two moods and a tiebreak to pick
 between them. One row per day, keyed by the day, is the shape the thing
 actually has. The consequences, all of them wanted:
 
+- **The card wears the rating; the faces do not.** `data-mood` on the
+  radiogroup sets one custom property, `--mood-rgb`, and the pane's wash, the
+  chosen swatch's fill and its glow are all an alpha of it — so a rated day
+  has one colour instead of five options having one each. The tokens it is
+  mixed from are declared for `.mood` as well as `:root`, because a custom
+  property inherits its *substituted* value: declared only at the root they
+  would resolve against the ink before the card had an opinion, and every
+  rating would paint grey. How dense the wash may be is set by the card's own
+  type clearing 4.5:1 on it, and by nothing else.
 - The card is on **the list**, above the journal, and rates **today** only.
   There is no way to go back and colour in last Tuesday; the calendar is a
   record, not a form.

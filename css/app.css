@@ -534,21 +534,68 @@
    is a thing you came here to do. The journal scrolls behind it, which is
    what glass is for.
 
-   The card carries its own heading and its own answers, so nothing in it
-   changes as you choose: the prompt is a heading, not a readout, and which
-   day it was is carried by the face that fills.
+   The prompt is a heading, not a readout — it asks the same question whether
+   or not the day has been answered.
 
    Each option is exactly a face wide, and the row spaces them apart, so the
    outermost ink lands on the card's own padding rather than floating in from
    it — an option padded out to a wider target would inset it. The button is a
-   44px face over its word, so it clears 44 in both directions on its own; it
-   does not need a target drawn around it. */
+   48px face over its word, so it clears 44 in both directions on its own; it
+   does not need a target drawn around it.
+
+   THE CARD IS THE READOUT, NOT THE ROW. Every face used to wear its own
+   colour, which meant five hues shouting at once and the chosen one having
+   to win on saturation alone — a row of sweets you pick from rather than a
+   day that has a temperature. Now the faces are all one quiet material and
+   the PANE takes the day's colour: one rating, one hue, the whole card. It
+   is the same move the calendar makes, where a rated day is a filled cell
+   rather than five coloured options.
+
+   Mechanically that is one custom property. `--mood-rgb` is set on the card
+   from the rating and inherits down, so the wash behind the type, the fill
+   in the chosen swatch and the glow under it are the same colour without
+   three rules having to be kept in step. Unrated, it falls back to the ink
+   and the card is a grey dome. */
 
 .mood {
-  margin: 0 0 var(--s-4);
-  padding: var(--s-3);
-  border-radius: var(--r-lg);
+  position: relative;
+  overflow: hidden;             /* the wash stops at the card's own radius */
+  margin: 0 0 var(--s-5);
+  padding: var(--s-5) var(--s-4);
+  border-radius: var(--r-xl);
 }
+
+/* Two layers of light under the content, and nothing between them and it.
+   ::before is the day's colour welling up from the top edge; ::after is the
+   specular fall-off that makes the pane read as something with a thickness.
+   Both are inert — .glass isolates, so these sit at 0 and the content at 1
+   rather than at a negative index that the glass tint would paint over. */
+.mood::before,
+.mood::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.mood::before {
+  background: var(--mood-wash);
+  transition: opacity var(--d-mid) var(--ease);
+}
+.mood::after { background: var(--mood-sheen); }
+
+/* Unrated the wash is the ink rather than a mood, and it is pulled back to
+   half — enough to keep the pane domed, not enough to look like an answer. */
+.mood:not([data-mood])::before { opacity: 0.5; }
+
+.mood[data-mood='1'] { --mood-rgb: var(--mood-1-rgb); }
+.mood[data-mood='2'] { --mood-rgb: var(--mood-2-rgb); }
+.mood[data-mood='3'] { --mood-rgb: var(--mood-3-rgb); }
+.mood[data-mood='4'] { --mood-rgb: var(--mood-4-rgb); }
+.mood[data-mood='5'] { --mood-rgb: var(--mood-5-rgb); }
+
+.mood-prompt,
+.mood-row { position: relative; z-index: 1; }
 
 /* The card's heading. Sentence case and quiet — it labels the control for
    anyone who has not met it, and then gets out of the way. Centred over the
@@ -556,7 +603,7 @@
    to the card, not to the column of writing underneath. Centred by
    text-align, never by transform — see the house rule. */
 .mood-prompt {
-  margin: 0 0 var(--s-3);
+  margin: 0 0 var(--s-4);
   font-size: var(--t-subhead);
   font-weight: var(--w-medium);
   line-height: var(--lh-tight);
@@ -605,21 +652,28 @@
 }
 /* The swatch is ::before, not ::after: both layers are positioned, so tree
    order is paint order, and the face has to come second. */
+/* Unchosen, the swatch is a shallow well pressed into the pane — a gradient
+   and two inset hairlines, one shading the top wall and one catching the
+   bottom, which is how a dent is lit. Chosen, the same box becomes a dome in
+   the day's colour with a glow under it. Same box, opposite depth: that
+   contrast is what the row is answering with now that no face carries a hue
+   of its own. */
 .mood-face::before {
   content: '';
   border-radius: var(--r-full);
-  background: transparent;
-  box-shadow: inset 0 0 0 var(--ring) var(--mood-none);
+  background: var(--mood-well);
+  box-shadow: var(--mood-well-in);
   transition: background var(--d-fast) var(--ease),
               box-shadow var(--d-fast) var(--ease);
 }
 
-/* Unrated, the face is drawn in its own colour inside the ring; rated, it
-   turns to --mood-ink on the fill — the same pairing the calendar prints its
-   numerals with. The heavier stroke is the one tokens.css keeps for a glyph
-   sitting on a filled field, which eats a hairline. */
+/* One material for all five. The glyph is the ink of the page, not the
+   colour of the rating — the card behind it is where the colour went. Rated,
+   it turns to --mood-ink on the fill, the same pairing the calendar prints
+   its numerals with, at the heavier stroke tokens.css keeps for a glyph on a
+   filled field. */
 .mood-face svg {
-  color: var(--mood-none);
+  color: var(--ink-2);
   fill: none;
   stroke: currentColor;
   stroke-width: var(--stroke);
@@ -628,43 +682,45 @@
   transition: color var(--d-fast) var(--ease);
 }
 
+/* The eyes are the first two paths of every mood glyph (see the note beside
+   them in ui.js) and are zero-length round caps, so this weight is their
+   diameter. They are drawn heavier than the mouth on purpose: at this size
+   an eye at the icon weight is a speck, and the face reads as a mouth
+   floating alone. */
+.mood-face svg path:nth-child(-n + 2) { stroke-width: var(--stroke-eye); }
+
+/* --ink-2 rather than --ink-3: the wash behind these words is a colour now,
+   and the names are what a screen reader is not the only one relying on. */
 .mood-name {
   font-size: var(--t-foot);
   font-weight: var(--w-medium);
   line-height: var(--lh-tight);
-  color: var(--ink-3);
+  color: var(--ink-2);
   white-space: nowrap;
   transition: color var(--d-fast) var(--ease);
 }
-
-.mood-opt[data-mood='1'] .mood-face::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-1); }
-.mood-opt[data-mood='2'] .mood-face::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-2); }
-.mood-opt[data-mood='3'] .mood-face::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-3); }
-.mood-opt[data-mood='4'] .mood-face::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-4); }
-.mood-opt[data-mood='5'] .mood-face::before { box-shadow: inset 0 0 0 var(--ring) var(--mood-5); }
-
-.mood-opt[data-mood='1'] svg { color: var(--mood-1); }
-.mood-opt[data-mood='2'] svg { color: var(--mood-2); }
-.mood-opt[data-mood='3'] svg { color: var(--mood-3); }
-.mood-opt[data-mood='4'] svg { color: var(--mood-4); }
-.mood-opt[data-mood='5'] svg { color: var(--mood-5); }
 
 /* The chosen one grows, and it grows from the FACE — not from the swatch and
    not from the button. A transform on the swatch promotes it into the
    positioned layer, where, being later in tree order, it paints over the face
    and you get a plain coloured disc; a transform on the button would drag the
    word along with it. */
-.mood-opt[aria-checked='true'] .mood-face { transform: scale(1.06); }
+.mood-opt[aria-checked='true'] .mood-face { transform: scale(1.08); }
+.mood-opt[aria-checked='true'] .mood-face::before {
+  background: var(--mood-fill);
+  box-shadow: var(--mood-glow);
+}
 .mood-opt[aria-checked='true'] svg {
   color: var(--mood-ink);
   stroke-width: var(--stroke-bold);
 }
-.mood-opt[aria-checked='true'] .mood-name { color: var(--ink); }
-.mood-opt[aria-checked='true'][data-mood='1'] .mood-face::before { background: var(--mood-1); }
-.mood-opt[aria-checked='true'][data-mood='2'] .mood-face::before { background: var(--mood-2); }
-.mood-opt[aria-checked='true'][data-mood='3'] .mood-face::before { background: var(--mood-3); }
-.mood-opt[aria-checked='true'][data-mood='4'] .mood-face::before { background: var(--mood-4); }
-.mood-opt[aria-checked='true'][data-mood='5'] .mood-face::before { background: var(--mood-5); }
+.mood-opt[aria-checked='true'] svg path:nth-child(-n + 2) {
+  stroke-width: var(--stroke-eye-bold);
+}
+.mood-opt[aria-checked='true'] .mood-name {
+  color: var(--ink);
+  font-weight: var(--w-bold);
+}
 .mood-opt:active .mood-face { transform: scale(var(--press)); }
 
 /* ------------------------------------------------------------- calendar -- */

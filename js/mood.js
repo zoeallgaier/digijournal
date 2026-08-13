@@ -16,9 +16,10 @@
    Tuesday is bookkeeping, not journalling, and the calendar is a record
    rather than a form.
 
-   The card carries its own heading and its own answers, so nothing in it
-   changes as you choose: the prompt is a heading, not a readout, and which
-   day it was is carried by the face that fills.
+   The prompt is a heading, not a readout — it asks the same question whether
+   or not the day has been answered. What answers is the CARD: `data-mood` on
+   the group is the day's colour, and the pane wears it. See the mood block
+   in app.css for why the colour is on the card and not on five faces.
    ========================================================================= */
 
 import { el, icon } from './ui.js';
@@ -61,6 +62,14 @@ export function card(day) {
 
   function repaint() {
     const mood = current();
+    /* The card wears the rating. Everything coloured on it — the wash behind
+       the type, the fill in the chosen swatch, the glow under it — is an
+       alpha of one custom property that this attribute switches, so the day
+       has ONE colour rather than five options having one each. Absent when
+       nothing is rated, which is what CSS falls back to the ink on. */
+    if (mood === null) group.removeAttribute('data-mood');
+    else group.dataset.mood = String(mood);
+
     buttons.forEach((btn, i) => {
       const checked = MOODS[i].value === mood;
       btn.setAttribute('aria-checked', String(checked));

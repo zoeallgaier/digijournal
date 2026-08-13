@@ -74,6 +74,15 @@
   --mood-5:       #BE4C39;   /* bright   ≥4.5:1 */
   --mood-ink:     #FFFFFF;   /* text sitting on a filled mood swatch        */
 
+  /* The same five as space-separated channels, so the rating card can take
+     an alpha of the day's colour the way the hairlines take one of the ink.
+     Keep them in step with the five above — they are the same colours.    */
+  --mood-1-rgb:    88  92 147;
+  --mood-2-rgb:    46 118 166;
+  --mood-3-rgb:    44 130 106;
+  --mood-4-rgb:   156 106  22;
+  --mood-5-rgb:   190  76  57;
+
   /* The one part of the glass that is not derived, because it is not a
      colour: how hard the backdrop is blurred. See the note below.        */
   --glass-filter: blur(28px) saturate(180%);
@@ -167,12 +176,18 @@
   --icon-sm:   1.25rem;    /* 20 — a menu row                              */
   --stroke:      1.9;      /* every icon is drawn at this weight…          */
   --stroke-bold: 2.2;      /* …except on a filled field, which eats it     */
+  /* An eye is a zero-length path with a round cap, so its stroke weight IS
+     its diameter. At the icon weight it is a pinprick; a face wants a pupil
+     you can see across the room, and the two eyes are the only part of the
+     glyph the mouth is not already carrying.                              */
+  --stroke-eye:      3;
+  --stroke-eye-bold: 3.4;  /* on a filled swatch, which eats a hairline    */
   --dot:     0.75rem;      /* the mood dot on a list row and in the key    */
-  --dot-lg:  2.75rem;      /* the mood face. It needs no target drawn round
+  --dot-lg:  3rem;         /* the mood face. It needs no target drawn round
                               it: the button is this face stacked over its
                               word, which clears 44 in both directions.    */
   --swatch:  1.75rem;      /* a palette's plastic, in the Settings picker  */
-  --ring:      2px;        /* that circle's outline while it is unfilled   */
+  --ring:      2px;        /* a chip's outline in the palette picker       */
   --ring-thin: 1.5px;      /* a day written but not rated                  */
 
   /* --- Shape ------------------------------------------------------------ */
@@ -250,6 +265,65 @@
   --lift:         0 1px 2px rgb(var(--ink-rgb) / 0.05),
                   0 8px 28px rgb(var(--ink-rgb) / 0.10);
   --scrim:        rgb(var(--ink-rgb) / 0.28);
+}
+
+/* ----------------------------------------------------------- the rating card
+   Declared for `.mood` as well, and for the same reason `[data-palette]` is
+   above: a custom property inherits its SUBSTITUTED value. These are mixed
+   from --mood-rgb, which the card itself sets from the day's rating — if
+   they were only on :root they would have resolved against the ink long
+   before the card had an opinion, and every rating would paint grey. The
+   card re-derives them, so they resolve against ITS colour.               */
+:root,
+[data-palette],
+.mood {
+  /* THE CARD IS THE READOUT. One variable carries the day's colour —
+     app.css sets --mood-rgb on the card from the rating, and everything
+     below takes an alpha of it, so the pane, the chosen swatch and its glow
+     are the same colour by construction rather than by three rules
+     agreeing. Unrated it falls back to the ink, and the card is a plain
+     grey dome: shape without a claim.
+
+     THE WASH IS DENSEST WHERE THERE ARE NO WORDS. It peaks across the band
+     the swatches sit in and thins towards both edges, where the prompt and
+     the five names are — which is what lets it be a colour rather than a
+     rumour of one. The alphas are a measured ceiling, not a taste: against
+     mood 1, the darkest of the five, 0.12 leaves --ink-2 at 5.3:1 and 0.16
+     at 4.9:1. The type is what sets the limit, and it is the type that has
+     to keep clearing 4.5. The dark scheme runs lower for the same reason
+     in reverse — its moods are the pale end of the ramp, and a bright wash
+     costs a pale ink exactly what a dark one costs a dark ink here.      */
+  --mood-rgb:     var(--ink-rgb);
+  --mood-wash:    radial-gradient(115% 90% at 50% 52%,
+                    rgb(var(--mood-rgb) / 0.24)  0%,
+                    rgb(var(--mood-rgb) / 0.16) 52%,
+                    rgb(var(--mood-rgb) / 0.09) 100%);
+  /* The light coming off the top of the pane. Glass gets its depth from a
+     highlight that falls off, not from a line — --glass-edge draws the line
+     at the very rim, this is the few millimetres under it.               */
+  --mood-sheen:   linear-gradient(180deg,
+                    rgb(255 255 255 / 0.38)  0%,
+                    rgb(255 255 255 / 0.10) 30%,
+                    rgb(255 255 255 / 0)    64%);
+  /* A chosen swatch is a dome: the flat mood colour at the top, shaded
+     towards the bottom. The shading only ever moves AWAY from --mood-ink —
+     darker under white text here, lighter under dark text in the dark
+     scheme — so the ramp's measured 4.6:1 is the worst the face ever
+     gets, and the top of the swatch is exactly the colour the calendar
+     fills a day with.                                                    */
+  --mood-fill:    linear-gradient(180deg,
+                    rgb(0 0 0 / 0)    18%,
+                    rgb(0 0 0 / 0.20) 100%),
+                  linear-gradient(rgb(var(--mood-rgb)), rgb(var(--mood-rgb)));
+  --mood-glow:    0 4px 12px rgb(var(--mood-rgb) / 0.40),
+                  inset 0 1px 0 rgb(255 255 255 / 0.30);
+  /* An unchosen swatch is the opposite: a shallow well pressed into the
+     pane, lit from below the way a dent is.                              */
+  --mood-well:    linear-gradient(180deg,
+                    rgb(var(--ink-rgb) / 0.09) 0%,
+                    rgb(var(--ink-rgb) / 0.03) 100%);
+  --mood-well-in: inset 0 1px 1px rgb(var(--ink-rgb) / 0.10),
+                  inset 0 -1px 0 rgb(255 255 255 / 0.35);
 }
 
 /* ============================================================================
@@ -429,6 +503,12 @@
     --mood-4:       #E3AC4E;   /* ≥6.5:1 */
     --mood-5:       #F2836D;   /* ≥5.2:1 */
     --mood-ink:     #0B111E;
+
+    --mood-1-rgb:   155 160 228;
+    --mood-2-rgb:    95 178 230;
+    --mood-3-rgb:    79 197 164;
+    --mood-4-rgb:   227 172  78;
+    --mood-5-rgb:   242 131 109;
   }
 
   /* The light source is a fact about the dark, not about the palette — so
@@ -442,6 +522,37 @@
     --lift:         0 1px 2px rgb(0 0 0 / 0.3),
                     0 8px 28px rgb(0 0 0 / 0.45);
     --scrim:        rgb(2 4 8 / 0.5);
+  }
+
+  /* On `.mood` too — see the note on the light half. */
+  :root,
+  [data-palette],
+  .mood {
+    /* The rating card, inverted. The wash is weaker because the moods are
+       the pale end of the ramp here — 0.10 is what leaves --ink-2 at 4.9:1
+       on the densest of them. The swatch is shaded UPWARDS in light, away
+       from the near-black --mood-ink it carries; the well is lit from above
+       instead of below, because a dent in a dark pane catches light on its
+       far wall.                                                          */
+    --mood-sheen:   linear-gradient(180deg,
+                      rgb(255 255 255 / 0.10)  0%,
+                      rgb(255 255 255 / 0.03) 30%,
+                      rgb(255 255 255 / 0)    64%);
+    --mood-wash:    radial-gradient(115% 90% at 50% 52%,
+                      rgb(var(--mood-rgb) / 0.16)  0%,
+                      rgb(var(--mood-rgb) / 0.10) 52%,
+                      rgb(var(--mood-rgb) / 0.05) 100%);
+    --mood-fill:    linear-gradient(180deg,
+                      rgb(255 255 255 / 0)    18%,
+                      rgb(255 255 255 / 0.18) 100%),
+                    linear-gradient(rgb(var(--mood-rgb)), rgb(var(--mood-rgb)));
+    --mood-glow:    0 4px 14px rgb(var(--mood-rgb) / 0.30),
+                    inset 0 1px 0 rgb(255 255 255 / 0.22);
+    --mood-well:    linear-gradient(180deg,
+                      rgb(0 0 0 / 0.22) 0%,
+                      rgb(0 0 0 / 0.10) 100%);
+    --mood-well-in: inset 0 1px 1px rgb(0 0 0 / 0.35),
+                    inset 0 -1px 0 rgb(var(--ink-rgb) / 0.10);
   }
 
   [data-palette='paper'] {

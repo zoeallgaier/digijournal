@@ -81,7 +81,12 @@ const PATHS = {
      the face. Two dots and a mouth, and only the mouth changes: at 28px an
      eye that also changes reads as noise, and the mouth is what carries a
      five-step ramp legibly. Drawn on the same 24 grid as everything else, so
-     a face lines up with the icons it sits under. */
+     a face lines up with the icons it sits under.
+
+     THE EYES ARE THE FIRST TWO PATHS OF EACH, and app.css strokes them
+     heavier than the mouth by exactly that position (`:nth-child(-n + 2)`).
+     They are zero-length round caps, so their stroke weight is their
+     diameter. Keep them first if these are ever redrawn. */
   'mood-1': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 17Q12 12.6 17.1 17'],
   'mood-2': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 16.4Q12 14 17.1 16.4'],
   'mood-3': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 15.4h10.2'],
