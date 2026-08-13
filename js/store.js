@@ -71,7 +71,7 @@ export const MOODS = [
   { value: 2, label: 'Low' },
   { value: 3, label: 'Even' },
   { value: 4, label: 'Good' },
-  { value: 5, label: 'Bright' },
+  { value: 5, label: 'Stellar' },
 ];
 
 export function moodLabel(mood) {

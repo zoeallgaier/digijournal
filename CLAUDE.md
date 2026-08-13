@@ -96,14 +96,34 @@ between them. One row per day, keyed by the day, is the shape the thing
 actually has. The consequences, all of them wanted:
 
 - **The card wears the rating; the faces do not.** `data-mood` on the
-  radiogroup sets one custom property, `--mood-rgb`, and the pane's wash, the
-  chosen swatch's fill and its glow are all an alpha of it — so a rated day
-  has one colour instead of five options having one each. The tokens it is
-  mixed from are declared for `.mood` as well as `:root`, because a custom
-  property inherits its *substituted* value: declared only at the root they
-  would resolve against the ink before the card had an opinion, and every
-  rating would paint grey. How dense the wash may be is set by the card's own
-  type clearing 4.5:1 on it, and by nothing else.
+  radiogroup switches four properties together — `--mood-grad`, `--mood-rgb`,
+  `--mood-ink` and `--mood-deep` — so a rated day has one colour instead of
+  five options having one each. The tokens they are mixed from are declared
+  for `.mood` as well as `:root`, because a custom property inherits its
+  *substituted* value: declared only at the root they would resolve against
+  the ink before the card had an opinion, and every rating would paint grey.
+- **The card is a field, not a wash** — rebuilt 13 Aug 2026 at Zoe's ask for
+  something brighter and bolder. It used to be a `.glass` pane with the mood
+  at 0.24 alpha behind ordinary body ink, and that alpha was capped by
+  `--ink-2` having to read through it. Now the whole card is the mood's
+  gradient and everything on it is `--mood-ink`, which is the pairing the
+  ramp was already solved for — the same measured bar, a much brighter card.
+  It is **not glass**: a pane filled edge to edge has nothing behind it to
+  refract, the same reason the action sheet is a card.
+- **The heading is a sentence the rating finishes.** "Today I feel …" and
+  then the word, on **one line** — the word is its own span so `repaint()`
+  has something to write into, never so CSS can break the line. It was
+  briefly given its own line and Zoe rejected it: a break turns something
+  said into a heading. The word is also the second channel the colour is not
+  allowed to be alone on, said out loud rather than hidden in a `.sr-only`.
+- **The control is a slider over a radiogroup, and it is both.** The thumb
+  follows a finger across five stops — `mood.js` reads the pointer's x,
+  works out the column and calls the same `set()` a tap calls, and nothing
+  about the thumb's *position* lives in JS: CSS moves it from `data-mood`.
+  Underneath it is still five real `role=radio` buttons, which is what keeps
+  arrow keys, a roving tabindex, five names and five 44pt targets. A gesture
+  claims the click that follows it, or press-and-release on the chosen face
+  would select it and then toggle it straight back off.
 - The card is on **the list**, above the journal, and rates **today** only.
   There is no way to go back and colour in last Tuesday; the calendar is a
   record, not a form.
@@ -180,8 +200,35 @@ enough to read as lavender is nowhere near a mark on paper.
 
 **The mood ramp does not change with the palette.** It is data, not chrome — a
 year of Mondays in the calendar has to mean the same thing in Lime as it did
-in Blueberry. All five steps clear 4:1 on all eight papers, which is measured,
-not assumed.
+in Blueberry. All five steps clear 3.5:1 on all eight papers, which is
+measured, not assumed, and the suite re-measures it on every run.
+
+**Each mood is two colours and an ink**, since 13 Aug 2026: `--mood-N-a` and
+`--mood-N-b` are the ends of a gradient, `--mood-N-grad` is the gradient,
+`--mood-N-rgb` is their midpoint for anything too small to hold two stops (an
+8px list dot), and `--mood-N-ink` is what may be printed on it. **Keep the
+midpoint in step with the pair** — it is what the calendar's paper check
+reads, and a stale one fails the suite while the card still looks right.
+
+**The ramp is as bright as white allows, and that is the ceiling.** The mark
+on a mood is white in light, near-black in dark, and the two bars — the fill
+staying below the paper, the ink staying above the fill — cap luminance at
+nearly the same point. There is no brighter ramp that white can legibly sit
+on. Which is also why **everything printed on a mood is large text**: the
+prompt is 28px Black, the faces are glyphs, and the calendar's numeral was
+raised to 22px Black to clear 3:1 rather than 4.5:1.
+
+**There is no yellow in the ramp, and this is not an oversight.** Under white
+ink, yellow's chroma collapses to about 0.12 — a mustard, which Zoe rejected
+in exactly those terms. The five are spent where chroma survives: violet,
+blue, teal, green, scarlet. The dull teal band is given deliberately to
+"Even", the neutral middle, so the one muted step is the one that means
+muted. The reference orange Zoe drew from is 2.2:1 with white and under the
+bar even for a 34px title.
+
+**`--mood-N-deep` and `--mood-thumb` do not invert with the scheme**, because
+the thing they are drawn on does not either: the slider's thumb is a
+near-white puck in both. Each clears 4.5:1 on `--mood-thumb`.
 
 **Every number in `tokens.css` was solved for, not picked.** Each palette's
 ink lands at 15:1 on its own paper in *both* schemes, `--ink-2` at 5.7:1 light
@@ -517,7 +564,8 @@ The rating card is exercised where it now lives: that it is on the list and
 not on the entry, that rating a day with an empty journal writes no entry and
 leaves the list empty, that clearing travels between devices as a null, that
 deleting a day's entry leaves the rating standing, and that an old entry's
-mood is adopted as its day's rating.
+mood is adopted as its day's rating, and that the heading finishes its
+sentence with the word for whatever was chosen.
 
 Sync added a second half: that a delete leaves a tombstone the app never shows
 and sync always pushes, that the later edit wins from either direction, that a
@@ -526,7 +574,17 @@ leaves the open entry alone, that an untouched draft is never pushed, that the
 sync screen is a door off the list rather than a gate in front of it, that the
 shipped key decodes to `role: anon`, that `schema.sql` still enables RLS with
 both `using` and `with check`, that every import is still a relative file in
-this repo, and that a different account starts empty. **299 checks.**
+this repo, and that a different account starts empty. **301 checks.**
+
+**The settings screen is backed out of from a cold landing on `#/settings`,
+not by tapping in and then backing out.** That is the case worth pinning —
+no in-app history to step through, so the button has to find the list on its
+own — and it is also the only version an iframe can measure honestly. A
+frame the harness navigated by assigning `src` carries no user activation
+behind those entries, so Chrome will not traverse them: `history.back()`
+skips past and lands on an older *document*, which reads exactly like a back
+button that does nothing. It is the harness, not the app — on the phone a
+tap carries activation and back steps once. Do not "fix" `back()` for it.
 
 **The suite cannot see an edge problem.** It runs in a browser that reports
 no safe-area inset, so it pins our own arithmetic and nothing else — every
@@ -601,9 +659,12 @@ clears 4.5:1 and non-text UI clears 3:1 in both schemes. If you change a
 colour, re-measure it — do not eyeball it.
 
 Colour is never the only channel: a mood dot in the list is paired with a
-`.sr-only` label naming whose rating it is ("That day: Good"), and a calendar day keeps its numeral on top of the fill.
+`.sr-only` label naming whose rating it is ("That day: Good"), a calendar day
+keeps its numeral on top of the fill, and the rating card says the word in
+its own heading — "Today I feel good".
 Every control is at least 44×44. The mood control is a real `radiogroup` with
-arrow-key support and a roving tabindex.
+arrow-key support and a roving tabindex; the slider is a layer over it, not
+a replacement for it.
 
 ---
 

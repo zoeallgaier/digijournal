@@ -71,9 +71,10 @@ async function run() {
   ok(moods.every((m) => m.getAttribute('aria-checked') === 'false'), 'the day starts unrated');
   /* Every face names itself, so the ramp is readable before you touch it and
      colour is never the only thing telling them apart. */
-  ok($$('.mood-name').map((n) => n.textContent).join() === 'Rough,Low,Even,Good,Bright',
+  ok($$('.mood-name').map((n) => n.textContent).join() === 'Rough,Low,Even,Good,Stellar',
      'each face is named under itself', $$('.mood-name').map((n) => n.textContent).join());
-  ok($('.mood-prompt').textContent === 'Rate the day', 'the card asks for the rating');
+  ok($('.mood-prompt').textContent === 'Today I feel…', 'the card asks for the rating',
+     $('.mood-prompt').textContent);
   ok($('.mood').getAttribute('aria-labelledby') === $('.mood-prompt').id,
      "the prompt is the radiogroup's name");
 
@@ -83,6 +84,11 @@ async function run() {
   ok($('.mood-opt[aria-checked="true"] .mood-name').textContent === 'Good',
      'the chosen face is the named one',
      $('.mood-opt[aria-checked="true"] .mood-name').textContent);
+  /* The heading is a sentence the rating finishes, so the word is the second
+     channel the colour is not allowed to be alone on — said out loud rather
+     than left to the fill. */
+  ok($('.mood-said').textContent === ' good', 'the prompt finishes its sentence',
+     $('.mood-said').textContent);
   ok(S().rating() === 4, "today's rating persisted", String(S().rating()));
   /* THE POINT OF THE WHOLE CHANGE. A rating is a row against the day; it is
      not an entry, and it does not conjure one to live in. */
@@ -777,7 +783,7 @@ async function run() {
   gear.click();
   await wait(350);
   ok(f.contentWindow.location.hash === '#/settings', 'it opens the settings screen',
-     f.contentWindow.location.hash);
+     window.__dbg);
   ok(!!$('.account-form'), 'signed out, Settings carries a sign-in form');
   ok(!!$('input[type="password"]'), 'and this is the one place that asks for a password');
   ok($('.compose').textContent === 'Sign in',
@@ -926,12 +932,24 @@ async function run() {
      'clearing it falls back to the default rather than to no palette at all',
      root().dataset.palette);
 
-  /* And the way back out is the toolbar's own button, not the phone's. */
-  $('.toolbar .icon-btn[aria-label^="Settings"]').click();
-  await wait(350);
+  /* And the way back out is the toolbar's own button, not the phone's.
+
+     LANDED ON DIRECTLY, and that is the case worth pinning: the app opened
+     cold on #/settings, so there is no in-app history to step back through
+     and the button has to find the list on its own. It is also the only
+     version of this an iframe can measure honestly. Reaching settings by
+     tapping and then backing out uses history.back(), and Chrome will not
+     do it here — a frame the harness navigated by assigning `src` has no
+     user activation behind those entries, so the traversal skips them and
+     lands on an older document instead. That is the harness, not the app;
+     on the phone a tap carries activation and back steps once. */
+  await load('../index.html?relaunch=3#/settings');
+  await until(() => $('.toolbar .icon-btn[aria-label="Back"]'));
+  ok(!!$('input[type="password"]'), 'settings is reachable as a screen of its own');
   $('.toolbar .icon-btn[aria-label="Back"]').click();
-  await wait(400);
-  ok(!!$('.home-title'), 'backing out returns to a journal that never needed it');
+  await until(() => $('.home-title'));
+  ok(!!$('.home-title'), 'backing out returns to a journal that never needed it',
+     f.contentWindow.location.hash);
   ok(!$('input[type="password"]'), 'and no password field survives on the list');
 
   /* --------------------------------------------- 14. the key, and the lock

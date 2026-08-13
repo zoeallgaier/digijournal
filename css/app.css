@@ -355,6 +355,11 @@
   width: var(--dot-sm);
   height: var(--dot-sm);
 }
+/* The flat midpoint, not the gradient. At 8px on a list row there is no
+   distance for two stops to be two colours in, and a gradient that small
+   only costs a layer — so --mood-N is the one place the pair is collapsed.
+   The key on the calendar is 12px and takes the same treatment, so the
+   legend and the rows agree with each other. */
 .mood-dot[data-mood='1'] { background: var(--mood-1); }
 .mood-dot[data-mood='2'] { background: var(--mood-2); }
 .mood-dot[data-mood='3'] { background: var(--mood-3); }
@@ -529,53 +534,51 @@
 }
 
 /* -------------------------------------------------------------- mood ---
-   Five faces, each named under itself. A radiogroup, so it is one tab stop
-   and the arrow keys move the selection — the pattern a rating control is
-   supposed to follow.
+   A slider over a radiogroup. The thing you touch is a track with a thumb
+   that follows your finger across five stops; underneath, it is still five
+   real radios, which is what gives it arrow keys, five names and five 44pt
+   targets. See the head of mood.js for why it is both.
 
-   It is a glass card, and it sits on the LIST, under the title and above the
-   journal — it rates the day, not the entry, so it belongs to the screen the
-   day is the subject of rather than to whatever was written. Loose dots under
-   a date read as a footnote to the writing; a pane of its own says the rating
-   is a thing you came here to do. The journal scrolls behind it, which is
-   what glass is for.
+   It sits on the LIST, under the title and above the journal — it rates the
+   day, not the entry, so it belongs to the screen the day is the subject of
+   rather than to whatever was written. Loose dots under a date read as a
+   footnote to the writing; a pane of its own says the rating is a thing you
+   came here to do.
 
-   The prompt is a heading, not a readout — it asks the same question whether
-   or not the day has been answered.
+   THE CARD IS THE READOUT, AND IT IS THE FIELD. Every face used to wear its
+   own colour, which meant five hues shouting at once. Then the card wore the
+   day's colour as a WASH — an alpha of the mood over the paper, capped at
+   0.24 because --ink-2 had to keep clearing 4.5:1 through it. That cap is
+   what kept a rated day a rumour of a colour rather than a colour.
 
-   Each option is exactly a face wide, and the row spaces them apart, so the
-   outermost ink lands on the card's own padding rather than floating in from
-   it — an option padded out to a wider target would inset it. The button is a
-   48px face over its word, so it clears 44 in both directions on its own; it
-   does not need a target drawn around it.
+   Now the card is FILLED with the mood outright, and the cap is gone —
+   because the type on it stopped being --ink-2 on paper and became
+   --mood-ink on the mood, which is the pairing the ramp was already solved
+   for and the one the calendar has always used. It got bright by being
+   measured against the right thing.
 
-   THE CARD IS THE READOUT, NOT THE ROW. Every face used to wear its own
-   colour, which meant five hues shouting at once and the chosen one having
-   to win on saturation alone — a row of sweets you pick from rather than a
-   day that has a temperature. Now the faces are all one quiet material and
-   the PANE takes the day's colour: one rating, one hue, the whole card. It
-   is the same move the calendar makes, where a rated day is a filled cell
-   rather than five coloured options.
-
-   Mechanically that is one custom property. `--mood-rgb` is set on the card
-   from the rating and inherits down, so the wash behind the type, the fill
-   in the chosen swatch and the glow under it are the same colour without
-   three rules having to be kept in step. Unrated, it falls back to the ink
-   and the card is a grey dome. */
+   Mechanically it is still one attribute. `data-mood` switches --mood-grad,
+   --mood-ink and --mood-deep together, and everything on the card takes one
+   of the three, so the card, the calendar cell and the list dot cannot drift
+   apart. Unrated, all three fall back to the ink and the card is a quiet
+   grey pane. */
 
 .mood {
   position: relative;
-  overflow: hidden;             /* the wash stops at the card's own radius */
+  overflow: hidden;            /* the field stops at the card's own radius */
   margin: 0 0 var(--s-5);
-  padding: var(--s-5) var(--s-4);
+  padding: var(--s-5) var(--s-5) var(--s-4);
   border-radius: var(--r-xl);
+  background: var(--card);     /* what the field is composited over        */
+  box-shadow: var(--lift);
+  isolation: isolate;          /* .glass used to do this — see mood.js     */
 }
 
 /* Two layers of light under the content, and nothing between them and it.
-   ::before is the day's colour welling up from the top edge; ::after is the
-   specular fall-off that makes the pane read as something with a thickness.
-   Both are inert — .glass isolates, so these sit at 0 and the content at 1
-   rather than at a negative index that the glass tint would paint over. */
+   ::before is the day's colour, ::after the specular fall-off that makes the
+   pane read as something with a thickness. Both are inert and both sit at 0,
+   with the content at 1 — never at a negative index, which would put them
+   behind the card's own background. */
 .mood::before,
 .mood::after {
   content: '';
@@ -584,63 +587,152 @@
   z-index: 0;
   pointer-events: none;
 }
+/* The field itself. It transitions, so a rating arriving — by tap, by drag,
+   or from the iPad mid-round — is the whole card changing colour rather than
+   a repaint. --d-mid, matching the thumb, so the two move as one thing. */
 .mood::before {
-  background: var(--mood-wash);
-  transition: opacity var(--d-mid) var(--ease);
+  background: var(--mood-grad);
+  transition: background var(--d-mid) var(--ease);
 }
 .mood::after { background: var(--mood-sheen); }
 
-/* Unrated the wash is the ink rather than a mood, and it is pulled back to
-   half — enough to keep the pane domed, not enough to look like an answer. */
-.mood:not([data-mood])::before { opacity: 0.5; }
-
-.mood[data-mood='1'] { --mood-rgb: var(--mood-1-rgb); }
-.mood[data-mood='2'] { --mood-rgb: var(--mood-2-rgb); }
-.mood[data-mood='3'] { --mood-rgb: var(--mood-3-rgb); }
-.mood[data-mood='4'] { --mood-rgb: var(--mood-4-rgb); }
-.mood[data-mood='5'] { --mood-rgb: var(--mood-5-rgb); }
+/* One attribute, three tokens. Everything coloured on the card is one of
+   these, which is what keeps a day to a single colour. */
+.mood[data-mood='1'] {
+  --mood-rgb: var(--mood-1-rgb);  --mood-grad: var(--mood-1-grad);
+  --mood-ink: var(--mood-1-ink);  --mood-deep: var(--mood-1-deep);
+}
+.mood[data-mood='2'] {
+  --mood-rgb: var(--mood-2-rgb);  --mood-grad: var(--mood-2-grad);
+  --mood-ink: var(--mood-2-ink);  --mood-deep: var(--mood-2-deep);
+}
+.mood[data-mood='3'] {
+  --mood-rgb: var(--mood-3-rgb);  --mood-grad: var(--mood-3-grad);
+  --mood-ink: var(--mood-3-ink);  --mood-deep: var(--mood-3-deep);
+}
+.mood[data-mood='4'] {
+  --mood-rgb: var(--mood-4-rgb);  --mood-grad: var(--mood-4-grad);
+  --mood-ink: var(--mood-4-ink);  --mood-deep: var(--mood-4-deep);
+}
+.mood[data-mood='5'] {
+  --mood-rgb: var(--mood-5-rgb);  --mood-grad: var(--mood-5-grad);
+  --mood-ink: var(--mood-5-ink);  --mood-deep: var(--mood-5-deep);
+}
 
 .mood-prompt,
 .mood-row { position: relative; z-index: 1; }
 
-/* The card's heading. Sentence case and quiet — it labels the control for
-   anyone who has not met it, and then gets out of the way. Centred over the
-   row, which is the one place in the app type is not flush left: it belongs
-   to the card, not to the column of writing underneath. Centred by
-   text-align, never by transform — see the house rule. */
+/* The card's heading: a sentence the rating finishes. Set the way a title is
+   — Black, tight, flush left — rather than as a caption to a row of
+   controls. It is drawn in --mood-ink, which is what makes it legible on a
+   filled card: the ramp is solved so both ends of every gradient clear
+   4.5:1 against it.
+
+   It is --t-title rather than --t-display. At 34 the sentence could not sit
+   on one line on a phone, and one line is the whole shape of it; 28 Black is
+   still large text, which is the bar the ramp was solved against. */
 .mood-prompt {
-  margin: 0 0 var(--s-4);
-  font-size: var(--t-subhead);
-  font-weight: var(--w-medium);
+  margin: 0 0 var(--s-5);
+  font-size: var(--t-title);
+  font-weight: var(--w-black);
+  letter-spacing: var(--tr-title);
   line-height: var(--lh-tight);
-  text-align: center;
-  color: var(--ink-2);
+  color: var(--mood-ink);
+  transition: color var(--d-mid) var(--ease);
 }
 
+/* The word the day answers with. Inline, always: the sentence is ONE line.
+   It was briefly given its own line and was wrong — the break made a
+   heading out of what is meant to read as something said. Which is also why
+   the lead-in owns the space before it rather than the word owning one
+   after: unrated, the ellipsis has to close up against "feel". */
+.mood-said { white-space: nowrap; }
+
+/* The track: a well pressed into the field, holding five equal columns. It
+   is the drag surface, so it takes the pointer events and it is what
+   mood.js measures — the columns are equal, so which one a finger is over is
+   arithmetic on this box rather than a hit test.
+
+   touch-action: none is not optional. Without it iOS claims a horizontal
+   drag for the scroller before a single pointermove reaches us, and the
+   thumb simply does not follow. */
 .mood-row {
   display: flex;
-  justify-content: space-between;
+  padding: var(--s-1);
+  border-radius: var(--r-full);
+  background: var(--mood-track);
+  box-shadow: var(--mood-track-in);
+  touch-action: none;
 }
 
-.mood-opt {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s-1);
+/* THE THUMB IS A COLUMN, AND THE CIRCLE IS INSIDE IT. Two boxes, because
+   they have two jobs: the column is what slides, and it is exactly a fifth
+   of the track so the slide is a whole number of columns; the circle is
+   centred in it by auto margins and is a true circle at the face's own size,
+   rather than a pill stretched to whatever a fifth of the card happens to
+   be. Centring by margin, never by transform — the transform on this element
+   is already carrying the position. */
+.mood-thumb {
+  position: absolute;
+  top: var(--s-1);
+  bottom: var(--s-1);
+  left: var(--s-1);
+  width: calc((100% - var(--s-2)) / 5);
+  pointer-events: none;
+  transition: transform var(--d-mid) var(--ease),
+              opacity var(--d-fast) var(--ease);
+}
+.mood-thumb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   width: var(--dot-lg);
-  padding: 0;
-  border-radius: var(--r-md);
+  height: var(--dot-lg);
+  margin: auto;
+  border-radius: var(--r-full);
+  background: var(--mood-thumb);
+  box-shadow: var(--mood-thumb-shadow);
 }
 
-/* The swatch and the face are given the SAME absolute box, so they are
-   concentric by construction rather than by two alignment mechanisms
-   agreeing.
+/* Unrated there is nothing to point at, so the thumb is not drawn. It keeps
+   its box and its transition, so the first rating of the day fades it in
+   under the finger rather than making it appear from nowhere. */
+.mood:not([data-mood]) .mood-thumb { opacity: 0; }
 
-   They did not agree. A button keeps the UA's 1px 6px of padding unless it is
-   told otherwise, which left the swatch wider than the content box it was
-   being centred in; WebKit resolves that overflow towards the start edge, and
-   the face — positioned from the padding edge — sat a few pixels left of its
-   own circle. Hence `padding: 0`, and hence one box for both. */
+/* Where it sits. The position is a fact about the rating, and the rating is
+   already on the card — so CSS moves the thumb from `data-mood` and no
+   inline style is ever written. See the house rule. */
+.mood[data-mood='1'] .mood-thumb { transform: translateX(0); }
+.mood[data-mood='2'] .mood-thumb { transform: translateX(100%); }
+.mood[data-mood='3'] .mood-thumb { transform: translateX(200%); }
+.mood[data-mood='4'] .mood-thumb { transform: translateX(300%); }
+.mood[data-mood='5'] .mood-thumb { transform: translateX(400%); }
+
+/* A column. Equal widths are what make the drag arithmetic true, so these
+   flex rather than being sized — and the face inside is centred, not
+   stretched. The track's own height is the face plus its padding, so an
+   option clears 44 in both directions without a target drawn around it. */
+.mood-opt {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: var(--dot-lg);
+  padding: 0;
+  border-radius: var(--r-full);
+  /* One material for all five. An unchosen face is drawn in the ink that
+     sits on the field — the same --mood-ink the prompt is set in, so the row
+     reads as part of the card rather than as five things on top of it. */
+  color: var(--mood-ink);
+  transition: color var(--d-mid) var(--ease);
+}
+
+/* A button keeps the UA's 1px 6px of padding unless it is told otherwise,
+   which is why `padding: 0` is above and why the face is a box of its own
+   rather than the button's content — WebKit resolves the overflow that
+   padding causes towards the start edge, and the glyph sat left of centre. */
 .mood-face {
   position: relative;
   display: block;
@@ -648,44 +740,17 @@
   height: var(--dot-lg);
   transition: transform var(--d-fast) var(--ease);
 }
-.mood-face::before,
 .mood-face svg {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-}
-/* The swatch is ::before, not ::after: both layers are positioned, so tree
-   order is paint order, and the face has to come second. */
-/* Unchosen, the swatch is a shallow well pressed into the pane — a gradient
-   and two inset hairlines, one shading the top wall and one catching the
-   bottom, which is how a dent is lit. Chosen, the same box becomes a dome in
-   the day's colour with a glow under it. Same box, opposite depth: that
-   contrast is what the row is answering with now that no face carries a hue
-   of its own. */
-.mood-face::before {
-  content: '';
-  border-radius: var(--r-full);
-  background: var(--mood-well);
-  box-shadow: var(--mood-well-in);
-  transition: background var(--d-fast) var(--ease),
-              box-shadow var(--d-fast) var(--ease);
-}
-
-/* One material for all five. The glyph is the ink of the page, not the
-   colour of the rating — the card behind it is where the colour went. Rated,
-   it turns to --mood-ink on the fill, the same pairing the calendar prints
-   its numerals with, at the heavier stroke tokens.css keeps for a glyph on a
-   filled field. */
-.mood-face svg {
-  color: var(--ink-2);
   fill: none;
   stroke: currentColor;
   stroke-width: var(--stroke);
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: color var(--d-fast) var(--ease);
 }
 
 /* The eyes are the first two paths of every mood glyph (see the note beside
@@ -695,37 +760,17 @@
    floating alone. */
 .mood-face svg path:nth-child(-n + 2) { stroke-width: var(--stroke-eye); }
 
-/* --ink-2 rather than --ink-3: the wash behind these words is a colour now,
-   and the names are what a screen reader is not the only one relying on. */
-.mood-name {
-  font-size: var(--t-foot);
-  font-weight: var(--w-medium);
-  line-height: var(--lh-tight);
-  color: var(--ink-2);
-  white-space: nowrap;
+/* The chosen one is the face printed into the thumb. It is the ONE mark on
+   the card that is not --mood-ink: the thumb is a near-white puck in both
+   schemes, so the glyph on it is --mood-deep, which does not invert either.
+   Drawn at the bold weights, because a puck this bright eats a hairline. */
+.mood-opt[aria-checked='true'] {
+  color: var(--mood-deep);
   transition: color var(--d-fast) var(--ease);
 }
-
-/* The chosen one grows, and it grows from the FACE — not from the swatch and
-   not from the button. A transform on the swatch promotes it into the
-   positioned layer, where, being later in tree order, it paints over the face
-   and you get a plain coloured disc; a transform on the button would drag the
-   word along with it. */
-.mood-opt[aria-checked='true'] .mood-face { transform: scale(1.08); }
-.mood-opt[aria-checked='true'] .mood-face::before {
-  background: var(--mood-fill);
-  box-shadow: var(--mood-glow);
-}
-.mood-opt[aria-checked='true'] svg {
-  color: var(--mood-ink);
-  stroke-width: var(--stroke-bold);
-}
+.mood-opt[aria-checked='true'] svg { stroke-width: var(--stroke-bold); }
 .mood-opt[aria-checked='true'] svg path:nth-child(-n + 2) {
   stroke-width: var(--stroke-eye-bold);
-}
-.mood-opt[aria-checked='true'] .mood-name {
-  color: var(--ink);
-  font-weight: var(--w-bold);
 }
 .mood-opt:active .mood-face { transform: scale(var(--press)); }
 
@@ -769,22 +814,38 @@
   display: grid;
   place-items: center;
   border-radius: var(--r-md);
-  font-size: var(--t-subhead);
+  /* 22px, and it has to be at least this. A rated day prints its numeral in
+     --mood-ink, which is white, and white on the ramp is 3.67:1 at worst —
+     the bar for LARGE text and for a glyph, not the 4.5:1 a 15px numeral
+     would need. At 22px Black the numeral is large text and 3.67 is a pass.
+     This is the same trade the card makes with its prompt; see the note on
+     the ramp in tokens.css. Every cell takes the size, not just the rated
+     ones, or the grid would reflow as the month was coloured in. */
+  font-size: var(--t-title-2);
   font-weight: var(--w-medium);
+  letter-spacing: var(--tr-title);
   color: var(--ink-2);
   transition: transform var(--d-fast) var(--ease);
 }
 .cal-day[data-empty='true'] { visibility: hidden; }
 .cal-day:active { transform: scale(var(--press)); }
 
-/* A day with an entry is filled with its mood. The numeral stays visible on
-   top of the fill — the colour is a second channel, never the only one. */
-.cal-day[data-mood]{ color: var(--mood-ink); font-weight: var(--w-bold); }
-.cal-day[data-mood='1'] { background: var(--mood-1); }
-.cal-day[data-mood='2'] { background: var(--mood-2); }
-.cal-day[data-mood='3'] { background: var(--mood-3); }
-.cal-day[data-mood='4'] { background: var(--mood-4); }
-.cal-day[data-mood='5'] { background: var(--mood-5); }
+/* A rated day is filled with its mood — the same gradient the card is
+   filled with, so a day you coloured in this morning is recognisably that
+   day when you meet it in the month. The numeral stays visible on top of the
+   fill: the colour is a second channel, never the only one, and both ends of
+   every gradient are solved to clear 4.5:1 against the ink printed on them.
+
+   The ink comes with the mood. It is not one colour for all five — see the
+   note on the ramp in tokens.css — so it is switched here from the same
+   attribute the fill is, and a numeral is never left in the ink of a
+   different day's colour. */
+.cal-day[data-mood]{ color: var(--mood-ink); font-weight: var(--w-black); }
+.cal-day[data-mood='1'] { background: var(--mood-1-grad); --mood-ink: var(--mood-1-ink); }
+.cal-day[data-mood='2'] { background: var(--mood-2-grad); --mood-ink: var(--mood-2-ink); }
+.cal-day[data-mood='3'] { background: var(--mood-3-grad); --mood-ink: var(--mood-3-ink); }
+.cal-day[data-mood='4'] { background: var(--mood-4-grad); --mood-ink: var(--mood-4-ink); }
+.cal-day[data-mood='5'] { background: var(--mood-5-grad); --mood-ink: var(--mood-5-ink); }
 
 /* An entry with no mood rated: a ring, not a fill. */
 .cal-day[data-written='true']:not([data-mood]) {

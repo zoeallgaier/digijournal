@@ -77,16 +77,20 @@ const PATHS = {
     'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
   ],
 
-  /* The five day ratings. No outer circle — the swatch behind the glyph is
-     the face. Two dots and a mouth, and only the mouth changes: at 28px an
-     eye that also changes reads as noise, and the mouth is what carries a
-     five-step ramp legibly. Drawn on the same 24 grid as everything else, so
-     a face lines up with the icons it sits under.
+  /* The five day ratings. No outer circle — the thumb or the fill behind the
+     glyph is the face. Two dots and a mouth, and only the mouth changes: at
+     28px an eye that also changes reads as noise, and the mouth is what
+     carries a five-step ramp legibly. Drawn on the same 24 grid as
+     everything else, so a face lines up with the icons it sits under.
 
      THE EYES ARE THE FIRST TWO PATHS OF EACH, and app.css strokes them
      heavier than the mouth by exactly that position (`:nth-child(-n + 2)`).
      They are zero-length round caps, so their stroke weight is their
-     diameter. Keep them first if these are ever redrawn. */
+     diameter. Keep them first if these are ever redrawn.
+
+     They were drawn as short vertical lines once, on 13 Aug 2026, and put
+     back the same day: at this size a line reads as a squint where a dot
+     reads as an eye. Do not try it again. */
   'mood-1': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 17Q12 12.6 17.1 17'],
   'mood-2': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 16.4Q12 14 17.1 16.4'],
   'mood-3': ['M8.6 9.9h.01', 'M15.4 9.9h.01', 'M6.9 15.4h10.2'],

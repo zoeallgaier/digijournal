@@ -63,29 +63,97 @@
   --danger:       #B3261E;   /* 5.9:1 on the darkest paper of the eight     */
 
   /* --- The mood ramp ---------------------------------------------------
-     Cool and dim at 1, warm and bright at 5, so a month reads as a
-     temperature at a glance. THE RAMP DOES NOT CHANGE WITH THE PALETTE:
-     it is data, not chrome — a year of Mondays plotted in the calendar has
-     to mean the same thing in Lime as it did in Blueberry. All five clear
-     4:1 on every one of the eight papers and cards, and carry --mood-ink at
-     4.6:1 when a calendar day is filled with them. Colour is never the only
-     carrier — every dot also has a label, and the calendar prints the
-     numeral inside the day.                                              */
-  --mood-1:       #585C93;   /* rough    ≥5.7:1 */
-  --mood-2:       #2E76A6;   /* low      ≥4.5:1 */
-  --mood-3:       #2C826A;   /* even     ≥4.2:1 */
-  --mood-4:       #9C6A16;   /* good     ≥4.3:1 */
-  --mood-5:       #BE4C39;   /* bright   ≥4.5:1 */
-  --mood-ink:     #FFFFFF;   /* text sitting on a filled mood swatch        */
+     Cool at 1, warm at 5, so a month reads as a temperature at a glance.
+     THE RAMP DOES NOT CHANGE WITH THE PALETTE: it is data, not chrome — a
+     year of Mondays plotted in the calendar has to mean the same thing in
+     Lime as it did in Blueberry. Colour is never the only carrier — every
+     dot also has a label, and the calendar prints the numeral inside the
+     day.
 
-  /* The same five as space-separated channels, so the rating card can take
-     an alpha of the day's colour the way the hairlines take one of the ink.
-     Keep them in step with the five above — they are the same colours.    */
-  --mood-1-rgb:    88  92 147;
-  --mood-2-rgb:    46 118 166;
-  --mood-3-rgb:    44 130 106;
-  --mood-4-rgb:   156 106  22;
-  --mood-5-rgb:   190  76  57;
+     EACH MOOD IS TWO COLOURS, NOT ONE. `-a` and `-b` are the ends of a
+     gradient across two adjacent hues, which is what makes a rated day a
+     field with light in it rather than a flat chip. Everything that fills
+     with a mood uses --mood-N-grad; nothing restates the pair.
+
+     Every value here was solved for. Both ends of every gradient clear
+     4.5:1 against that mood's OWN ink — a calendar numeral is small text,
+     so 4.5 and not 3 — and 3:1 against all twenty-four grounds a fill can
+     sit on, which is every palette's paper, card and sunk paper.
+
+     THE MARK ON THEM IS WHITE, and the ramp is as bright as white allows.
+     Two limits turn out to be the same limit: a fill has to stay 3:1 below
+     a near-white paper or a rated day stops reading as a filled cell in the
+     calendar grid, and white has to clear 3:1 on the fill. Both cap the
+     fill's luminance at about 0.30, and these five sit on it — the mark
+     lands between 3.67:1 and 5.76:1, and there is no brighter ramp that
+     white can be drawn on at all.
+
+     WHICH IS WHY EVERYTHING PRINTED ON A MOOD IS LARGE. 3:1 is the bar for
+     a non-text glyph and for large text; it is NOT the bar for small text,
+     which is 4.5:1 and which none of these clear. So the card's prompt is
+     the display size in Black, the faces are glyphs, and the calendar's
+     numeral was raised to 22px Black to join them. Nothing small is ever
+     set in --mood-ink. If a mood ever has to carry a caption, the ramp is
+     what has to change, not the caption.
+
+     What that costs, said plainly: the reference this was drawn from is a
+     brighter orange than any of these. White on that orange is 2.2:1 —
+     under the bar even for a 34px title. This ramp is the brightest one the
+     white survives.                                                      */
+  /* THERE IS NO YELLOW IN THE RAMP, and that is deliberate. Yellow is the
+     one hue that cannot be itself under white: hold it 3:1 below white and
+     it lands at a chroma of 0.12, which is mustard — the ramp's one weak
+     step, and it looked it. The available chroma at this luminance peaks in
+     violet (0.28), red (0.24) and green (0.19), and bottoms out through
+     cyan and teal (0.10). So the five are spent where the colour is:
+     violet, blue, teal, GREEN, scarlet.
+
+     The dull band is spent on "Even" on purpose. It is the middle of the
+     ramp — the day that was neither — and a muted teal is the right colour
+     for it. The step that had to be quiet is the step that had no choice.
+
+     "Good" is a green and "Stellar" a scarlet, which also makes the warm end
+     one vivid step instead of two competing for the same forty degrees of
+     hue. The sweep is still monotonic — 288° down to 16° — so a month still
+     reads as a temperature.
+
+     The two figures are white's contrast on each end of the gradient. */
+  --mood-1-a:  #6C1EF5;  --mood-1-b:  #241DF5;  /* rough   6.68 / 8.17:1 */
+  --mood-2-a:  #1677E5;  --mood-2-b:  #1881AF;  /* low     4.37 / 4.38:1 */
+  --mood-3-a:  #198595;  --mood-3-b:  #198780;  /* even    4.35 / 4.36:1 */
+  --mood-4-a:  #188B43;  --mood-4-b:  #4D8715;  /* good    4.36 / 4.38:1 */
+  --mood-5-a:  #EA2051;  --mood-5-b:  #D14E16;  /* stellar 4.35 / 4.36:1 */
+
+  /* The mark that sits ON a mood. White on all five in the light — see the
+     note above for why that is what sets the ramp's ceiling. They are still
+     five tokens rather than one, because the dark half needs them to differ
+     from these and app.css switches --mood-ink per mood either way. */
+  --mood-1-ink: #FFFFFF;
+  --mood-2-ink: #FFFFFF;
+  --mood-3-ink: #FFFFFF;
+  --mood-4-ink: #FFFFFF;
+  --mood-5-ink: #FFFFFF;
+
+  /* The same five as space-separated channels — the midpoint of each pair —
+     so the rating card can take an alpha of the day's colour the way the
+     hairlines take one of the ink. Keep them in step with the pairs above. */
+  --mood-1-rgb:    72  29 245;
+  --mood-2-rgb:    23 124 202;
+  --mood-3-rgb:    25 134 138;
+  --mood-4-rgb:    50 137  44;
+  --mood-5-rgb:   221  55  51;
+
+  /* THE DEEP MARK DOES NOT INVERT WITH THE SCHEME, because the thing it is
+     drawn on does not either: the slider's thumb is a near-white puck in
+     both. Each clears 4.5:1 on --mood-thumb. Without these the chosen face
+     would be the mood's own colour on cream, which the dark scheme's pale
+     ramp cannot do at any legible contrast. */
+  --mood-1-deep: #625DF9;    /* 4.51:1 on the thumb */
+  --mood-2-deep: #1378BB;    /* 4.53:1 */
+  --mood-3-deep: #148084;    /* 4.52:1 */
+  --mood-4-deep: #1A8611;    /* 4.50:1 */
+  --mood-5-deep: #E31B1C;    /* 4.53:1 */
+  --mood-thumb:  #FFF9F3;
 
   /* The one part of the glass that is not derived, because it is not a
      colour: how hard the backdrop is blurred. See the note below.        */
@@ -185,7 +253,7 @@
      you can see across the room, and the two eyes are the only part of the
      glyph the mouth is not already carrying.                              */
   --stroke-eye:      3;
-  --stroke-eye-bold: 3.4;  /* on a filled swatch, which eats a hairline    */
+  --stroke-eye-bold: 3.4;  /* on a filled field, which eats a hairline     */
   --dot:     0.75rem;      /* the mood dot in the calendar's key           */
   --dot-sm:  0.5rem;       /* the same dot on a list row, where it sits in
                               the meta line and answers to footnote type
@@ -265,6 +333,23 @@
   --hairline-2:   rgb(var(--ink-rgb) / 0.07);
   --selection:    rgb(var(--ink-rgb) / 0.15);
   --mood-none:    rgb(var(--ink-rgb) / 0.22);   /* a day with no entry      */
+
+  /* Every fill in the app, derived from the pairs above so a mood is one
+     edit and not six. The angle is shallow on purpose: across a 44pt
+     calendar cell a diagonal reads as a corner, and across the card it
+     reads as light coming in from the side, which is the same gesture at
+     both sizes. --mood-N is the flat midpoint, for the places too small to
+     hold a gradient at all — a 12px dot in a list row. */
+  --mood-1: rgb(var(--mood-1-rgb));
+  --mood-2: rgb(var(--mood-2-rgb));
+  --mood-3: rgb(var(--mood-3-rgb));
+  --mood-4: rgb(var(--mood-4-rgb));
+  --mood-5: rgb(var(--mood-5-rgb));
+  --mood-1-grad: linear-gradient(100deg, var(--mood-1-a), var(--mood-1-b));
+  --mood-2-grad: linear-gradient(100deg, var(--mood-2-a), var(--mood-2-b));
+  --mood-3-grad: linear-gradient(100deg, var(--mood-3-a), var(--mood-3-b));
+  --mood-4-grad: linear-gradient(100deg, var(--mood-4-a), var(--mood-4-b));
+  --mood-5-grad: linear-gradient(100deg, var(--mood-5-a), var(--mood-5-b));
   --glass-tint:   rgb(var(--glass-rgb) / 0.68);
   --glass-tint-2: rgb(var(--glass-rgb) / 0.82);
   --glass-edge:   rgb(255 255 255 / 0.85);
@@ -284,53 +369,51 @@
 :root,
 [data-palette],
 .mood {
-  /* THE CARD IS THE READOUT. One variable carries the day's colour —
-     app.css sets --mood-rgb on the card from the rating, and everything
-     below takes an alpha of it, so the pane, the chosen swatch and its glow
-     are the same colour by construction rather than by three rules
-     agreeing. Unrated it falls back to the ink, and the card is a plain
-     grey dome: shape without a claim.
+  /* THE CARD IS THE READOUT, AND NOW IT IS THE FIELD. Three variables carry
+     the day — --mood-grad is what the card is filled with, --mood-ink is
+     what may be drawn on it, --mood-deep is the mark on the thumb — and
+     app.css switches all three from one `data-mood` attribute. The card,
+     the calendar cell and the list dot are then the same colour by
+     construction rather than by three rules agreeing.
 
-     THE WASH IS DENSEST WHERE THERE ARE NO WORDS. It peaks across the band
-     the swatches sit in and thins towards both edges, where the prompt and
-     the five names are — which is what lets it be a colour rather than a
-     rumour of one. The alphas are a measured ceiling, not a taste: against
-     mood 1, the darkest of the five, 0.12 leaves --ink-2 at 5.3:1 and 0.16
-     at 4.9:1. The type is what sets the limit, and it is the type that has
-     to keep clearing 4.5. The dark scheme runs lower for the same reason
-     in reverse — its moods are the pale end of the ramp, and a bright wash
-     costs a pale ink exactly what a dark one costs a dark ink here.      */
+     It used to be a WASH: an alpha of the mood over the paper, capped at
+     0.24 because --ink-2 had to keep clearing 4.5:1 through it. That cap is
+     what made a rated day a rumour of a colour. Filling with the mood
+     outright removes the cap entirely, because the type on the card stops
+     being --ink-2 on paper and becomes --mood-ink on the mood — which is
+     the pairing the ramp was already solved for, and which the calendar has
+     always used. The card got bright by being measured against the right
+     thing, not by being allowed to fail.
+
+     Unrated there is no attribute, and all three fall back to the ink: the
+     card is a quiet grey pane. Shape without a claim, exactly as before. */
   --mood-rgb:     var(--ink-rgb);
-  --mood-wash:    radial-gradient(115% 90% at 50% 52%,
-                    rgb(var(--mood-rgb) / 0.24)  0%,
-                    rgb(var(--mood-rgb) / 0.16) 52%,
-                    rgb(var(--mood-rgb) / 0.09) 100%);
-  /* The light coming off the top of the pane. Glass gets its depth from a
+  --mood-ink:     var(--ink);
+  --mood-deep:    var(--ink);
+  --mood-grad:    linear-gradient(100deg,
+                    rgb(var(--ink-rgb) / 0.10),
+                    rgb(var(--ink-rgb) / 0.05));
+
+  /* The light coming off the top of the pane. A field gets its depth from a
      highlight that falls off, not from a line — --glass-edge draws the line
-     at the very rim, this is the few millimetres under it.               */
+     at the very rim, this is the few millimetres under it. */
   --mood-sheen:   linear-gradient(180deg,
-                    rgb(255 255 255 / 0.38)  0%,
-                    rgb(255 255 255 / 0.10) 30%,
-                    rgb(255 255 255 / 0)    64%);
-  /* A chosen swatch is a dome: the flat mood colour at the top, shaded
-     towards the bottom. The shading only ever moves AWAY from --mood-ink —
-     darker under white text here, lighter under dark text in the dark
-     scheme — so the ramp's measured 4.6:1 is the worst the face ever
-     gets, and the top of the swatch is exactly the colour the calendar
-     fills a day with.                                                    */
-  --mood-fill:    linear-gradient(180deg,
-                    rgb(0 0 0 / 0)    18%,
-                    rgb(0 0 0 / 0.20) 100%),
-                  linear-gradient(rgb(var(--mood-rgb)), rgb(var(--mood-rgb)));
-  --mood-glow:    0 4px 12px rgb(var(--mood-rgb) / 0.40),
-                  inset 0 1px 0 rgb(255 255 255 / 0.30);
-  /* An unchosen swatch is the opposite: a shallow well pressed into the
-     pane, lit from below the way a dent is.                              */
-  --mood-well:    linear-gradient(180deg,
-                    rgb(var(--ink-rgb) / 0.09) 0%,
-                    rgb(var(--ink-rgb) / 0.03) 100%);
-  --mood-well-in: inset 0 1px 1px rgb(var(--ink-rgb) / 0.10),
-                  inset 0 -1px 0 rgb(255 255 255 / 0.35);
+                    rgb(255 255 255 / 0.26)  0%,
+                    rgb(255 255 255 / 0.07) 34%,
+                    rgb(255 255 255 / 0)    70%);
+
+  /* --- The slider ------------------------------------------------------
+     The track is a well pressed into the field, so it is an alpha of the
+     ink that is ON the field rather than of the page's ink — on a filled
+     card those are different colours, and using the page's would tint the
+     well towards whatever the paper is. */
+  --mood-track:    rgb(var(--ink-rgb) / 0.08);
+  --mood-track-in: inset 0 1px 2px rgb(0 0 0 / 0.10);
+  /* The thumb is the one thing on the card that is not the mood: a
+     near-white puck the chosen face is printed into, in both schemes. That
+     is what lets the mark on it be a constant --mood-N-deep. */
+  --mood-thumb-shadow: 0 2px 6px rgb(0 0 0 / 0.20),
+                       0 0 0 0.5px rgb(0 0 0 / 0.06);
 }
 
 /* ============================================================================
@@ -526,18 +609,41 @@
 
     --danger:       #FF9A90;   /* ≥8.8:1 on all eight dark papers          */
 
-    --mood-1:       #9BA0E4;   /* ≥5.4:1 */
-    --mood-2:       #5FB2E6;   /* ≥5.7:1 */
-    --mood-3:       #4FC5A4;   /* ≥6.3:1 */
-    --mood-4:       #E3AC4E;   /* ≥6.5:1 */
-    --mood-5:       #F2836D;   /* ≥5.2:1 */
-    --mood-ink:     #0B111E;
+    /* The ramp, inverted — the same five hues, and no yellow here either.
+       It has more room than the light half, because a dark ground has
+       nothing above it to stay clear of, so these run luminous rather than
+       deep: every gradient sits 7:1 or better above its own ink and 5.7:1
+       or better above the darkest card of the eight. That headroom is why
+       the dark half can carry small text on a mood and the light half
+       cannot — but nothing does, because the two schemes have to agree
+       about what may be printed on a mood.
 
-    --mood-1-rgb:   155 160 228;
-    --mood-2-rgb:    95 178 230;
-    --mood-3-rgb:    79 197 164;
-    --mood-4-rgb:   227 172  78;
-    --mood-5-rgb:   242 131 109;
+       The mark is the near-black in all five, which is the second half of
+       Zoe's drawing: white faces on the colour in the light, black faces on
+       it in the dark. They are still declared five times rather than folded
+       into one — the light half needs them to differ, and a ramp whose ink
+       happens to be uniform in one scheme is not a ramp with one ink. */
+    --mood-1-a:  #9E90FA;  --mood-1-b:  #789AFA;  /* rough   7.03 / 7.01:1 */
+    --mood-2-a:  #5BA0F9;  --mood-2-b:  #28BAFA;  /* low     7.04 / 8.53:1 */
+    --mood-3-a:  #2CC9E0;  --mood-3-b:  #2CCCC2;  /* even    9.47 / 9.45:1 */
+    --mood-4-a:  #2BD269;  --mood-4-b:  #77CD26;  /* good    9.46 / 9.47:1 */
+    --mood-5-a:  #FA7381;  --mood-5-b:  #FA7747;  /* stellar 7.04 / 7.00:1 */
+
+    --mood-1-ink: #0B111E;
+    --mood-2-ink: #0B111E;
+    --mood-3-ink: #0B111E;
+    --mood-4-ink: #0B111E;
+    --mood-5-ink: #0B111E;
+
+    --mood-1-rgb:  139 149 250;
+    --mood-2-rgb:   65 173 249;
+    --mood-3-rgb:   44 202 209;
+    --mood-4-rgb:   81 207  71;
+    --mood-5-rgb:  250 117 100;
+
+    /* --mood-N-deep and --mood-thumb are deliberately NOT re-declared: the
+       thumb is a near-white puck in both schemes, so the mark printed into
+       it cannot invert with the page. See the note beside them. */
   }
 
   /* The light source is a fact about the dark, not about the palette — so
@@ -557,31 +663,22 @@
   :root,
   [data-palette],
   .mood {
-    /* The rating card, inverted. The wash is weaker because the moods are
-       the pale end of the ramp here — 0.10 is what leaves --ink-2 at 4.9:1
-       on the densest of them. The swatch is shaded UPWARDS in light, away
-       from the near-black --mood-ink it carries; the well is lit from above
-       instead of below, because a dent in a dark pane catches light on its
-       far wall.                                                          */
+    /* The rating card, inverted. The sheen is weaker because the field it
+       falls on is a luminous colour rather than a deep one — the same
+       highlight that reads as thickness in the light half reads as haze
+       here. The unrated fallback runs a little denser to hold a pane out of
+       a dark page at all.
+
+       The track and its shadow do NOT invert. The well is pressed into the
+       MOOD, not into the paper, and the mood is a bright field in both
+       schemes — so a dent in it catches its shadow from above either way.  */
     --mood-sheen:   linear-gradient(180deg,
-                      rgb(255 255 255 / 0.10)  0%,
-                      rgb(255 255 255 / 0.03) 30%,
-                      rgb(255 255 255 / 0)    64%);
-    --mood-wash:    radial-gradient(115% 90% at 50% 52%,
-                      rgb(var(--mood-rgb) / 0.16)  0%,
-                      rgb(var(--mood-rgb) / 0.10) 52%,
-                      rgb(var(--mood-rgb) / 0.05) 100%);
-    --mood-fill:    linear-gradient(180deg,
-                      rgb(255 255 255 / 0)    18%,
-                      rgb(255 255 255 / 0.18) 100%),
-                    linear-gradient(rgb(var(--mood-rgb)), rgb(var(--mood-rgb)));
-    --mood-glow:    0 4px 14px rgb(var(--mood-rgb) / 0.30),
-                    inset 0 1px 0 rgb(255 255 255 / 0.22);
-    --mood-well:    linear-gradient(180deg,
-                      rgb(0 0 0 / 0.22) 0%,
-                      rgb(0 0 0 / 0.10) 100%);
-    --mood-well-in: inset 0 1px 1px rgb(0 0 0 / 0.35),
-                    inset 0 -1px 0 rgb(var(--ink-rgb) / 0.10);
+                      rgb(255 255 255 / 0.16)  0%,
+                      rgb(255 255 255 / 0.04) 34%,
+                      rgb(255 255 255 / 0)    70%);
+    --mood-grad:    linear-gradient(100deg,
+                      rgb(var(--ink-rgb) / 0.13),
+                      rgb(var(--ink-rgb) / 0.07));
   }
 
   [data-palette='paper'] {
