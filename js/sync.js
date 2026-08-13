@@ -11,6 +11,11 @@
    the storage, or the phone is lost or replaced, signing in on the next device
    brings the journal back.
 
+   TWO TABLES SINCE THE RATING LEFT THE ENTRY: `entries`, and `days` for how
+   each day was rated. They are pushed and pulled in the same round on separate
+   watermarks, and a project whose SQL predates the second one keeps syncing
+   its entries while the ratings wait — see syncRatings().
+
    ---------------------------------------------------------------------------
    The rule, when two devices disagree
 
@@ -104,7 +109,6 @@ function toRow(entry, userId) {
     id: entry.id,
     title: entry.title,
     body: entry.body,
-    mood: entry.mood,
     day: entry.day,
     created_at: entry.createdAt,
     updated_at: entry.updatedAt,
@@ -118,7 +122,6 @@ function fromRow(row) {
     id: row.id,
     title: row.title,
     body: row.body,
-    mood: row.mood,
     day: row.day,
     createdAt: Number(row.created_at),
     updatedAt: Number(row.updated_at),
@@ -126,6 +129,19 @@ function fromRow(row) {
     deletedAt: row.deleted_at === null || row.deleted_at === undefined
       ? null : Number(row.deleted_at),
   };
+}
+
+function toDayRow(rating, userId) {
+  return {
+    user_id: userId,
+    day: rating.day,
+    mood: rating.mood,
+    updated_at: rating.updatedAt,
+  };
+}
+
+function fromDayRow(row) {
+  return { day: row.day, mood: row.mood, updatedAt: Number(row.updated_at) };
 }
 
 /* ------------------------------------------------------------------ a round */
@@ -206,6 +222,8 @@ async function round({ full = false } = {}) {
   }
   store.setSyncState({ pulledThrough: highest });
 
+  changed += await syncRatings(token, userId, full);
+
   lastSyncedAt = Date.now();
   announce('synced');
 
@@ -213,6 +231,63 @@ async function round({ full = false } = {}) {
      redrawing it on every quiet round would mean a screen that flickers and
      loses its scroll position once a minute for no reason at all. */
   if (changed) window.dispatchEvent(new CustomEvent('dj:sync-changed'));
+}
+
+/* The day ratings, on their own watermarks. Same shape as the half above and
+   simpler for having no tombstones and no open editor to protect: one row per
+   day, later row wins, and a cleared rating is a row saying null.
+
+   It is deliberately not allowed to fail the round. A project whose schema.sql
+   was run before the ratings existed has no `days` table, and until it is run
+   again the entries must go on syncing exactly as they did — with the ratings
+   staying on this phone, which is the same deal the whole app had before
+   anyone signed in. Any OTHER error is a real one and is thrown. */
+let warnedMissing = false;
+
+async function syncRatings(token, userId, full) {
+  let changed = 0;
+  try {
+    const sync = store.syncState();
+
+    const outgoing = store.pushableRatings(sync.pushedDaysThrough || 0);
+    if (outgoing.length) {
+      const mark = Math.max(...outgoing.map((r) => r.updatedAt));
+      for (let i = 0; i < outgoing.length; i += BATCH) {
+        await net.upsertDays(token, outgoing.slice(i, i + BATCH).map((r) => toDayRow(r, userId)));
+      }
+      store.setSyncState({ pushedDaysThrough: mark });
+    }
+
+    const from = store.syncState().pulledDaysThrough || 0;
+    const since = full ? 0 : Math.max(0, from - SKEW);
+    let cursor = since;
+    let highest = from;
+
+    for (;;) {
+      const rows = await net.selectDaysSince(token, cursor, PAGE);
+      if (!rows.length) break;
+      const result = store.mergeRemoteRatings(rows.map(fromDayRow));
+      highest = Math.max(highest, result.latest);
+      changed += result.changed;
+      if (rows.length < PAGE) break;
+      const next = Number(rows[rows.length - 1].updated_at);
+      if (next <= cursor) break;
+      cursor = next;
+    }
+
+    if (highest > (store.syncState().pushedDaysThrough || 0)) {
+      store.setSyncState({ pushedDaysThrough: Math.min(highest, Date.now()) });
+    }
+    store.setSyncState({ pulledDaysThrough: highest });
+  } catch (err) {
+    if (!net.isMissingTable(err)) throw err;
+    if (!warnedMissing) {
+      warnedMissing = true;
+      console.warn('digijournal: no `days` table yet — ratings are staying on this device. '
+                 + 'Run supabase/schema.sql again.');
+    }
+  }
+  return changed;
 }
 
 /** Run a round, unless one is already running — in which case join it. */

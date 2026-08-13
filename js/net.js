@@ -3,13 +3,15 @@
 
    Supabase ships a JavaScript library. This app has no dependencies and that
    is deliberate, not an accident of never having needed one — so this file is
-   the four requests the journal actually makes, written out:
+   the requests the journal actually makes, written out:
 
      sign in            POST /auth/v1/token?grant_type=password
      stay signed in     POST /auth/v1/token?grant_type=refresh_token
      sign out           POST /auth/v1/logout
      read my entries    GET  /rest/v1/entries
      write my entries   POST /rest/v1/entries   (upsert)
+     read my ratings    GET  /rest/v1/days
+     write my ratings   POST /rest/v1/days      (upsert)
 
    What the library would have added on top is a websocket for live sync —
    entries appearing on the iPad as they are typed on the phone. Not worth a
@@ -195,11 +197,14 @@ export function currentUserId() {
 
 /* -------------------------------------------------------------------- data */
 
-const TABLE = '/rest/v1/entries';
+/* Two tables, and the same two requests against each: the entries, and the
+   day ratings that used to be a column on them. */
+const ENTRIES = '/rest/v1/entries';
+const DAYS = '/rest/v1/days';
 
 /** Rows changed since a watermark, oldest first so a partial page still
  *  advances the watermark safely. */
-export async function selectSince(token, since, limit = 1000) {
+async function selectFrom(table, token, since, limit) {
   const query = new URLSearchParams({
     select: '*',
     order: 'updated_at.asc',
@@ -207,19 +212,38 @@ export async function selectSince(token, since, limit = 1000) {
   });
   /* PostgREST's filter syntax: column=operator.value. */
   if (since > 0) query.set('updated_at', `gt.${since}`);
-  return (await request(`${TABLE}?${query}`, { token })) || [];
+  return (await request(`${table}?${query}`, { token })) || [];
 }
 
-/** Insert-or-update, keyed on the table's primary key (user_id, id).
+/** Insert-or-update, keyed on the table's primary key.
  *  `resolution=merge-duplicates` is PostgREST's upsert; `return=minimal` asks
  *  it not to echo the rows back, which on a first sync of a full journal is
  *  the difference between a small request and a round trip twice the size. */
-export async function upsert(token, rows) {
+async function upsertInto(table, token, rows) {
   if (!rows.length) return;
-  await request(TABLE, {
+  await request(table, {
     method: 'POST',
     token,
     body: rows,
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
   });
+}
+
+export const selectSince = (token, since, limit = 1000) =>
+  selectFrom(ENTRIES, token, since, limit);
+
+export const upsert = (token, rows) => upsertInto(ENTRIES, token, rows);
+
+export const selectDaysSince = (token, since, limit = 1000) =>
+  selectFrom(DAYS, token, since, limit);
+
+export const upsertDays = (token, rows) => upsertInto(DAYS, token, rows);
+
+/** True for the one error that means the `days` table has not been created
+ *  yet — the SQL in supabase/schema.sql was run before the ratings existed
+ *  and has not been re-run since. Everything else about sync still works, so
+ *  this is a thing to step over rather than to fail a round for. PostgREST
+ *  answers 404 with PGRST205; the message check is the belt to that braces. */
+export function isMissingTable(err) {
+  return err?.status === 404 || /Could not find the table/i.test(err?.message || '');
 }

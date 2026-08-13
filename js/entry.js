@@ -1,5 +1,9 @@
 /* ============================================================================
-   entry.js — one entry: reading it, writing it, rating the day.
+   entry.js — one entry: reading it and writing it. Nothing else.
+
+   The day's rating used to be the first thing on this screen and is now on
+   the list, where it belongs to the day rather than to whatever was written
+   that day. See mood.js and store.js.
 
    THE SUBTLE PART. Reading and editing are not two screens. They are one
    screen with the fields switched between `readonly` and not.
@@ -16,9 +20,8 @@
    "Publish" only moves a draft into the list; it is not the save.
    ========================================================================= */
 
-import { el, icon, iconButton, longDate, toast, confirmDestructive } from './ui.js';
+import { el, iconButton, longDate, toast, confirmDestructive } from './ui.js';
 import * as store from './store.js';
-import { MOODS } from './store.js';
 
 const SAVE_DEBOUNCE = 400;
 
@@ -119,83 +122,6 @@ export function view(params, api) {
     field.addEventListener('click', () => { if (!editing) setEditing(true, field); });
   }
 
-  /* --------------------------------------------------------------- mood */
-
-  /* The card says what it wants, then offers five answers, each named under
-     its own face. Nothing here changes as you choose — the prompt is a
-     heading, not a readout, and which day it was is carried by the face that
-     fills. */
-  const moodPrompt = el('p.mood-prompt#mood-prompt', 'Rate the day');
-  const moodRow = el('div.mood-row');
-  const moodGroup = el('div.mood.glass', {
-    role: 'radiogroup',
-    'aria-labelledby': 'mood-prompt',
-  });
-
-  const moodButtons = MOODS.map(({ value, label }) =>
-    el('button.mood-opt', {
-      type: 'button',
-      role: 'radio',
-      'data-mood': value,
-      'aria-label': `${label} (${value} of 5)`,
-      onclick: () => setMood(value === currentMood() ? null : value),
-    },
-      el('span.mood-face', icon(`mood-${value}`)),
-      el('span.mood-name', label),
-    )
-  );
-
-  moodRow.append(...moodButtons);
-  moodGroup.append(moodPrompt, moodRow);
-
-  function currentMood() {
-    return store.get(entry.id)?.mood ?? null;
-  }
-
-  function paintMood() {
-    const mood = currentMood();
-    moodButtons.forEach((btn, i) => {
-      const checked = MOODS[i].value === mood;
-      btn.setAttribute('aria-checked', String(checked));
-      /* Roving tabindex: the group is one stop, arrows move within it. When
-         nothing is chosen the first circle takes the tab stop. */
-      btn.tabIndex = checked || (mood === null && i === 0) ? 0 : -1;
-    });
-  }
-
-  function setMood(value, { focus = false } = {}) {
-    store.update(entry.id, { mood: value });
-    paintMood();
-    refreshDate();
-    if (focus) {
-      const i = MOODS.findIndex((m) => m.value === value);
-      moodButtons[i >= 0 ? i : 0].focus();
-    }
-  }
-
-  moodGroup.addEventListener('keydown', (e) => {
-    const mood = currentMood();
-    const i = mood === null ? -1 : MOODS.findIndex((m) => m.value === mood);
-
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      setMood(MOODS[Math.min(i + 1, MOODS.length - 1)].value, { focus: true });
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      setMood(MOODS[Math.max(i - 1, 0)].value, { focus: true });
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      setMood(MOODS[0].value, { focus: true });
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      setMood(MOODS[MOODS.length - 1].value, { focus: true });
-    } else if (e.key === 'Backspace' || e.key === 'Delete') {
-      e.preventDefault();
-      setMood(null);
-      moodButtons[0].focus();
-    }
-  });
-
   /* --------------------------------------------------------------- mode */
 
   function setEditing(on, focusField) {
@@ -231,12 +157,8 @@ export function view(params, api) {
 
   /* --------------------------------------------------------------- node */
 
-  /* The rating sits above the title, not beside the body: it is the one thing
-     you can answer before you have written a word, and on a day you never get
-     round to writing it is the whole entry. */
   const node = el('div.screen-inner',
     el('article.entry-head',
-      moodGroup,
       titleField,
       dateLine,
       bodyField,
@@ -246,7 +168,6 @@ export function view(params, api) {
   titleField.readOnly = !editing;
   bodyField.readOnly = !editing;
   refreshDate();
-  paintMood();
 
   /* Textareas have no height until they are in the document. */
   requestAnimationFrame(() => {

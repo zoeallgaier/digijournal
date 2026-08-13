@@ -61,6 +61,42 @@ async function run() {
   ok(!$('.account-form'), 'and signing in is not what the app opens on');
   ok($('.empty h2')?.textContent === 'Nothing written yet', 'empty state shown');
 
+  /* --------------------------------------------- 1b. the day's rating
+     The card is on the LIST and it rates today. Everything below is the
+     separation itself: rating a day is not writing an entry, so it must be
+     possible with an empty journal and must leave the journal empty. */
+  ok(!!$('.mood'), 'the rating card is on the list');
+  const moods = $$('.mood-opt');
+  ok(moods.length === 5, 'five mood faces');
+  ok(moods.every((m) => m.getAttribute('aria-checked') === 'false'), 'the day starts unrated');
+  /* Every face names itself, so the ramp is readable before you touch it and
+     colour is never the only thing telling them apart. */
+  ok($$('.mood-name').map((n) => n.textContent).join() === 'Rough,Low,Even,Good,Bright',
+     'each face is named under itself', $$('.mood-name').map((n) => n.textContent).join());
+  ok($('.mood-prompt').textContent === 'Rate the day', 'the card asks for the rating');
+  ok($('.mood').getAttribute('aria-labelledby') === $('.mood-prompt').id,
+     "the prompt is the radiogroup's name");
+
+  moods[3].click();
+  await wait(200);
+  ok(moods[3].getAttribute('aria-checked') === 'true', 'tapping a mood selects it');
+  ok($('.mood-opt[aria-checked="true"] .mood-name').textContent === 'Good',
+     'the chosen face is the named one',
+     $('.mood-opt[aria-checked="true"] .mood-name').textContent);
+  ok(S().rating() === 4, "today's rating persisted", String(S().rating()));
+  /* THE POINT OF THE WHOLE CHANGE. A rating is a row against the day; it is
+     not an entry, and it does not conjure one to live in. */
+  ok(S().count() === 0, 'rating the day writes no entry', `count=${S().count()}`);
+  ok($('.empty h2')?.textContent === 'Nothing written yet',
+     'and the journal is still empty behind the card');
+
+  moods[3].click();
+  await wait(200);
+  ok(S().rating() === null, 'tapping the selected mood clears it');
+  moods[3].click();
+  await wait(200);
+  ok(S().rating() === 4, 'and rating it again sets it back');
+
   /* ------------------------------------------------------ 2. write & publish */
   const bar = $('#bar');
   ok(!bar.hidden, 'composer bar visible on home');
@@ -96,7 +132,7 @@ async function run() {
   ok(!$('.entry-flag'), 'published entry has no Draft flag');
   ok(/entry|entries/.test($('.home-sub')?.textContent || ''), 'home subtitle counts entries');
 
-  /* ------------------------------------------------- 3. read mode and mood */
+  /* ------------------------------------------------------ 3. read mode */
   $('.entry-row').click();
   await wait(300);
   ok($('.entry-title-field').readOnly === true, 'a published entry opens in read mode');
@@ -110,29 +146,11 @@ async function run() {
   ok($$('.toolbar .icon-btn').length === 2, 'the entry toolbar holds back and pencil only',
      $$('.toolbar .icon-btn').map((b) => b.getAttribute('aria-label')).join());
 
-  const moods = $$('.mood-opt');
-  ok(moods.length === 5, 'five mood faces');
-  ok(moods.every((m) => m.getAttribute('aria-checked') === 'false'), 'mood starts unrated');
-  /* Every face names itself, so the ramp is readable before you touch it and
-     colour is never the only thing telling them apart. */
-  ok($$('.mood-name').map((n) => n.textContent).join() === 'Rough,Low,Even,Good,Bright',
-     'each face is named under itself', $$('.mood-name').map((n) => n.textContent).join());
-  ok($('.mood-prompt').textContent === 'Rate the day', 'the card asks for the rating');
-  ok($('.mood').getAttribute('aria-labelledby') === $('.mood-prompt').id,
-     "the prompt is the radiogroup's name");
-  moods[3].click();
-  await wait(200);
-  ok(moods[3].getAttribute('aria-checked') === 'true', 'tapping a mood selects it');
-  ok($('.mood-opt[aria-checked="true"] .mood-name').textContent === 'Good',
-     'the chosen face is the named one',
-     $('.mood-opt[aria-checked="true"] .mood-name').textContent);
-  ok(S().all()[0].mood === 4, 'mood persisted', String(S().all()[0].mood));
-
-  moods[3].click();
-  await wait(200);
-  ok(S().all()[0].mood === null, 'tapping the selected mood clears it');
-  moods[3].click();
-  await wait(200);
+  /* The rating went with it. The entry screen is the writing and nothing
+     else now — no card, and no mood on the entry to carry one. */
+  ok(!$('.mood'), 'no rating card on the entry screen');
+  ok(!('mood' in S().all()[0]), 'and an entry no longer holds a mood at all',
+     Object.keys(S().all()[0]).join());
 
   $('.icon-btn[aria-label="Edit entry"]').click();
   await wait(250);
@@ -164,7 +182,8 @@ async function run() {
   ok($$('.cal-day:not([data-empty])').length >= 28, 'month grid rendered', String($$('.cal-day:not([data-empty])').length));
   const todayCell = $('.cal-day[data-today="true"]');
   ok(!!todayCell, 'today is marked');
-  ok(todayCell.dataset.mood === '4', "today's cell carries the mood colour", `mood=${todayCell.dataset.mood}`);
+  ok(todayCell.dataset.mood === '4', "today's cell carries the day's colour", `mood=${todayCell.dataset.mood}`);
+  ok(todayCell.dataset.written === 'true', 'and the ring saying something was written');
   ok(todayCell.textContent === String(new Date().getDate()), 'the numeral survives the fill');
   ok($('.cal-stat-n').textContent === '1', 'stats count the month', $('.cal-stat-n').textContent);
   ok($$('.cal-key-item').length === 5, 'the key explains the ramp');
@@ -285,9 +304,9 @@ async function run() {
      This is the whole reason .screen-inner pays for the chrome and no screen
      header adds a top padding of its own. */
   const capsuleBottom = Math.max(...$$('.toolbar .icon-btn').map((b) => b.getBoundingClientRect().bottom));
-  const headTop = $('.mood').getBoundingClientRect().top;
-  ok(headTop - capsuleBottom >= 12, 'the rating card clears the toolbar capsules with air',
-     `gap ${Math.round(headTop - capsuleBottom)}px (card ${Math.round(headTop)}, capsules ${Math.round(capsuleBottom)})`);
+  const headTop = $('.entry-title-field').getBoundingClientRect().top;
+  ok(headTop - capsuleBottom >= 12, 'the entry title clears the toolbar capsules with air',
+     `gap ${Math.round(headTop - capsuleBottom)}px (title ${Math.round(headTop)}, capsules ${Math.round(capsuleBottom)})`);
 
   /* The column starts a real step below the bar, not flush against it. */
   const innerPadTop = parseFloat(cs($('.screen-inner')).paddingTop);
@@ -481,9 +500,7 @@ async function run() {
   f.contentWindow.location.hash = '#/e/L1';
   await wait(400);
   noOverflow('entry');
-  /* The rating card is the entry's first line now, so it is the one that has
-     to land where the other screens' first lines do. */
-  startsAtChrome('.mood', 'the entry rating card');
+  startsAtChrome('.entry-title-field', "the entry's title");
 
   /* The other half of the --kb gate: it must still do its job. Shorten the
      visual viewport by a keyboard's worth with a field focused, and the bar
@@ -635,6 +652,47 @@ async function run() {
   ok(S().pushable(0).some((e) => e.id === blank.id),
      'and starts syncing the moment a character is typed into it');
   S().remove(blank.id);
+
+  /* ------------------------------------------- 11b. two devices, one day
+     The ratings travel on the same rule and their own watermark. A rating is
+     a row against a day, so there is no tombstone here: CLEARING one is a row
+     saying null, and that is what has to reach the other phone — otherwise a
+     device still holding the old mood puts it straight back. */
+  S().setRating(2, '2026-08-03');
+  ok(S().rating('2026-08-03') === 2, 'a day is rated on this device');
+
+  S().mergeRemoteRatings([{ day: '2026-08-03', mood: 5, updatedAt: Date.now() + 1000 }]);
+  ok(S().rating('2026-08-03') === 5, 'a later rating from elsewhere wins',
+     String(S().rating('2026-08-03')));
+  S().mergeRemoteRatings([{ day: '2026-08-03', mood: 1, updatedAt: 1 }]);
+  ok(S().rating('2026-08-03') === 5, 'and an older one cannot roll it back',
+     String(S().rating('2026-08-03')));
+
+  S().mergeRemoteRatings([{ day: '2026-08-03', mood: null, updatedAt: Date.now() + 2000 }]);
+  ok(S().rating('2026-08-03') === null, 'clearing a rating travels between devices too');
+  ok(S().pushableRatings(0).some((r) => r.day === '2026-08-03' && r.mood === null),
+     'and the cleared day is still pushed, or the other phone would put it back');
+  ok(!S().ratingsByDay().has('2026-08-03'),
+     'though every screen sees a cleared day as simply unrated');
+
+  /* An entry and its day are independent in both directions — the whole
+     reason for the split. Deleting Wednesday's entry leaves Wednesday's
+     colour on the calendar. */
+  S().setRating(3, '2026-08-04');
+  const wed = S().create('2026-08-04');
+  S().update(wed.id, { title: 'Wednesday' });
+  S().remove(wed.id);
+  ok(S().rating('2026-08-04') === 3, "deleting a day's entry leaves the day's rating alone",
+     String(S().rating('2026-08-04')));
+
+  /* And a journal written before the split still knows how its days went:
+     the mood on an old entry is adopted as that day's rating. */
+  S().importBundle({ app: 'digijournal', schema: 1, entries: [
+    { id: 'OLD1', title: 'Before the split', body: 'x', mood: 5, day: '2026-07-04',
+      createdAt: 1, updatedAt: 2, published: true },
+  ] });
+  ok(S().rating('2026-07-04') === 5, "an old entry's mood becomes its day's rating",
+     String(S().rating('2026-07-04')));
 
   /* ------------------------------------------------------ 12. the update path
      An update reloads the app out from under you. Two things have to hold, or
@@ -881,17 +939,24 @@ async function run() {
   ok(!/service_role/.test(cfgSrc), 'the service_role key appears nowhere in the app');
 
   const schemaSrc = await (await fetch('../supabase/schema.sql')).text();
-  ok(/enable row level security/i.test(schemaSrc), 'the table has row-level security switched on');
-  ok(/using\s*\(auth\.uid\(\)\s*=\s*user_id\)/i.test(schemaSrc),
-     'with a policy scoping every row to whoever owns it');
-  ok(/with check\s*\(auth\.uid\(\)\s*=\s*user_id\)/i.test(schemaSrc),
-     'on writes as well as reads — a policy without this lets anyone write into your journal');
+  /* BOTH tables, not just the first. A table added later without RLS of its
+     own is the one way the shipped key stops being safe to ship. */
+  const rls = (schemaSrc.match(/enable row level security/gi) || []).length;
+  ok(rls === 2, 'every table has row-level security switched on', `${rls} of 2`);
+  const scoped = (schemaSrc.match(/using\s*\(auth\.uid\(\)\s*=\s*user_id\)/gi) || []).length;
+  ok(scoped === 2, 'with a policy scoping every row to whoever owns it', `${scoped} of 2`);
+  const checked = (schemaSrc.match(/with check\s*\(auth\.uid\(\)\s*=\s*user_id\)/gi) || []).length;
+  ok(checked === 2,
+     'on writes as well as reads — a policy without this lets anyone write into your journal',
+     `${checked} of 2`);
+  ok(/create table if not exists public\.days/i.test(schemaSrc),
+     'and the day ratings have a table to sync into');
 
   /* --------------------------------------- 15. still no dependencies at all
      Supabase ships a client library; this app hand-writes the five requests
      it needs instead. Having no dependencies is a property of this app, and
      a CDN import is how that quietly stops being true. */
-  const modules = ['app', 'store', 'ui', 'home', 'entry', 'calendar',
+  const modules = ['app', 'store', 'ui', 'home', 'entry', 'mood', 'calendar',
                    'settings', 'theme', 'config', 'net', 'sync', 'update'];
   const sources = await Promise.all(
     modules.map((n) => fetch(`../js/${n}.js`).then((r) => r.text()).then(stripJS)));

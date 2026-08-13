@@ -527,10 +527,12 @@
    and the arrow keys move the selection — the pattern a rating control is
    supposed to follow.
 
-   It is a glass card, and it is the first thing on the entry. Loose dots
-   under the date read as a footnote to the writing; a pane of its own says
-   the rating is a thing you came here to do. The journal scrolls behind it,
-   which is what glass is for.
+   It is a glass card, and it sits on the LIST, under the title and above the
+   journal — it rates the day, not the entry, so it belongs to the screen the
+   day is the subject of rather than to whatever was written. Loose dots under
+   a date read as a footnote to the writing; a pane of its own says the rating
+   is a thing you came here to do. The journal scrolls behind it, which is
+   what glass is for.
 
    The card carries its own heading and its own answers, so nothing in it
    changes as you choose: the prompt is a heading, not a readout, and which
@@ -543,7 +545,7 @@
    does not need a target drawn around it. */
 
 .mood {
-  margin: 0 0 var(--s-6);
+  margin: 0 0 var(--s-4);
   padding: var(--s-3);
   border-radius: var(--r-lg);
 }

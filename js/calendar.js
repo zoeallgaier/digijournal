@@ -6,8 +6,15 @@
    day cell rather than sitting in it as a dot — at arm's length the grid
    reads as a temperature map, and up close the numeral is still there.
 
-   Days are plotted by `entry.day`, the day the entry is about, which does not
-   move when the entry is edited later. See store.js.
+   TWO FACTS PER DAY, AND THEY ARE INDEPENDENT. The fill is how the day was
+   rated; the ring is that something was written that day. A day can be one
+   without the other in both directions, which is exactly what separating the
+   rating from the entry bought: a Tuesday you rated but never wrote up still
+   colours the grid, and deleting Wednesday's entry does not take Wednesday's
+   colour with it.
+
+   Entries are plotted by `entry.day`, the day the entry is about, which does
+   not move when the entry is edited later. See store.js.
    ========================================================================= */
 
 import { el, iconButton, monthYear } from './ui.js';
@@ -40,6 +47,7 @@ function monthParam(date) {
 export function view(params, api) {
   const month = parseMonth(params.month);
   const byDay = store.byDay();
+  const ratings = store.ratingsByDay();
   const today = dayKey();
 
   const year = month.getFullYear();
@@ -60,6 +68,7 @@ export function view(params, api) {
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(mIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const entry = byDay.get(key) || null;
+    const mood = ratings.get(key) ?? null;
     const isToday = key === today;
     const isFuture = key > today;
     if (entry) monthEntries.push(entry);
@@ -67,14 +76,14 @@ export function view(params, api) {
     const label = [
       dayFmt.format(new Date(year, mIndex, d)),
       isToday ? 'today' : null,
-      entry ? moodLabel(entry.mood).toLowerCase() : null,
+      mood !== null ? moodLabel(mood).toLowerCase() : null,
       entry ? 'written' : isFuture ? null : 'nothing written',
     ].filter(Boolean).join(', ');
 
     grid.append(el('button.cal-day', {
       type: 'button',
       role: 'gridcell',
-      'data-mood': entry && entry.mood !== null ? entry.mood : null,
+      'data-mood': mood,
       'data-written': entry ? 'true' : null,
       'data-today': isToday ? 'true' : null,
       'aria-label': label,
@@ -92,9 +101,12 @@ export function view(params, api) {
 
   /* --------------------------------------------------------------- stats */
 
-  const rated = monthEntries.filter((e) => e.mood !== null);
+  /* The average is of the days rated, not of the days written. They are
+     different counts now, and this one is the honest answer to "how was the
+     month" — a month can be rated every day and written up twice. */
+  const rated = store.ratedIn(monthParam(month));
   const average = rated.length
-    ? (rated.reduce((sum, e) => sum + e.mood, 0) / rated.length)
+    ? (rated.reduce((sum, r) => sum + r.mood, 0) / rated.length)
     : null;
 
   const stats = el('div.cal-stats',

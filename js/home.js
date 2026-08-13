@@ -1,14 +1,21 @@
 /* ============================================================================
-   home.js — the list of entries.
+   home.js — today's rating, then the list of entries.
 
    One column, newest edit first, rows divided by hairlines. Each row is a
-   title, two lines of the body, and the date it was last edited. A mood, if
-   the day was rated, sits as a dot on the title line.
+   title, two lines of the body, and the date it was last edited. A dot on the
+   title line carries how that ENTRY'S DAY was rated — the day's colour, not
+   the entry's, which is why two entries written on one day wear the same one.
+
+   Above the list is the rating card, and it rates today. It is the one thing
+   on this screen that is not about an entry, and the reason it is here rather
+   than on the entry screen is that a day is worth rating whether or not you
+   wrote anything. See mood.js.
    ========================================================================= */
 
 import { el, iconButton, shortDate, excerpt } from './ui.js';
 import * as store from './store.js';
 import { moodLabel } from './store.js';
+import { card } from './mood.js';
 import * as sync from './sync.js';
 
 /** Apple Notes' rule, which is the right one: if you never typed a title,
@@ -30,7 +37,7 @@ function displayPreview(entry) {
   return excerpt(rest);
 }
 
-function row(entry, go) {
+function row(entry, go, mood) {
   const untitled = !entry.title.trim() && !entry.body.trim();
   const preview = displayPreview(entry);
 
@@ -40,15 +47,16 @@ function row(entry, go) {
   },
     el('div.entry-row-top',
       el('span.entry-title', { 'data-untitled': untitled ? 'true' : null }, displayTitle(entry)),
-      entry.mood !== null && el('span.mood-dot', { 'data-mood': entry.mood, 'aria-hidden': 'true' }),
+      mood !== null && el('span.mood-dot', { 'data-mood': mood, 'aria-hidden': 'true' }),
     ),
     preview && el('p.entry-preview', preview),
     el('div.entry-meta',
       el('span', shortDate(entry.updatedAt)),
       !entry.published && el('span.entry-flag', 'Draft'),
       /* The dot above is colour only — this is the same fact in words, for
-         a screen reader and for anyone who can't tell the hues apart. */
-      entry.mood !== null && el('span.sr-only', `Mood: ${moodLabel(entry.mood)}`),
+         a screen reader and for anyone who can't tell the hues apart. It says
+         whose rating it is, because it is the day's and not this entry's. */
+      mood !== null && el('span.sr-only', `That day: ${moodLabel(mood)}`),
     ),
   );
 }
@@ -76,20 +84,39 @@ function settingsLabel(status) {
 
 export function view(_params, api) {
   const entries = store.all();
+  const ratings = store.ratingsByDay();
+
+  /* Which day the card is rating, fixed at render. */
+  const today = store.dayKey();
+  const rating = card(today);
 
   /* Repaint the gear when a round finishes, so its label is never describing
      a sync that ended five minutes ago. */
   const onSync = () => api.refreshToolbar();
   window.addEventListener('dj:sync', onSync);
 
+  /* Two things can happen while this screen sits open behind a locked phone:
+     midnight, and a rating arriving from another device. The first makes the
+     card the wrong day's, which no repaint can fix — the screen has to be
+     built again. The second only needs the faces redrawn, and redrawing them
+     costs nothing, so it is not worth telling the two apart. */
+  const onVisible = () => {
+    if (document.visibilityState !== 'visible') return;
+    if (store.dayKey() !== today) api.go('#/', { replace: true });
+    else rating.repaint();
+  };
+  document.addEventListener('visibilitychange', onVisible);
+
   const node = el('div.screen-inner',
     el('header.home-head',
       el('h1.home-title', 'Journal'),
       entries.length ? el('p.home-sub', subtitle(entries)) : null,
     ),
+    rating.node,
     entries.length
       ? el('div.entry-list', { role: 'list' },
-          entries.map((entry) => el('div', { role: 'listitem' }, row(entry, api.go))))
+          entries.map((entry) => el('div', { role: 'listitem' },
+            row(entry, api.go, ratings.get(entry.day) ?? null))))
       : el('div.empty',
           el('h2', 'Nothing written yet'),
           el('p', 'Tap Start writing to make the first entry.'),
@@ -114,6 +141,7 @@ export function view(_params, api) {
     },
     onLeave() {
       window.removeEventListener('dj:sync', onSync);
+      document.removeEventListener('visibilitychange', onVisible);
     },
   };
 }

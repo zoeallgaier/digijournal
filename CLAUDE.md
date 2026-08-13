@@ -52,8 +52,9 @@ fonts/              DM Sans, variable, self-hosted (two files, all weights)
 js/app.js           boot, hash routing, the composer bar, the keyboard
 js/store.js         every entry; the ONLY file that touches localStorage
 js/ui.js            el(), icon(), dates, toast, menu — the shared vocabulary
-js/home.js          the list
+js/home.js          the list, with today's rating card above it
 js/entry.js         reading and writing one entry  ← the subtle file
+js/mood.js          the rating card. It rates a DAY, and lives on the list
 js/calendar.js      the month, coloured by mood
 js/theme.js         which palette the app is wearing — names only, never
                     colours; and the one thing CSS cannot reach, the
@@ -78,18 +79,43 @@ tools/edges.html    what the phone will actually give the app — add it to the
 ### The data model
 
 ```js
-{ id, title, body, mood, day, createdAt, updatedAt, published, deletedAt }
+{ id, title, body, day, createdAt, updatedAt, published, deletedAt }   // an entry
+{ day, mood, updatedAt }                                              // a rating
 ```
 
 `day` is the calendar day the entry is **about**, fixed at creation.
 `updatedAt` is when it was last touched. They are deliberately separate: the
 list sorts and dates by `updatedAt`, the calendar plots by `day`. Fixing a
-typo in Monday's entry on Friday must not move Monday's mood to Friday.
+typo in Monday's entry on Friday must not move Monday's entry to Friday.
+
+**The rating is a property of the day, not of an entry** — separated on
+13 Aug 2026. It used to be a `mood` column on the entry, which meant rating a
+day you never wrote about had to invent a blank draft to hold the rating, and
+writing twice on one day gave the day two moods and a tiebreak to pick
+between them. One row per day, keyed by the day, is the shape the thing
+actually has. The consequences, all of them wanted:
+
+- The card is on **the list**, above the journal, and rates **today** only.
+  There is no way to go back and colour in last Tuesday; the calendar is a
+  record, not a form.
+- Rating a day writes no entry, and deleting a day's entry leaves the day's
+  colour alone.
+- The calendar carries two independent facts per cell: the **fill** is the
+  rating, the **ring** is that something was written.
+- A dot on a list row is that entry's **day's** rating, which is why two
+  entries written on one day wear the same one.
+- A rating is never deleted, only set to `null` with a fresh `updatedAt` —
+  that row is how "I cleared this" reaches the other device, the same job the
+  tombstone does for an entry. Ratings are not swept.
+- `SCHEMA` is 2. A journal written before the split still has a `mood` on each
+  entry, and `adopt()` folds those into day ratings on the one load that finds
+  them, so no history is lost.
 
 A **draft** is `published: false`. It is not a separate species — it is a row
-in the list with a quiet flag on it. An untouched draft (no title, no body, no
-mood) is swept away when you leave it, so tapping "Start writing…" and
-changing your mind leaves nothing behind.
+in the list with a quiet flag on it. An untouched draft (no title, no body) is
+swept away when you leave it, so tapping "Start writing…" and changing your
+mind leaves nothing behind. `isEmpty()` asks about words alone now — a rating
+is no longer something an entry can be holding.
 
 **`deletedAt` is what sync cost the model.** Deleting no longer removes the
 entry from the array — it blanks the text and stamps `deletedAt`, leaving a
@@ -271,7 +297,14 @@ has the last version, password `digijournal`.
 ## Syncing
 
 Added 12 Aug 2026. The project is `uwfskykrayezjcazmlrw`; `supabase/schema.sql`
-is the whole server side and has been run.
+is the whole server side.
+
+**It is now two tables, and the second one has to be created.** `days` holds
+the ratings, and `schema.sql` must be pasted into the Supabase SQL editor and
+run again before they leave the phone. Until it is, the entries sync exactly
+as before and the ratings stay on the device that made them — `syncRatings()`
+steps over a missing table rather than failing the round, so nothing looks
+broken and nothing is lost locally.
 
 **RLS is the only lock there is.** The anon key ships in `js/config.js`, in a
 public repo, and anyone can read it out of the running page in ten seconds.
@@ -281,7 +314,9 @@ further. Measured against the live project, not assumed — an anonymous read
 returns `[]`, an anonymous write is refused with `42501`, and signups are
 closed. **If that policy is ever dropped, the key becomes a skeleton key to
 every entry.** Two checks in the suite guard the schema file and two more
-guard the key itself; `service_role` must never appear in the repo.
+guard the key itself; `service_role` must never appear in the repo. **Both
+tables are checked**, not just the first — a table added later without a
+policy of its own is the one way the shipped key stops being safe to ship.
 
 **Last edit wins, per entry.** The same rule `importBundle` always used, and
 the only one that behaves after a phone has been offline. What it costs:
@@ -444,6 +479,12 @@ control borrows the system blue, the delete sheet's surface, that the toast
 stays centred through its animation, and that an update-driven reload flushes
 what was being typed and gives the whole journal back afterwards.
 
+The rating card is exercised where it now lives: that it is on the list and
+not on the entry, that rating a day with an empty journal writes no entry and
+leaves the list empty, that clearing travels between devices as a null, that
+deleting a day's entry leaves the rating standing, and that an old entry's
+mood is adopted as its day's rating.
+
 Sync added a second half: that a delete leaves a tombstone the app never shows
 and sync always pushes, that the later edit wins from either direction, that a
 deletion cannot be undone by an older copy, that a round landing mid-sentence
@@ -451,7 +492,7 @@ leaves the open entry alone, that an untouched draft is never pushed, that the
 sync screen is a door off the list rather than a gate in front of it, that the
 shipped key decodes to `role: anon`, that `schema.sql` still enables RLS with
 both `using` and `with check`, that every import is still a relative file in
-this repo, and that a different account starts empty. **177 checks.**
+this repo, and that a different account starts empty. **295 checks.**
 
 **The suite cannot see an edge problem.** It runs in a browser that reports
 no safe-area inset, so it pins our own arithmetic and nothing else — every
@@ -526,7 +567,7 @@ clears 4.5:1 and non-text UI clears 3:1 in both schemes. If you change a
 colour, re-measure it — do not eyeball it.
 
 Colour is never the only channel: a mood dot in the list is paired with a
-`.sr-only` label, and a calendar day keeps its numeral on top of the fill.
+`.sr-only` label naming whose rating it is ("That day: Good"), and a calendar day keeps its numeral on top of the fill.
 Every control is at least 44×44. The mood control is a real `radiogroup` with
 arrow-key support and a roving tabindex.
 

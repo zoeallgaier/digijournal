@@ -34,6 +34,7 @@ const WATCHED = [
   'js/ui.js',
   'js/home.js',
   'js/entry.js',
+  'js/mood.js',
   'js/calendar.js',
   'js/settings.js',
   'js/theme.js',
