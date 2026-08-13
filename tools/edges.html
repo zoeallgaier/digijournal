@@ -77,21 +77,18 @@
   <div class="safe"></div>
 
   <main>
-    <h1>Edges</h1>
-    <p class="lede">
-      Orange = the top and bottom of what the app was given.
-      Green dashed = where iOS says the safe area is.
-      If the bottom orange line is not on the screen's edge, that gap is the band.
-    </p>
-    <table id="out"></table>
-    <div class="verdict" id="verdict"></div>
-
-    <!-- The keyboard half. The snapshot above cannot see it: a keyboard only
+    <!-- THE KEYBOARD HALF, AND IT IS FIRST ON PURPOSE. A keyboard only
          exists while a field is focused, so this part has to be driven by
-         hand and read live. The field is PRE-FILLED and the caret is sent to
-         the end on focus, because that is the case the app got wrong — an
-         empty field never makes iOS scroll to reveal anything. -->
-    <h1 style="margin-top:14px">Keyboard</h1>
+         hand and read live — and with the keyboard up only the top of the
+         page is on screen, so a readout below the fold is a readout nobody
+         can read. The static measurements below it can be scrolled to; these
+         cannot.
+
+         The field is PRE-FILLED and the caret is sent to the end on focus,
+         because that is the case the app got wrong: a long entry makes iOS
+         pan the whole web view up to reveal the caret, and an empty new
+         draft never does. If offsetTop below is not 0, that is the pan. -->
+    <h1>Keyboard</h1>
     <p class="lede">
       Tap into the box. The numbers update live. <b>lift</b> is what the app
       would set <code>--kb</code> to; <b>bar gap</b> is where a fixed
@@ -102,6 +99,15 @@
       >A pre-filled entry, because the caret going to the end of real text is what makes iOS scroll — and that is the case that broke.</textarea>
     <table id="kbout"></table>
     <div class="verdict" id="kbverdict">focus the box above</div>
+    <h1>Edges</h1>
+    <p class="lede">
+      Orange = the top and bottom of what the app was given.
+      Green dashed = where iOS says the safe area is.
+      If the bottom orange line is not on the screen's edge, that gap is the band.
+    </p>
+    <table id="out"></table>
+    <div class="verdict" id="verdict"></div>
+
   </main>
 
 <script>
