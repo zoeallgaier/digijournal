@@ -109,7 +109,18 @@ async function run() {
   ok($('.compose').textContent === 'Start writing…', 'bar reads "Start writing…"');
   ok(!$('.bar-side').hidden, 'calendar button present on home');
 
+  /* NOT AWAITED, ON PURPOSE — this is the keyboard check, and the only one
+     the suite can make. iOS raises the on-screen keyboard for a focus() that
+     happens inside the tap that asked for it and for no other, so the whole
+     navigation has to be finished by the time click() returns. Defer the
+     render to a hashchange or the focus to a requestAnimationFrame and the
+     caret lands a turn later: this fails, and on the phone the draft opens
+     with a caret in it and no keyboard under it. See go() in app.js. */
   $('.compose').click();
+  ok(f.contentWindow.document.activeElement === $('.entry-title-field'),
+     'the caret is in the new draft before the tap returns',
+     f.contentWindow.document.activeElement?.className);
+
   await wait(300);
   ok(f.contentWindow.location.hash.startsWith('#/e/'), 'compose opens a new entry', f.contentWindow.location.hash);
   ok($('.compose').dataset.mode === 'publish', 'bar became the publish button');

@@ -169,15 +169,22 @@ export function view(params, api) {
   bodyField.readOnly = !editing;
   refreshDate();
 
-  /* Textareas have no height until they are in the document. */
-  requestAnimationFrame(() => {
-    autoGrow(titleField);
-    autoGrow(bodyField);
-    if (editing) titleField.focus();
-  });
-
   return {
     node,
+    /* Called by app.js the moment the node is in the document — textareas
+       have no height until they are, and nothing can be focused before then.
+       THIS MUST NOT BE DEFERRED TO A FRAME. It used to be a
+       requestAnimationFrame, and a frame is one turn too late: iOS raises the
+       keyboard only for a focus() that happens inside the tap that asked for
+       it, so tapping "Start writing…" opened the draft with the caret sitting
+       in it and no keyboard underneath. */
+    onMount() {
+      autoGrow(titleField);
+      autoGrow(bodyField);
+      if (!editing) return false;
+      titleField.focus();
+      return true;   /* the caret is ours; app.js leaves it alone */
+    },
     /* Which entry is open, so sync.js can refuse to overwrite it. A round
        landing mid-sentence would otherwise replace the paragraph under the
        caret with the server's older copy, and the next keystroke would be

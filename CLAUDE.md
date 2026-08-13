@@ -278,6 +278,22 @@ hair — which on a phone reads as the page flinching each time you tap edit.
 `readonly` raises no keyboard on iOS, so read mode stays quiet. **Do not
 replace this with a render-two-ways approach.**
 
+**The keyboard is on a deadline, and the deadline is the tap.** iOS raises the
+on-screen keyboard only for a `focus()` that runs inside the gesture that
+asked for it; a `focus()` one turn later leaves a caret blinking in an entry
+with nothing to type into it, and no error anywhere. So navigation is
+synchronous end to end — `go()` calls `history.pushState` and renders on the
+spot rather than assigning `location.hash` and waiting for the hashchange
+event, and `entry.js` takes the caret in `onMount()`, which `render()` calls
+the moment the node is in the document. Fixed 13 Aug 2026; it had been a
+hashchange and a `requestAnimationFrame`, which is two turns too late.
+
+`onMount()` returning `true` means the view has taken the caret and `render()`
+must leave it alone — otherwise the focus it moves to `#screen` for screen
+readers pulls it straight back out. **Nothing on the path from a tap to a
+focused field may be deferred**, by a frame, a timeout or an event. The back
+button is still a hashchange; that listener is what it is left for.
+
 Everything saves as you type (400ms debounce, plus a flush on
 `visibilitychange: hidden`). **Publish is not the save** — it only moves a
 draft into the list.
@@ -574,7 +590,15 @@ leaves the open entry alone, that an untouched draft is never pushed, that the
 sync screen is a door off the list rather than a gate in front of it, that the
 shipped key decodes to `role: anon`, that `schema.sql` still enables RLS with
 both `using` and `with check`, that every import is still a relative file in
-this repo, and that a different account starts empty. **301 checks.**
+this repo, and that a different account starts empty. **302 checks.**
+
+**One check is deliberately not awaited**, and it is the keyboard's. iOS
+raises the on-screen keyboard only for a `focus()` that happens inside the tap
+that asked for it — so tapping "Start writing…" must have navigated, mounted
+the entry and taken the caret by the time `click()` returns. The check reads
+`activeElement` on the next line, with no `await` between. A desktop browser
+does not care when the caret lands, so this is the only way the suite can see
+a keyboard it has no way to raise.
 
 **The settings screen is backed out of from a cold landing on `#/settings`,
 not by tapping in and then backing out.** That is the case worth pinning —

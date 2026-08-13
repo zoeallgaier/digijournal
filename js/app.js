@@ -21,8 +21,10 @@
    app is exactly what it was — local only — until someone does.
 
    A view is a plain object: { node, title, bar, toolbarLeft, toolbarRight,
-   onLeave, onHide }. `bar` and the toolbar slots may be getters, which is
-   how the entry screen changes the button under itself without re-rendering.
+   onMount, onLeave, onHide }. `bar` and the toolbar slots may be getters,
+   which is how the entry screen changes the button under itself without
+   re-rendering. `onMount` runs once the node is in the document; returning
+   true means the view has taken the caret and app.js must not move it.
    ========================================================================= */
 
 import { el, icon, toast } from './ui.js';
@@ -57,15 +59,25 @@ function parse(hash) {
 
 const VIEWS = { home, entry, calendar, settings };
 
+/* BOTH BRANCHES RENDER SYNCHRONOUSLY, AND THAT IS THE KEYBOARD.
+   This used to assign `location.hash` and let the hashchange event drive the
+   render. hashchange is a task, so the new screen was built one turn after
+   the tap that asked for it — outside it, as far as iOS is concerned. WebKit
+   raises the on-screen keyboard only for a focus() that happens inside the
+   gesture that asked for it, so "Start writing…" opened a draft with a caret
+   in it and no keyboard under it. pushState changes the URL without firing
+   hashchange, so rendering here keeps the whole navigation inside the tap.
+   The back button still arrives as a hashchange, which is what that listener
+   is left for. */
 function go(hash, { replace = false } = {}) {
   if (location.hash === hash) { render(); return; }
   if (replace) {
     history.replaceState(null, '', hash);
-    render();
   } else {
     depth++;
-    location.hash = hash;   /* hashchange drives the render */
+    history.pushState(null, '', hash);
   }
+  render();
 }
 
 function back() {
@@ -89,15 +101,22 @@ function render() {
 
   screenHost.replaceChildren(current.node);
   screenHost.scrollTop = 0;
-  screenHost.dataset.enter = '';
 
   refreshToolbar();
   refreshBar();
   onScroll();
 
+  /* The node is in the document now, which is the first moment a view can
+     measure itself or take the caret — and, because go() got us here inside
+     the tap, still early enough for iOS to raise the keyboard for it. A view
+     that took the caret says so, and keeps it. */
+  const claimed = current.onMount?.() === true;
+
+  screenHost.dataset.enter = '';
+
   /* Move focus to the top of the new screen so a screen reader announces it
      and the keyboard doesn't stay on the button that got us here. */
-  screenHost.focus({ preventScroll: true });
+  if (!claimed) screenHost.focus({ preventScroll: true });
 }
 
 /* --------------------------------------------------------------- toolbar */
