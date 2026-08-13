@@ -61,17 +61,17 @@ export function current() {
    --paper is the page's own colour, and asking the browser for it is what
    keeps this file from holding a second copy of the palette.
 
-   IOS READS THIS ONCE, AT LAUNCH, AND HOLDS IT FOR THE SESSION. Changing
-   .content does nothing to a running homescreen app. Neither does removing
-   the meta and inserting a fresh element — that was tried on 12 Aug 2026,
-   on the theory that iOS might notice a new node even if it ignored an
-   attribute, and it was reverted the same day. iOS is not watching the
-   document at all, so there is no DOM shape that beats it: the bar catches
-   up on the next launch and not before.
+   IOS DOES NOT WATCH THIS META. Changing .content does nothing to a running
+   homescreen app, and neither does removing the meta and inserting a fresh
+   element — that was tried on 12 Aug 2026 and reverted the same day. There
+   is no DOM mutation that reaches the strip; do not go looking for one.
 
-   DO NOT SPEND ANOTHER ROUND HUNTING FOR THE MUTATION THAT WORKS. Everything
-   BELOW the status bar repaints the instant the palette changes, because
-   that strip is the only part of the screen that is not ours. */
+   WHAT IT DOES RE-READ IS A NAVIGATION. The app is hash-routed, so leaving
+   Settings is a same-document navigation, and that is the moment the bar
+   catches up — which is exactly why choosing a palette appeared to do
+   nothing and then swiping back appeared to fix it. Nothing was broken in
+   between; the strip was simply waiting for a navigation that a tap inside
+   one screen never performs. nudge() below performs it. */
 let meta = null;
 
 function paintStatusBar() {
@@ -86,6 +86,29 @@ function paintStatusBar() {
     document.head.append(meta);
   }
   meta.content = paper;
+}
+
+/** Make iOS look at the meta again, without moving the user.
+ *
+ *  A push followed straight back is a same-document navigation to the URL we
+ *  are already on: the hash never changes, so no `hashchange` fires, `render()`
+ *  is never called, and no screen is rebuilt or scrolled. app.js listens to
+ *  hashchange alone and keeps its own `depth`, so a push-and-pop that nets to
+ *  zero leaves the back capsule counting exactly what it did before.
+ *
+ *  Only the installed app, because only the installed app has the strip — in
+ *  a tab this is history churn for nothing, and the suite would be driving a
+ *  page that navigates under it. And never while a field has focus: the same
+ *  rule update.js already follows, so a palette change at sunset cannot take
+ *  the keyboard out from under a sentence. */
+function nudge() {
+  if (!navigator.standalone) return;
+  const el = document.activeElement;
+  if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) return;
+  try {
+    history.pushState(history.state, '', location.href);
+    history.back();
+  } catch { /* a browser that refuses is a browser with nothing to repaint */ }
 }
 
 /* --------------------------------------------------------------- applying */
@@ -105,12 +128,20 @@ export function set(id) {
   const next = known(id) ? id : DEFAULT;
   store.setPalette(next);
   apply(next);
+  nudge();
   return next;
 }
 
 export function start() {
+  /* No nudge on boot. The launch IS the navigation — iOS has just read the
+     meta the inline lines in index.html left it, and pushing history around
+     before the first screen is mounted buys nothing. */
   apply(current());
   /* The palette does not change when the phone goes dark, but the paper does
-     — so the status bar has to be re-read, not just re-applied. */
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', paintStatusBar);
+     — so the status bar has to be re-read, not just re-applied, and then
+     looked at again. */
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    paintStatusBar();
+    nudge();
+  });
 }
