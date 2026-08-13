@@ -821,9 +821,13 @@
   color: var(--ink-2);
 }
 
+/* Three figures now, and the third one's word is long. They wrap rather than
+   run off the edge: a stat that has to drop to a second line is still a stat,
+   a screen that scrolls sideways is a bug. */
 .cal-stats {
   display: flex;
-  gap: var(--s-8);
+  flex-wrap: wrap;
+  gap: var(--s-5) var(--s-8);
   margin-top: var(--s-6);
 }
 .cal-stat-n {

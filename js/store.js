@@ -306,6 +306,13 @@ export function ratedIn(month) {
   return ratings.filter((r) => r.mood !== null && r.day.startsWith(month));
 }
 
+/** The rated days in a closed range, both ends included. Day keys are
+ *  zero-padded, so comparing them as strings is comparing them as dates —
+ *  which is what lets a week straddle the end of a month without arithmetic. */
+export function ratedBetween(from, to) {
+  return ratings.filter((r) => r.mood !== null && r.day >= from && r.day <= to);
+}
+
 /* ----------------------------------------------------------------- writes */
 
 export function create(day) {

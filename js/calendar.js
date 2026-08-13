@@ -104,9 +104,27 @@ export function view(params, api) {
   /* The average is of the days rated, not of the days written. They are
      different counts now, and this one is the honest answer to "how was the
      month" — a month can be rated every day and written up twice. */
-  const rated = store.ratedIn(monthParam(month));
-  const average = rated.length
-    ? (rated.reduce((sum, r) => sum + r.mood, 0) / rated.length)
+  const mean = (rows) => rows.length
+    ? rows.reduce((sum, r) => sum + r.mood, 0) / rows.length
+    : null;
+
+  const average = mean(store.ratedIn(monthParam(month)));
+
+  /* This week is the row of the grid today is standing in — Sunday to
+     Saturday, the same weeks the grid is laid out in, so the number describes
+     a line you can see. It counts the whole week even where that reaches into
+     the next month or the last one: "this week" is a week, not the part of one
+     that happens to fall inside the month on screen.
+
+     It is only offered while the current month is up. Under August 2024 a
+     figure for the week we are in now would be a fact about today wearing last
+     year's heading. */
+  const now = new Date();
+  const atCurrentMonth = year === now.getFullYear() && mIndex === now.getMonth();
+  const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+  const saturday = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + 6);
+  const week = atCurrentMonth
+    ? mean(store.ratedBetween(dayKey(sunday), dayKey(saturday)))
     : null;
 
   const stats = el('div.cal-stats',
@@ -117,6 +135,10 @@ export function view(params, api) {
     average !== null && el('div',
       el('div.cal-stat-n', average.toFixed(1)),
       el('div.cal-stat-l', 'average mood'),
+    ),
+    week !== null && el('div',
+      el('div.cal-stat-n', week.toFixed(1)),
+      el('div.cal-stat-l', "this week's average"),
     ),
   );
 
@@ -137,9 +159,8 @@ export function view(params, api) {
     api.go(`#/calendar/${monthParam(next)}`, { replace: true });
   };
 
-  /* Don't offer a month that hasn't happened. */
-  const now = new Date();
-  const atCurrentMonth = year === now.getFullYear() && mIndex === now.getMonth();
+  /* Don't offer a month that hasn't happened — `atCurrentMonth` is measured
+     up with the stats. */
 
   const node = el('div.screen-inner',
     el('header.cal-head',

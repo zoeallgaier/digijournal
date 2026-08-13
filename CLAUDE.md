@@ -113,6 +113,10 @@ actually has. The consequences, all of them wanted:
   rating, the **ring** is that something was written.
 - A dot on a list row is that entry's **day's** rating, which is why two
   entries written on one day wear the same one.
+- The calendar's figures are averages of the days **rated**, never of the
+  days written. `this week's average` covers Sunday to Saturday — the grid's
+  own weeks — including the part of the week that falls outside the month on
+  screen, and is only offered while the current month is up.
 - A rating is never deleted, only set to `null` with a fresh `updatedAt` —
   that row is how "I cleared this" reaches the other device, the same job the
   tombstone does for an entry. Ratings are not swept.
@@ -522,7 +526,7 @@ leaves the open entry alone, that an untouched draft is never pushed, that the
 sync screen is a door off the list rather than a gate in front of it, that the
 shipped key decodes to `role: anon`, that `schema.sql` still enables RLS with
 both `using` and `with check`, that every import is still a relative file in
-this repo, and that a different account starts empty. **295 checks.**
+this repo, and that a different account starts empty. **299 checks.**
 
 **The suite cannot see an edge problem.** It runs in a browser that reports
 no safe-area inset, so it pins our own arithmetic and nothing else — every

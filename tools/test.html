@@ -186,6 +186,26 @@ async function run() {
   ok(todayCell.dataset.written === 'true', 'and the ring saying something was written');
   ok(todayCell.textContent === String(new Date().getDate()), 'the numeral survives the fill');
   ok($('.cal-stat-n').textContent === '1', 'stats count the month', $('.cal-stat-n').textContent);
+
+  /* Today is the only rated day there is, so the month and the week must both
+     be it — and the week's figure only stands while the current month is up. */
+  const statLabels = $$('.cal-stat-l').map((n) => n.textContent);
+  ok(statLabels.includes("this week's average"),
+     "the week's average sits beside the month's", statLabels.join(' / '));
+  const weekN = $$('.cal-stats > div')
+    .find((d) => d.querySelector('.cal-stat-l').textContent === "this week's average")
+    .querySelector('.cal-stat-n').textContent;
+  ok(weekN === '4.0', 'and it averages the days rated this week', weekN);
+
+  $('.icon-btn[aria-label="Previous month"]').click();
+  await wait(300);
+  ok(!$$('.cal-stat-l').some((n) => n.textContent === "this week's average"),
+     'last month does not get to report this week');
+  $('.icon-btn[aria-label="Next month"]').click();
+  await wait(300);
+  ok($$('.cal-stat-l').some((n) => n.textContent === "this week's average"),
+     'and it comes back with the current month');
+
   ok($$('.cal-key-item').length === 5, 'the key explains the ramp');
   const future = $$('.cal-day[aria-disabled="true"]');
   ok(future.every((d) => d.disabled), 'future days are not writable');
