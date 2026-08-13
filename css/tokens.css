@@ -203,9 +203,22 @@
   --measure: 38rem;           /* max line length for reading               */
   --tap: 2.75rem;             /* 44px — the HIG minimum, never smaller     */
 
+  /* THE BOTTOM BAR RUNS BIGGER THAN THE MINIMUM, deliberately. It is the
+     whole of the app's navigation and it sits where the thumb already is,
+     so its controls are 52 rather than 44 — a target you hit without aiming
+     rather than one that merely clears the guideline. Everything else in
+     the app stays on --tap: the toolbar's back button, a menu row, a field,
+     a palette chip. Raised on Zoe's ask, 13 Aug 2026.
+
+     --tap IS STILL THE FLOOR. This is above it, so it cannot be what makes
+     a control too small; if it is ever lowered it must not go under --tap,
+     and the suite's tap-target check is what would catch that.            */
+  --bar-tap: 3.25rem;         /* 52px — the bottom bar's own controls      */
+
   /* --- The chrome, and the room it takes --------------------------------
-     Both fixed bars are a 44px control plus air, so their heights are
-     calculated from --tap rather than chosen. --chrome-top and
+     Each fixed bar is a control plus air, so their heights are calculated
+     from that bar's own control size rather than chosen — --tap at the top,
+     --bar-tap at the bottom. --chrome-top and
      --chrome-bottom are how much of the screen each one covers, safe area
      included; a screen pads itself by exactly those, so text begins where
      the glass ends and stops before the composer bar — on every device,
@@ -220,7 +233,7 @@
      At the bottom, --bar-bottom is the home indicator's own band and not a
      pixel more. The composer is a floating capsule, so it clears the
      indicator rather than sharing it: that band is a live gesture target,
-     and a 44pt control overlapping it hands its lower third to the system.
+     and a control overlapping it hands its lower third to the system.
 
      max(), NEVER a sum. The inset IS the clearance — adding our own pad on
      top of it is what floats the bar a thumb's width up the page. On a
@@ -237,14 +250,17 @@
   --bar-pad:     var(--s-3);   /* air above the composer…                  */
   --bar-bottom:  max(var(--s-3), env(safe-area-inset-bottom));
   --toolbar-h: calc(var(--tap) + var(--toolbar-pad) * 2);          /* 60 */
-  --bar-h:     calc(var(--tap) + var(--bar-pad) + var(--bar-bottom));
+  --bar-h:     calc(var(--bar-tap) + var(--bar-pad) + var(--bar-bottom));
   --chrome-top:    calc(env(safe-area-inset-top) + var(--toolbar-h));
   --chrome-bottom: var(--bar-h);   /* pad, control, and the drop below it  */
 
   /* --- What is drawn inside a control ------------------------------------
      The 44px box is the target; these are the marks inside it. A glyph is
      never sized at the point of use.                                      */
-  --icon:      1.375rem;   /* 22 — the bars                                */
+  --icon:      1.375rem;   /* 22 — the toolbar                             */
+  --icon-bar:  1.625rem;   /* 26 — the bottom bar, which runs a size up so
+                              the glyph keeps its share of the bigger
+                              capsule instead of rattling around in it   */
   --icon-sm:   1.25rem;    /* 20 — a menu row                              */
   --stroke:      1.9;      /* every icon is drawn at this weight…          */
   --stroke-bold: 2.2;      /* …except on a filled field, which eats it     */

@@ -283,7 +283,17 @@ with a primary action in front of it, and **only the entry is one**: it is the
 only screen you go *into* rather than across to, and the only one with a back
 button.
 
-**The pane is exactly its three targets wide — 132pt — and no wider**, and the
+**The bar runs bigger than the rest of the chrome.** `--bar-tap` is **52**
+against `--tap`'s 44, because this bar is the whole of the app's navigation
+and sits where the thumb already is — a target you hit without aiming rather
+than one that merely clears the guideline. `--bar-h` is calculated from it, so
+`--chrome-bottom` grew with it and no screen had to be told. Everything else
+stays on `--tap`: the toolbar's back button, a menu row, a field, a palette
+chip. **`--tap` is still the floor** — `--bar-tap` sits above it and must
+never be lowered under it. The glyphs inside went up a size too, `--icon-bar`
+at 26, so they keep their share of the bigger capsule.
+
+**The pane is exactly its three targets wide — 156pt — and no wider**, and the
 mark on the live tab is a **circle**, not a lozenge. Both were Zoe's, later
 the same day. The pane used to stretch the full measure with the quill on the
 end, which made each cell 100pt and its selection an oval; hugging the tabs
@@ -675,7 +685,7 @@ toolbar is empty, that Sign in is a visible submit inside its own form and the
 bar stays navigation so Settings can never be a trap, that the selection is
 square in both directions rather than an oval, that the pane is its three tabs
 wide and no wider, that centring the nav does not shrink-wrap the action pill
-with it, and that every tab is a 44pt target. **321 checks.**
+with it, and that every tab clears the 44pt minimum. **322 checks.**
 
 **One check is deliberately not awaited**, and it is the keyboard's. iOS
 raises the on-screen keyboard only for a `focus()` that happens inside the tap

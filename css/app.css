@@ -499,7 +499,7 @@
 .bar-nav {
   flex: 0 0 auto;
   display: flex;
-  height: var(--tap);
+  height: var(--bar-tap);
   border-radius: var(--r-full);
   animation: fade var(--d-mid) var(--ease) both;
 }
@@ -508,24 +508,23 @@
 /* THE SELECTION IS A CIRCLE, NOT AN OVAL — Zoe, 13 Aug 2026. It was a
    rounded rectangle spanning a third of a full-width pane, which at 100pt
    wide read as a lozenge; the pane is only as wide as its three targets now,
-   so a --tap circle fills a cell exactly and the mark is the same round
-   capsule the quill and the toolbar's back button wear. One shape in the
-   chrome, at one size.
+   so the circle fills a cell exactly and the mark is the same round capsule
+   the quill wears. One shape in the bar, at one size.
 
    NOTHING IN JS KNOWS WHERE THIS SITS — app.js writes `data-tab` and the
    transform below is what moves it, the same division of labour as the mood
    card's thumb. Which is also why it slides: it is one element being moved
    rather than three being repainted. The cell and the circle are both
-   exactly --tap, so translateX(100%) lands on the next one.
+   exactly --bar-tap, so translateX(100%) lands on the next one.
 
-   The pane carries no padding, so each tab is the full --tap in both
+   The pane carries no padding, so each tab is the full --bar-tap in both
    directions and the circle is not inset from it. */
 .bar-nav-sel {
   position: absolute;
   top: 0;
   left: 0;
-  width: var(--tap);
-  height: var(--tap);
+  width: var(--bar-tap);
+  height: var(--bar-tap);
   border-radius: var(--r-full);
   background: rgb(var(--ink-rgb) / 0.10);
   transition: transform var(--d-mid) var(--ease);
@@ -542,15 +541,15 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: var(--tap);
-  height: var(--tap);
+  width: var(--bar-tap);
+  height: var(--bar-tap);
   border-radius: var(--r-full);
   color: var(--ink-3);
   transition: color var(--d-mid) var(--ease), transform var(--d-fast) var(--ease);
 }
 .bar-tab svg {
-  width: var(--icon);
-  height: var(--icon);
+  width: var(--icon-bar);
+  height: var(--icon-bar);
   stroke: currentColor;
   stroke-width: var(--stroke);
   stroke-linecap: round;
@@ -575,7 +574,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: var(--tap);
+  height: var(--bar-tap);
   padding: 0 var(--s-5);
   border-radius: var(--r-xl);
   font-size: var(--t-subhead);
@@ -619,8 +618,8 @@
 .bar-side {
   display: grid;
   place-items: center;
-  width: var(--tap);
-  height: var(--tap);
+  width: var(--bar-tap);
+  height: var(--bar-tap);
   border-radius: var(--r-full);
   color: var(--ink);
   transition: transform var(--d-fast) var(--ease), opacity var(--d-mid) var(--ease);
@@ -634,8 +633,8 @@
   backdrop-filter: none;
 }
 .bar-side svg {
-  width: var(--icon);
-  height: var(--icon);
+  width: var(--icon-bar);
+  height: var(--icon-bar);
   stroke: currentColor;
   stroke-width: var(--stroke);
   stroke-linecap: round;

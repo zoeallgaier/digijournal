@@ -120,12 +120,18 @@ async function run() {
      'and says so with aria-current, not colour alone');
   /* The mark on the live tab is a CIRCLE, not a lozenge — the pane is only
      as wide as its three targets, so the selection is square in both
-     directions and rounds to a circle. A width that drifts off --tap is how
-     it turns back into an oval. */
+     directions and rounds to a circle. A width that drifts off --bar-tap is
+     how it turns back into an oval.
+
+     THE BAR RUNS BIGGER THAN THE MINIMUM: --bar-tap is 52 against --tap's
+     44, because this bar is the whole of the navigation and sits where the
+     thumb already is. It may rise; it must never fall below 44. */
+  const BAR_TAP = 52;
   const selBox = $('.bar-nav-sel').getBoundingClientRect();
-  ok(Math.abs(selBox.width - selBox.height) <= 1 && Math.round(selBox.width) === 44,
-     'the selection is a 44pt circle, not an oval',
+  ok(Math.abs(selBox.width - selBox.height) <= 1 && Math.round(selBox.width) === BAR_TAP,
+     'the selection is a circle the size of a bar control, not an oval',
      `${Math.round(selBox.width)}x${Math.round(selBox.height)}`);
+  ok(BAR_TAP >= 44, 'and a bar control is never under the HIG minimum');
   /* And the live tab differs in ink as well as in that circle — two channels,
      never one. */
   ok(cs($$('.bar-tab')[0]).color !== cs($$('.bar-tab')[1]).color,
@@ -133,7 +139,7 @@ async function run() {
 
   /* Narrower than the width it used to stretch to: the pane hugs its three
      targets and the quill floats at the far end. */
-  ok(Math.round($('.bar-nav').getBoundingClientRect().width) === 132,
+  ok(Math.round($('.bar-nav').getBoundingClientRect().width) === BAR_TAP * 3,
      'the pane is exactly its three tabs wide, and no wider',
      `${Math.round($('.bar-nav').getBoundingClientRect().width)}`);
   ok($('.bar-side').getAttribute('aria-label') === 'Write a new entry',
