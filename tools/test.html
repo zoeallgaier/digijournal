@@ -118,6 +118,24 @@ async function run() {
      $('.bar-nav').dataset.tab);
   ok($$('.bar-tab')[0].getAttribute('aria-current') === 'page',
      'and says so with aria-current, not colour alone');
+  /* The mark on the live tab is a CIRCLE, not a lozenge — the pane is only
+     as wide as its three targets, so the selection is square in both
+     directions and rounds to a circle. A width that drifts off --tap is how
+     it turns back into an oval. */
+  const selBox = $('.bar-nav-sel').getBoundingClientRect();
+  ok(Math.abs(selBox.width - selBox.height) <= 1 && Math.round(selBox.width) === 44,
+     'the selection is a 44pt circle, not an oval',
+     `${Math.round(selBox.width)}x${Math.round(selBox.height)}`);
+  /* And the live tab differs in ink as well as in that circle — two channels,
+     never one. */
+  ok(cs($$('.bar-tab')[0]).color !== cs($$('.bar-tab')[1]).color,
+     'the live tab is full-strength ink against the other two');
+
+  /* Narrower than the width it used to stretch to: the pane hugs its three
+     targets and the quill floats at the far end. */
+  ok(Math.round($('.bar-nav').getBoundingClientRect().width) === 132,
+     'the pane is exactly its three tabs wide, and no wider',
+     `${Math.round($('.bar-nav').getBoundingClientRect().width)}`);
   ok($('.bar-side').getAttribute('aria-label') === 'Write a new entry',
      'the capsule is the quill', $('.bar-side').getAttribute('aria-label'));
   ok($('.bar-side').dataset.tone === 'accent', 'the quill is the one filled thing in the bar');

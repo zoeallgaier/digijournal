@@ -278,10 +278,20 @@ Rebuilt 13 Aug 2026. **`view.bar` is either the string `'nav'` or an object,
 and there is deliberately no third shape.**
 
 `'nav'` is the three peer screens — **Journal, Calendar, Settings** — as a
-glass pill of three tabs with the **quill** beside it. An object is a screen
+glass pane of three tabs with the **quill** beside it. An object is a screen
 with a primary action in front of it, and **only the entry is one**: it is the
 only screen you go *into* rather than across to, and the only one with a back
 button.
+
+**The pane is exactly its three targets wide — 132pt — and no wider**, and the
+mark on the live tab is a **circle**, not a lozenge. Both were Zoe's, later
+the same day. The pane used to stretch the full measure with the quill on the
+end, which made each cell 100pt and its selection an oval; hugging the tabs
+makes the cell `--tap` square, so the selection rounds to the same circle the
+quill and the back button already wear. **One shape in the chrome, at one
+size** — which is also why `.bar-inner` is `space-between`: the two float
+apart rather than the nav stretching to meet the quill. In the act state the
+pill takes the width back with `flex: 1`, so Publish is still a full field.
 
 What that replaced, and why, because each of these will look like something
 to "tidy up" later:
@@ -657,8 +667,9 @@ that an entry swaps the tabs for Publish and Delete, that reading keeps the
 bar and offers a quiet Edit, that stepping between tabs stacks no history,
 that the entry's back button is the only one left in the app, that the list's
 toolbar is empty, that Sign in is a visible submit inside its own form and the
-bar stays navigation so Settings can never be a trap, and that every tab is a
-44pt target. **317 checks.**
+bar stays navigation so Settings can never be a trap, that the selection is
+square in both directions rather than an oval, that the pane is its three tabs
+wide and no wider, and that every tab is a 44pt target. **320 checks.**
 
 **One check is deliberately not awaited**, and it is the keyboard's. iOS
 raises the on-screen keyboard only for a `focus()` that happens inside the tap

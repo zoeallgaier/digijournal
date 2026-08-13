@@ -470,9 +470,13 @@
   pointer-events: none;
 }
 
+/* Space-between, so the two islands sit at the ends rather than the nav
+   stretching to meet the quill. In the act state the pill is flex: 1 and
+   takes the width back, which is what keeps Publish a full-width field. */
 .bar-inner {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--s-2);
   width: 100%;
   max-width: var(--measure);
@@ -480,36 +484,44 @@
 }
 
 /* ---- navigate ------------------------------------------------------------
-   One glass pane holding three 44pt targets. The pane is the surface; the
-   buttons inside it carry no glass of their own, for the same reason the
-   toolbar's capsules drop theirs once the toolbar itself turns to glass —
-   glass on glass reads as a smear rather than two panes. */
+   One glass pane holding three 44pt targets, and NO WIDER THAN THEY ARE. It
+   used to stretch the full measure with the quill on the end; it hugs its
+   three dots now and the two float apart, which is what `space-between` on
+   .bar-inner is doing. The pane is the surface; the buttons inside it carry
+   no glass of their own, for the same reason the toolbar's capsules drop
+   theirs once the toolbar itself turns to glass — glass on glass reads as a
+   smear rather than two panes. */
 .bar-nav {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  flex: 0 0 auto;
+  display: flex;
   height: var(--tap);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-full);
   animation: fade var(--d-mid) var(--ease) both;
 }
 .bar-nav[hidden] { display: none; }
 
-/* The selection. NOTHING IN JS KNOWS WHERE THIS SITS — app.js writes
-   `data-tab` and the transform below is what moves it, the same division of
-   labour as the mood card's thumb. Which is also why it slides: it is one
-   element being moved rather than three being repainted.
+/* THE SELECTION IS A CIRCLE, NOT AN OVAL — Zoe, 13 Aug 2026. It was a
+   rounded rectangle spanning a third of a full-width pane, which at 100pt
+   wide read as a lozenge; the pane is only as wide as its three targets now,
+   so a --tap circle fills a cell exactly and the mark is the same round
+   capsule the quill and the toolbar's back button wear. One shape in the
+   chrome, at one size.
 
-   The pane carries no padding of its own, so each tab is the full --tap in
-   both directions — the selection is inset instead, which is what keeps a
-   44pt target under a 36pt-tall pill. */
+   NOTHING IN JS KNOWS WHERE THIS SITS — app.js writes `data-tab` and the
+   transform below is what moves it, the same division of labour as the mood
+   card's thumb. Which is also why it slides: it is one element being moved
+   rather than three being repainted. The cell and the circle are both
+   exactly --tap, so translateX(100%) lands on the next one.
+
+   The pane carries no padding, so each tab is the full --tap in both
+   directions and the circle is not inset from it. */
 .bar-nav-sel {
   position: absolute;
-  top: var(--s-1);
-  bottom: var(--s-1);
+  top: 0;
   left: 0;
-  width: calc(100% / 3);
-  border-radius: var(--r-xl);
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--r-full);
   background: rgb(var(--ink-rgb) / 0.10);
   transition: transform var(--d-mid) var(--ease);
 }
@@ -525,9 +537,9 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-width: var(--tap);
-  height: 100%;
-  border-radius: var(--r-xl);
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--r-full);
   color: var(--ink-3);
   transition: color var(--d-mid) var(--ease), transform var(--d-fast) var(--ease);
 }
@@ -539,10 +551,10 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-/* The selected tab is TWO channels, not one: the pill behind it and full-
-   strength ink in it. The pill alone would be a colour difference, and the
-   ink alone would be a colour difference — together they are a shape and a
-   weight. aria-current is the third, for anyone not looking. */
+/* The selected tab is TWO channels, not one: the circle behind it and full-
+   strength ink in it. Either alone would be a colour difference; together
+   they are a shape and a weight. aria-current is the third, for anyone not
+   looking. */
 .bar-tab[aria-current] { color: var(--ink); }
 .bar-tab[aria-current] svg { stroke-width: var(--stroke-bold); }
 .bar-tab[data-tone='danger'] { color: var(--danger); }
