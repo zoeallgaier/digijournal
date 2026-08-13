@@ -61,24 +61,31 @@ export function current() {
    --paper is the page's own colour, and asking the browser for it is what
    keeps this file from holding a second copy of the palette.
 
-   Whether iOS re-reads a theme-color meta's CONTENT while a homescreen app
-   is running is not something Apple documents — and in practice it mostly
-   doesn't: switching palette or flipping light/dark left the bar wearing
-   the old colour until the app was force-quit and relaunched. What iOS does
-   reliably notice is a new meta ELEMENT landing in the document, so every
-   repaint removes the old one and inserts a fresh one rather than editing
-   `.content` in place. Still not documented behaviour, just the version of
-   it that has actually been observed to repaint live. */
+   IOS READS THIS ONCE, AT LAUNCH, AND HOLDS IT FOR THE SESSION. Changing
+   .content does nothing to a running homescreen app. Neither does removing
+   the meta and inserting a fresh element — that was tried on 12 Aug 2026,
+   on the theory that iOS might notice a new node even if it ignored an
+   attribute, and it was reverted the same day. iOS is not watching the
+   document at all, so there is no DOM shape that beats it: the bar catches
+   up on the next launch and not before.
+
+   DO NOT SPEND ANOTHER ROUND HUNTING FOR THE MUTATION THAT WORKS. Everything
+   BELOW the status bar repaints the instant the palette changes, because
+   that strip is the only part of the screen that is not ours. */
+let meta = null;
+
 function paintStatusBar() {
   const paper = getComputedStyle(document.documentElement)
     .getPropertyValue('--paper').trim();
   if (!paper) return;
 
-  for (const old of document.querySelectorAll('meta[name="theme-color"]')) old.remove();
-  const meta = document.createElement('meta');
-  meta.name = 'theme-color';
+  if (!meta) {
+    for (const old of document.querySelectorAll('meta[name="theme-color"]')) old.remove();
+    meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    document.head.append(meta);
+  }
   meta.content = paper;
-  document.head.append(meta);
 }
 
 /* --------------------------------------------------------------- applying */
