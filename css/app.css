@@ -470,13 +470,18 @@
   pointer-events: none;
 }
 
-/* Space-between, so the two islands sit at the ends rather than the nav
-   stretching to meet the quill. In the act state the pill is flex: 1 and
-   takes the width back, which is what keeps Publish a full-width field. */
+/* Centred, so the pane and the quill read as one object in the middle of the
+   bar rather than two things pushed to opposite edges. They sat at the ends
+   for one deploy and Zoe rejected it: the gap between them was wider than
+   either, so it was the void that carried the composition.
+
+   `center` is safe in the act state as well — the pill there is `flex: 1`,
+   which claims the free space before justification has anything left to
+   distribute, so Publish is still a full-width field. */
 .bar-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: var(--s-2);
   width: 100%;
   max-width: var(--measure);

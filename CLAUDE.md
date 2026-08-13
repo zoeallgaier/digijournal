@@ -289,9 +289,14 @@ the same day. The pane used to stretch the full measure with the quill on the
 end, which made each cell 100pt and its selection an oval; hugging the tabs
 makes the cell `--tap` square, so the selection rounds to the same circle the
 quill and the back button already wear. **One shape in the chrome, at one
-size** — which is also why `.bar-inner` is `space-between`: the two float
-apart rather than the nav stretching to meet the quill. In the act state the
-pill takes the width back with `flex: 1`, so Publish is still a full field.
+size.**
+
+**The pane and the quill are centred together**, not pushed to opposite
+edges. They sat at the ends for one deploy — `space-between` — and Zoe
+rejected it: the gap between them was wider than either, so the void was what
+carried the composition. `.bar-inner` is `justify-content: center`, which is
+safe in the act state because the pill there is `flex: 1` and claims the free
+space before justification sees any. Publish is still a full field.
 
 What that replaced, and why, because each of these will look like something
 to "tidy up" later:
@@ -669,7 +674,8 @@ that the entry's back button is the only one left in the app, that the list's
 toolbar is empty, that Sign in is a visible submit inside its own form and the
 bar stays navigation so Settings can never be a trap, that the selection is
 square in both directions rather than an oval, that the pane is its three tabs
-wide and no wider, and that every tab is a 44pt target. **320 checks.**
+wide and no wider, that centring the nav does not shrink-wrap the action pill
+with it, and that every tab is a 44pt target. **321 checks.**
 
 **One check is deliberately not awaited**, and it is the keyboard's. iOS
 raises the on-screen keyboard only for a `focus()` that happens inside the tap

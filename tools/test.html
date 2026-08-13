@@ -159,6 +159,15 @@ async function run() {
   ok($('.compose').dataset.mode === 'publish', 'bar became the publish button');
   ok($('.compose').textContent === 'Publish', 'publish button labelled Publish');
   ok($('.compose').disabled === true, 'publish disabled while the entry is empty');
+  /* .bar-inner centres its children so the nav pane and the quill sit
+     together in the middle. That must not shrink-wrap the action state too:
+     the pill is flex: 1 and claims the free space before justification sees
+     any, so Publish still spans everything the capsule beside it leaves. */
+  const barInner = $('.bar-inner').getBoundingClientRect();
+  const pillBox  = $('.compose').getBoundingClientRect();
+  ok(pillBox.width >= barInner.width - 60,
+     'the action pill still fills the bar, centring notwithstanding',
+     `${Math.round(pillBox.width)} of ${Math.round(barInner.width)}`);
   ok($('.entry-title-field').readOnly === false, 'new entry opens in edit mode');
   ok($('.bar-side').getAttribute('aria-label') === 'Delete entry',
      'while writing, the bar capsule is Delete', $('.bar-side').getAttribute('aria-label'));
