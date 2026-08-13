@@ -2,9 +2,11 @@
    home.js — today's rating, then the list of entries.
 
    One column, newest edit first, rows divided by hairlines. Each row is a
-   title, two lines of the body, and the date it was last edited. A dot on the
-   title line carries how that ENTRY'S DAY was rated — the day's colour, not
+   title, two lines of the body, and the date it was last edited. A dot beside
+   that date carries how that ENTRY'S DAY was rated — the day's colour, not
    the entry's, which is why two entries written on one day wear the same one.
+   It sits with the date because that is the line about WHEN, which is what a
+   day's rating is about; on the title line it read as a mark on the writing.
 
    Above the list is the rating card, and it rates today. It is the one thing
    on this screen that is not about an entry, and the reason it is here rather
@@ -47,10 +49,10 @@ function row(entry, go, mood) {
   },
     el('div.entry-row-top',
       el('span.entry-title', { 'data-untitled': untitled ? 'true' : null }, displayTitle(entry)),
-      mood !== null && el('span.mood-dot', { 'data-mood': mood, 'aria-hidden': 'true' }),
     ),
     preview && el('p.entry-preview', preview),
     el('div.entry-meta',
+      mood !== null && el('span.mood-dot', { 'data-mood': mood, 'aria-hidden': 'true' }),
       el('span', shortDate(entry.updatedAt)),
       !entry.published && el('span.entry-flag', 'Draft'),
       /* The dot above is colour only — this is the same fact in words, for

@@ -340,14 +340,20 @@
   font-weight: var(--w-medium);
 }
 
-/* The mood dot on a row. 12px is below the 44px target but it is not a
-   control here — the whole row is the target. */
+/* The mood dot. Below the 44px target in both places it appears, and in
+   neither is it a control — on a row the whole row is the target, and in the
+   calendar's key it is a legend. */
 .mood-dot {
   flex: 0 0 auto;
   width: var(--dot);
   height: var(--dot);
   border-radius: var(--r-full);
   background: var(--mood-none);
+}
+/* On a row it leads the meta line, so it is sized to that line's type. */
+.entry-meta .mood-dot {
+  width: var(--dot-sm);
+  height: var(--dot-sm);
 }
 .mood-dot[data-mood='1'] { background: var(--mood-1); }
 .mood-dot[data-mood='2'] { background: var(--mood-2); }

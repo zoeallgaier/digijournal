@@ -182,7 +182,10 @@
      glyph the mouth is not already carrying.                              */
   --stroke-eye:      3;
   --stroke-eye-bold: 3.4;  /* on a filled swatch, which eats a hairline    */
-  --dot:     0.75rem;      /* the mood dot on a list row and in the key    */
+  --dot:     0.75rem;      /* the mood dot in the calendar's key           */
+  --dot-sm:  0.5rem;       /* the same dot on a list row, where it sits in
+                              the meta line and answers to footnote type
+                              rather than to the title                     */
   --dot-lg:  3rem;         /* the mood face. It needs no target drawn round
                               it: the button is this face stacked over its
                               word, which clears 44 in both directions.    */
@@ -370,40 +373,48 @@
   --glass-rgb:    251 254 255;
 }
 
+/* Blueberry sits on the navy side of the plastic rather than the violet side:
+   the hue is held near 225° in the paper, the ink and the accent alike, so the
+   page reads as a deep blue tinted white rather than a lilac one. */
 [data-palette='blueberry'] {
-  --paper:        #F0F4FE;
-  --paper-sunk:   #E5EAF8;
-  --card:         #FEFEFF;
-  --ink:          #161E35;   /* 15.0:1 */
-  --ink-2:        #586075;   /*  5.7:1 */
-  --ink-3:        #61687C;   /*  5.0:1 */
-  --ink-rgb:      22 30 53;
-  --accent:       #4B5FB4;
-  --accent-ink:   #FDFDFF;   /*  5.7:1 */
-  --accent-deep:  #4B5FB4;   /*  5.3:1 */
-  --glass-rgb:    253 253 255;
+  --paper:        #EFF3FD;
+  --paper-sunk:   #E3E9F7;
+  --card:         #FDFEFF;
+  --ink:          #131B33;   /* 15.3:1 */
+  --ink-2:        #595F73;   /*  5.7:1 */
+  --ink-3:        #5A6276;   /*  5.0:1 in a sunk field */
+  --ink-rgb:      19 27 51;
+  --accent:       #33499E;
+  --accent-ink:   #FDFDFF;   /*  8.0:1 */
+  --accent-deep:  #33499E;   /*  7.3:1 */
+  --glass-rgb:    253 254 255;
 }
 
+/* Grape is a lavender now, which is the one hue that cannot be one token: a
+   lavender pale enough to read as lavender is nowhere near a mark on paper.
+   So it joins Bondi and Tangerine below — the field is the lavender, and the
+   mark is the same hue taken down until it carries. */
 [data-palette='grape'] {
-  --paper:        #F7F2FC;
-  --paper-sunk:   #EEE7F5;
-  --card:         #FFFEFF;
-  --ink:          #261930;   /* 15.1:1 */
-  --ink-2:        #675C70;   /*  5.7:1 */
-  --ink-3:        #6F6477;   /*  5.1:1 */
-  --ink-rgb:      38 25 48;
-  --accent:       #7A4E9E;
-  --accent-ink:   #FEFDFF;   /*  6.1:1 */
-  --accent-deep:  #7A4E9E;   /*  5.6:1 */
-  --glass-rgb:    254 253 255;
+  --paper:        #F6F3FD;
+  --paper-sunk:   #ECE8F7;
+  --card:         #FEFEFF;
+  --ink:          #241C3A;   /* 14.7:1 */
+  --ink-2:        #635D75;   /*  5.7:1 */
+  --ink-3:        #665F79;   /*  5.0:1 in a sunk field */
+  --ink-rgb:      36 28 58;
+  --accent:       #8E7CD8;
+  --accent-ink:   #170B26;   /*  5.4:1 */
+  --accent-deep:  #5F4EA8;   /*  6.1:1 */
+  --glass-rgb:    254 254 255;
 }
 
-/* Tangerine, Lime and Bondi are the three that need --accent-deep to be a
+/* Tangerine, Grape and Bondi are the three that need --accent-deep to be a
    different colour from --accent. A tangerine bright enough to be a
    tangerine button is 2.3:1 on paper; as a link or a focus ring it would be
    invisible. So the field stays the plastic and the mark is the same hue
    taken down to 4.6:1 — the button is still a tangerine, and the ring is
-   still legible. */
+   still legible. Lime used to be the fourth and no longer is: a forest green
+   is dark enough to be both. */
 [data-palette='tangerine'] {
   --paper:        #FFF2E9;
   --paper-sunk:   #F9E7DB;
@@ -418,18 +429,22 @@
   --glass-rgb:    255 253 252;
 }
 
+/* Lime is a forest green now — the hue pulled off the yellow edge and taken
+   down until the plastic is a shade rather than a highlighter. That is what
+   lets it drop --accent-deep as a separate colour: a forest green is already
+   dark enough to be both the field and the mark. */
 [data-palette='lime'] {
-  --paper:        #F0F7EB;
-  --paper-sunk:   #E4EEDD;
-  --card:         #FDFFFC;
-  --ink:          #17220E;   /* 15.1:1 */
-  --ink-2:        #596452;   /*  5.7:1 */
-  --ink-3:        #626C5C;   /*  5.0:1 */
-  --ink-rgb:      23 34 14;
-  --accent:       #8FC423;
-  --accent-ink:   #080F00;   /*  9.4:1 */
-  --accent-deep:  #57790D;   /*  4.6:1 */
-  --glass-rgb:    251 255 249;
+  --paper:        #EDF4EC;
+  --paper-sunk:   #E1EBE0;
+  --card:         #FCFFFC;
+  --ink:          #0F2013;   /* 15.2:1 */
+  --ink-2:        #556257;   /*  5.7:1 */
+  --ink-3:        #576559;   /*  5.0:1 in a sunk field */
+  --ink-rgb:      15 32 19;
+  --accent:       #2E6E45;
+  --accent-ink:   #FCFFFD;   /*  6.1:1 */
+  --accent-deep:  #2E6E45;   /*  5.5:1 */
+  --glass-rgb:    252 255 252;
 }
 
 [data-palette='strawberry'] {
@@ -469,33 +484,43 @@
    the pale end — and the accent goes the other way, because a #4B5FB4 button
    that was right on white is a hole in a navy page.
 
-   THE SIX PLASTICS COMMIT TO THEIR COLOUR HERE. They are held at a lightness
-   where the page still reads as dark, but with enough chroma that it is a
-   colour rather than a grey with a rumour in it — a first pass sat them all
-   near black and every one of them came back as mud. `paper` is the
+   THE SEVEN PLASTICS COMMIT TO THEIR COLOUR HERE. They are held at a
+   lightness where the page still reads as dark, but with enough chroma that it
+   is a colour rather than a grey with a rumour in it — a first pass sat them
+   all near black and every one of them came back as mud. `paper` is the
    exception and is the near-black it is named for: a plain background is
    what it is FOR.
 
-   Body text lands at 13.5:1 on the coloured papers rather than the 15:1 it
-   gets in the light. That is the cost of a paper with colour in it, and 13.5
-   is still three times the 4.5 anything is asked for.
+   THE GROUNDS WERE TAKEN DOWN A STOP on 12 Aug 2026, at Zoe's ask: every
+   paper, well and card here is about half the luminance it was, with the hue
+   and the chroma held so none of them slid towards the mud the first pass
+   found. The saturation is what keeps a darker paper a colour — dropping
+   lightness alone is how a palette dies.
+
+   Body text used to land at 13.5:1 here against the 15:1 it gets in the
+   light, which was the cost of a paper with colour in it. The darker grounds
+   bought that back: all eight are at 15:1 now. --ink-2 and --ink-3 were
+   RE-SOLVED against the new papers rather than left where they were — held at
+   the 7.5:1 and 6.0:1 they were solved for, so the hierarchy between the
+   three grades is the same distance it always was instead of quietly
+   flattening as the ground fell away.
    ========================================================================= */
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper:        #151514;
-    --paper-sunk:   #090908;
-    --card:         #222221;
-    --ink:          #E9E9E8;   /* 15.0:1 */
-    --ink-2:        #ABABAA;   /*  8.0:1 */
-    --ink-3:        #919090;   /*  5.7:1 */
+    --paper:        #0D0D0C;
+    --paper-sunk:   #050504;
+    --card:         #1A1A19;
+    --ink:          #E9E9E8;   /* 16.0:1 */
+    --ink-2:        #A1A1A0;   /*  7.5:1 */
+    --ink-3:        #8C8C8A;   /*  6.1:1 in a sunk field */
     --ink-rgb:      233 233 232;
     --accent:       #E9E9E8;
     --accent-ink:   #0C0C0D;   /* 16.1:1 */
-    --accent-deep:  #E9E9E8;   /* 15.0:1 */
-    --glass-rgb:    34 34 33;
+    --accent-deep:  #E9E9E8;   /* 16.0:1 */
+    --glass-rgb:    26 26 25;
 
-    --danger:       #FF9A90;   /* ≥7.8:1 on all eight dark papers          */
+    --danger:       #FF9A90;   /* ≥8.8:1 on all eight dark papers          */
 
     --mood-1:       #9BA0E4;   /* ≥5.4:1 */
     --mood-2:       #5FB2E6;   /* ≥5.7:1 */
@@ -556,12 +581,12 @@
   }
 
   [data-palette='paper'] {
-    --paper:        #151514;
-    --paper-sunk:   #090908;
-    --card:         #222221;
-    --ink:          #E9E9E8;   /* 15.0:1 */
-    --ink-2:        #ABABAA;   /*  8.0:1 */
-    --ink-3:        #919090;   /*  5.7:1 */
+    --paper:        #0D0D0C;
+    --paper-sunk:   #050504;
+    --card:         #1A1A19;
+    --ink:          #E9E9E8;   /* 16.0:1 */
+    --ink-2:        #A1A1A0;   /*  7.5:1 */
+    --ink-3:        #8C8C8A;   /*  6.1:1 in a sunk field */
     --ink-rgb:      233 233 232;
     /* The neutral default inverts rather than tints: in the dark the
        accent IS the ink, so Publish is a white pill with black on it. */
