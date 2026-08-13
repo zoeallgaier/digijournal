@@ -85,6 +85,23 @@
     </p>
     <table id="out"></table>
     <div class="verdict" id="verdict"></div>
+
+    <!-- The keyboard half. The snapshot above cannot see it: a keyboard only
+         exists while a field is focused, so this part has to be driven by
+         hand and read live. The field is PRE-FILLED and the caret is sent to
+         the end on focus, because that is the case the app got wrong — an
+         empty field never makes iOS scroll to reveal anything. -->
+    <h1 style="margin-top:14px">Keyboard</h1>
+    <p class="lede">
+      Tap into the box. The numbers update live. <b>lift</b> is what the app
+      would set <code>--kb</code> to; <b>bar gap</b> is where a fixed
+      bottom bar actually ends up above the keyboard. They should agree, and
+      neither should be 0 while the keyboard is up.
+    </p>
+    <textarea id="kbfield" rows="2" style="width:100%;font:inherit;padding:6px"
+      >A pre-filled entry, because the caret going to the end of real text is what makes iOS scroll — and that is the case that broke.</textarea>
+    <table id="kbout"></table>
+    <div class="verdict" id="kbverdict">focus the box above</div>
   </main>
 
 <script>
@@ -103,6 +120,63 @@ const covered = vv ? Math.round(window.innerHeight - vv.height - vv.offsetTop) :
 
 /* Where a fixed, bottom:0 element actually lands — the composer's position. */
 const bottomRule = document.querySelector('.rule.bottom').getBoundingClientRect();
+
+/* ---- the keyboard readout, live -------------------------------------- */
+const KEYBOARD_MIN = 120;          /* the same figure app.js uses */
+const kbfield = document.getElementById('kbfield');
+const kbout = document.getElementById('kbout');
+const kbverdict = document.getElementById('kbverdict');
+let atRest = 0;
+
+function kbRow(k, v) {
+  return `<tr><td class="k">${k}</td><td class="v">${v}</td></tr>`;
+}
+
+function kbRead() {
+  const apart = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  const typing = document.activeElement === kbfield;
+
+  /* Exactly app.js's rule, including the guard that a keyboard-sized gap
+     with nothing focused is a keyboard closing rather than rest. */
+  if (!typing && apart < KEYBOARD_MIN) atRest = apart;
+  const lift = typing ? Math.round(apart - atRest) : 0;
+  const kb = typing && lift >= KEYBOARD_MIN ? lift : 0;
+
+  /* And where the bar really lands, which is the only number that matters. */
+  const rule = document.querySelector('.rule.bottom');
+  rule.style.bottom = kb + 'px';
+  const barBottom = rule.getBoundingClientRect().bottom;
+  const visualBottom = vv.offsetTop + vv.height;
+
+  kbout.innerHTML =
+    kbRow('focused', typing ? 'yes' : 'no') +
+    kbRow('window.innerHeight', Math.round(window.innerHeight)) +
+    kbRow('visualViewport.height', Math.round(vv.height)) +
+    kbRow('visualViewport.offsetTop', Math.round(vv.offsetTop)) +
+    kbRow('apart', Math.round(apart)) +
+    kbRow('atRest', Math.round(atRest)) +
+    kbRow('lift → --kb', kb) +
+    kbRow('bar gap above edge', Math.round(window.innerHeight - barBottom)) +
+    kbRow('bar vs visual bottom', Math.round(barBottom - visualBottom));
+
+  kbverdict.textContent =
+    !typing            ? 'no keyboard — tap into the box'
+  : kb === 0           ? 'BAR IS FLAT ON THE BOTTOM — it is behind the keyboard'
+  : Math.abs(barBottom - visualBottom) > 2
+                       ? `bar misses the keyboard by ${Math.round(barBottom - visualBottom)}pt`
+  : `OK — lifted ${kb}pt, sitting on the keyboard`;
+}
+
+if (vv) {
+  vv.addEventListener('resize', kbRead);
+  vv.addEventListener('scroll', kbRead);
+  kbfield.addEventListener('focus', () => {
+    kbfield.setSelectionRange(kbfield.value.length, kbfield.value.length);
+    kbRead();
+  });
+  kbfield.addEventListener('blur', () => setTimeout(kbRead, 0));
+  kbRead();
+}
 
 const unit = (el, v) => { el.style.height = v; const h = el.getBoundingClientRect().height; return Math.round(h); };
 const ruler = document.createElement('div');

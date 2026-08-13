@@ -711,6 +711,15 @@ skips past and lands on an older *document*, which reads exactly like a back
 button that does nothing. It is the harness, not the app — on the phone a
 tap carries activation and back steps once. Do not "fix" `back()` for it.
 
+**`tools/edges.html` has a keyboard half now**, and it is the only way to
+check this on the phone: the suite drives a shimmed `visualViewport` in a
+browser that has no keyboard at all, so it pins the *rule* and can never see
+the geometry. The instrument's field is pre-filled and sends the caret to the
+end on focus, because an empty field never makes iOS scroll to reveal
+anything — which is exactly why the bug hid on new entries. It prints
+`offsetTop` alongside the lift, and says in words whether the bar actually
+lands on the keyboard.
+
 **The suite cannot see an edge problem.** It runs in a browser that reports
 no safe-area inset, so it pins our own arithmetic and nothing else — every
 bottom check can pass while the phone still keeps a band. `tools/edges.html`
@@ -852,6 +861,17 @@ a replacement for it.
   (Whatever the value, a bare `0` is not one — `--bar-h` adds it inside a
   `calc()`, where a `<number>` is not a `<length>` and quietly invalidates
   every screen's padding shorthand. `0px` if it ever must be zero.)
+- **A keyboard-sized gap is never rest.** `--kb` is the difference between
+  the two viewports *now* and what they stand apart by at rest — and rest is
+  re-sampled whenever focus leaves, one task later. One task is nowhere near
+  the ~300ms an iOS keyboard takes to animate shut, so tapping Done used to
+  write a still-open keyboard down as the standing disagreement, and the next
+  keyboard measured 300 against a rest of 300 and lifted the bar by nothing.
+  **It only ever bit an entry that already existed** — a new draft is written
+  once and published and you leave the screen, so the second keyboard on an
+  unrebuilt screen is a thing only editing can reach. A sample at or above
+  `KEYBOARD_MIN` is now thrown away rather than believed. Fixed 13 Aug 2026;
+  the suite reproduces the whole Done-then-Edit-again sequence.
 - **`--kb` is a keyboard, not a measurement.** Both `.bar` and `.screen` sit
   on it, so any stray value lifts the composer off the bottom edge and leaves
   a band of bare `--paper` under it — which looks exactly like iOS padding

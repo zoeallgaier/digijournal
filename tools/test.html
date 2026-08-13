@@ -650,6 +650,41 @@ async function run() {
   await settle();
   ok(kb() === '0px', 'back to the edge', kb());
 
+  /* DONE, THEN EDIT AGAIN — the bug that put Done behind the keyboard.
+
+     An iOS keyboard takes about 300ms to animate shut, and focusout re-reads
+     rest one task later. So the reading taken when you tap Done is a viewport
+     still a keyboard short, and the old code wrote that down as the phone's
+     standing disagreement. The next keyboard then measured 300 against a rest
+     of 300 and lifted the bar by nothing.
+
+     It only ever bit an entry that already existed, because that is the only
+     one you can edit, finish, and edit AGAIN without the screen being rebuilt
+     in between. Everything below happens with the viewport still short, which
+     is exactly the window the real one animates through. */
+  fakeViewport(300);
+  $('.entry-body-field').focus();
+  await settle();
+  ok(kb() === '300px', 'the first keyboard lifts the bar', kb());
+
+  /* Done: focus leaves while the keyboard is still on screen. */
+  $('.entry-body-field').blur();
+  await settle();
+  await wait(20);
+  ok(kb() === '0px', 'Done drops the bar back', kb());
+
+  /* Edit again, before the keyboard has finished going anywhere. */
+  $('.entry-body-field').focus();
+  await settle();
+  ok(kb() === '300px',
+     'and the SECOND keyboard still lifts it — a closing keyboard is not rest',
+     kb());
+
+  $('.entry-body-field').blur();
+  delete vvp.height;
+  await settle();
+  ok(kb() === '0px', 'and it drops back afterwards all the same', kb());
+
   /* ------------------------------------------ 9. the sheet, and the toast */
   $('.compose').click();          /* Edit — it is in the bar now, not the toolbar */
   await wait(250);

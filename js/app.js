@@ -330,7 +330,23 @@ function refreshBar() {
    is re-read every time focus leaves — so it stays right across a rotation
    or a resize rather than being sampled once at boot and trusted forever.
    On top of that, a lift only counts if something focused could have raised
-   a keyboard, and if it clears what a keyboard is. */
+   a keyboard, and if it clears what a keyboard is.
+
+   A KEYBOARD-SIZED GAP IS NEVER REST, and forgetting that is what put Done
+   behind the keyboard. `focusout` re-samples rest one task later, and one
+   task is nowhere near the ~300ms an iOS keyboard takes to animate shut —
+   so tapping Done sampled a viewport that was still 300pt short and wrote
+   that down as the phone's standing disagreement. The next keyboard then
+   measured 300 against a rest of 300 and lifted the bar by nothing.
+
+   That is why this only ever showed up on an entry that already existed. A
+   new draft is written once and published, and you leave the screen; an
+   existing entry is the only one you can edit, finish, and edit AGAIN
+   without the screen ever being rebuilt — which is the second keyboard, on
+   the poisoned reading. Fixed 13 Aug 2026.
+
+   Rest is small by definition, so a sample that is keyboard-sized is thrown
+   away rather than believed. No timer, and nothing to tune. */
 
 const KEYBOARD_MIN = 120;   /* an iOS keyboard is ~300px. Nothing else is. */
 
@@ -353,7 +369,14 @@ function trackKeyboard() {
   const update = () => {
     const apart = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
 
-    if (!typing()) { atRest = apart; set(0); return; }
+    if (!typing()) {
+      /* Only believe a reading that could actually be rest. A keyboard-sized
+         gap with nothing focused is a keyboard on its way out, and writing
+         it down here is what makes the NEXT keyboard measure as nothing. */
+      if (apart < KEYBOARD_MIN) atRest = apart;
+      set(0);
+      return;
+    }
 
     const lift = Math.round(apart - atRest);
     set(lift >= KEYBOARD_MIN ? lift : 0);
