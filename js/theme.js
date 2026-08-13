@@ -9,7 +9,10 @@
 
    Seven of the eight are the iMac plastics — Bondi Blue in 1998, the five
    fruits in 1999, Graphite in 2000. The eighth is `paper`: the off-white and
-   off-black the app opens on, and the one that is not a colour.
+   off-black the app opens on, and the one that is not a colour. Two of the
+   fruits have since been re-hued and renamed for what they became: `grape` is
+   Lavender and `lime` is Forest. See the note on PALETTES for why only the
+   names moved.
 
    THE FIRST PAINT IS NOT OURS. This is a module, so it runs after the page
    has already been laid out — long enough for a Blueberry install to flash
@@ -22,16 +25,23 @@
 
 import * as store from './store.js';
 
-/** The name is the id; the colours are in tokens.css. Order is the order they
- *  are offered in: the paper first, then the plastics in the order Apple
- *  shipped them. */
+/** The id is what is stored and what tokens.css keys on; the name is only what
+ *  the picker says. Order is the order they are offered in: the paper first,
+ *  then the plastics in the order Apple shipped them.
+ *
+ *  TWO OF THE NAMES NO LONGER MATCH THEIR IDS, and that is deliberate. `grape`
+ *  is a lavender and `lime` is a forest green, so the picker calls them that —
+ *  but the ids stay as they were, because the id is what is written down under
+ *  `digijournal.palette`. Renaming one would make an unrecognised palette of a
+ *  phone that had chosen it, and the app would quietly open in Paper instead.
+ *  A name is free to change; an id is a phone's memory of a choice. */
 export const PALETTES = [
   { id: 'paper',      name: 'Paper' },
   { id: 'bondi',      name: 'Bondi Blue' },
   { id: 'blueberry',  name: 'Blueberry' },
-  { id: 'grape',      name: 'Grape' },
+  { id: 'grape',      name: 'Lavender' },
   { id: 'tangerine',  name: 'Tangerine' },
-  { id: 'lime',       name: 'Lime' },
+  { id: 'lime',       name: 'Forest' },
   { id: 'strawberry', name: 'Strawberry' },
   { id: 'graphite',   name: 'Graphite' },
 ];

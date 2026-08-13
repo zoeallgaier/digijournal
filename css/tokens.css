@@ -7,7 +7,10 @@
    `data-palette` on <html> and the block for that name wins; nothing else in
    the app knows a palette exists. The default is `paper` — off-white and
    off-black — and beside it are the seven iMac plastics: Bondi Blue,
-   Blueberry, Grape, Tangerine, Lime, Strawberry and Graphite.
+   Blueberry, Grape, Tangerine, Lime, Strawberry and Graphite. Two of those
+   ids are older than the colour they now key: `grape` is the lavender and
+   `lime` is the forest green, and the picker names them so. The ids stay
+   because a phone's saved choice is stored as one — see theme.js.
 
    Each palette declares eleven values and no more. Everything else — the
    hairlines, the glass, the shadows, the scrim, the selection wash — is

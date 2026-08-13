@@ -145,6 +145,14 @@ Eight of them: `paper` — off-white and off-black, the default — and the seve
 plastics the iMac came in, Bondi Blue (1998), Blueberry, Grape, Tangerine,
 Lime and Strawberry (1999), Graphite (2000).
 
+**Two of them wear a different name than their id.** `grape` is offered as
+**Lavender** and `lime` as **Forest**, which is what they were re-hued into on
+12 Aug 2026. The ids did not move and must not: the id is what is written down
+under `digijournal.palette`, so renaming one turns a phone's saved choice into
+an unrecognised palette and the app opens in Paper instead. A name is free to
+change; an id is a phone's memory of a choice. `tokens.css` and the suite both
+key on the ids.
+
 **A palette is a set of tokens swapped on `<html>`, and nothing else.**
 `js/theme.js` puts a `data-palette` on the root; `[data-palette='lime']` in
 `tokens.css` wins and the whole app repaints. No view holds a colour, so
