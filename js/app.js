@@ -367,7 +367,23 @@ function trackKeyboard() {
   const set = (px) => document.documentElement.style.setProperty('--kb', `${px}px`);
 
   const update = () => {
-    const apart = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    /* THE KEYBOARD'S HEIGHT, AND offsetTop IS NOT PART OF IT. This used to
+       subtract it, which is the formula every article gives — and it is what
+       put Done behind the keyboard on a long entry.
+
+       offsetTop is a SCROLL POSITION: how far iOS has panned the visible
+       area within the layout viewport. It grows when the caret would land
+       under the keyboard and iOS shoves the whole view up to reveal it,
+       which is exactly what editing an existing entry does and what a new
+       empty draft never does. Subtracting it made a 365pt keyboard measure
+       as nothing, --kb fell under KEYBOARD_MIN, and the bar dropped flat.
+
+       Measured on the phone with tools/edges.html, both ways round: with the
+       field at the top of the page (no pan) offsetTop is 0 and the bar lands
+       exactly on the keyboard; with the field below the fold it panned and
+       the lift collapsed to 0. The keyboard did not change size between
+       those two — only the scroll did. */
+    const apart = Math.max(0, window.innerHeight - vv.height);
 
     if (!typing()) {
       /* Only believe a reading that could actually be rest. A keyboard-sized

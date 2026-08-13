@@ -685,6 +685,35 @@ async function run() {
   await settle();
   ok(kb() === '0px', 'and it drops back afterwards all the same', kb());
 
+  /* A PANNED VIEW IS NOT A SMALLER KEYBOARD.
+
+     When the caret would land under the keyboard, iOS shoves the whole web
+     view up to reveal it and reports the shift as visualViewport.offsetTop.
+     That is a scroll position, not a dimension of the keyboard — but --kb
+     used to subtract it, so a 365pt keyboard measured as nothing, the lift
+     fell under KEYBOARD_MIN, and the bar dropped flat behind it.
+
+     It only happened on an entry with something already written in it: that
+     is the only case where the caret goes to the end of real text and iOS
+     has anything to reveal. Measured on the phone with tools/edges.html
+     before and after — see the note in app.js. */
+  const fakeOffset = (px) =>
+    Object.defineProperty(vvp, 'offsetTop', { configurable: true, value: px });
+
+  fakeViewport(300);
+  fakeOffset(250);
+  $('.entry-body-field').focus();
+  await settle();
+  ok(kb() === '300px',
+     'a keyboard on a panned view still measures its own full height',
+     kb());
+
+  delete vvp.offsetTop;
+  $('.entry-body-field').blur();
+  delete vvp.height;
+  await settle();
+  ok(kb() === '0px', 'and the pan leaves nothing behind when it goes', kb());
+
   /* ------------------------------------------ 9. the sheet, and the toast */
   $('.compose').click();          /* Edit — it is in the bar now, not the toolbar */
   await wait(250);

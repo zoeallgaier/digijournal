@@ -711,8 +711,14 @@ skips past and lands on an older *document*, which reads exactly like a back
 button that does nothing. It is the harness, not the app — on the phone a
 tap carries activation and back steps once. Do not "fix" `back()` for it.
 
-**`tools/edges.html` has a keyboard half now**, and it is the only way to
-check this on the phone: the suite drives a shimmed `visualViewport` in a
+**`tools/edges.html` has a keyboard half, and it is what found the offsetTop
+bug** — after two rounds of reasoning from screenshots got it wrong. Its
+first version reported a clean bill of health, because a field at the top of
+a short page is the case that always works: iOS only pans when the caret
+would land under the keyboard. **Put the probe where the bug is** — the
+field is below the fold, tall, and takes the caret to its end, and the
+numbers sit directly above it so that whatever iOS does to reveal the caret
+reveals them too. It is the only way to check any of this on the phone: the suite drives a shimmed `visualViewport` in a
 browser that has no keyboard at all, so it pins the *rule* and can never see
 the geometry. The instrument's field is pre-filled and sends the caret to the
 end on focus, because an empty field never makes iOS scroll to reveal
@@ -861,6 +867,18 @@ a replacement for it.
   (Whatever the value, a bare `0` is not one — `--bar-h` adds it inside a
   `calc()`, where a `<number>` is not a `<length>` and quietly invalidates
   every screen's padding shorthand. `0px` if it ever must be zero.)
+- **`visualViewport.offsetTop` is a scroll position, not part of the
+  keyboard, and must not be subtracted from it.** Every article gives the
+  formula `innerHeight - vv.height - vv.offsetTop`; it is wrong here and it
+  is what put Done behind the keyboard. offsetTop is how far iOS has panned
+  the visible area up within the layout viewport, which it does when the
+  caret would otherwise land under the keyboard. Subtracting it made a 365pt
+  keyboard measure as nothing, `--kb` fell under `KEYBOARD_MIN`, and the bar
+  dropped flat. **It only ever bit an entry with something already written
+  in it** — that is the only case where the caret goes to the end of real
+  text and iOS has anything to reveal. `--kb` is `innerHeight - vv.height`
+  and nothing else. Measured on the phone, both ways round, with
+  `tools/edges.html`; fixed 13 Aug 2026.
 - **A keyboard-sized gap is never rest.** `--kb` is the difference between
   the two viewports *now* and what they stand apart by at rest — and rest is
   re-sampled whenever focus leaves, one task later. One task is nowhere near

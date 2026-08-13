@@ -150,7 +150,9 @@ function kbRow(k, v) {
 }
 
 function kbRead() {
-  const apart = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  /* Matches app.js: offsetTop is a scroll position, not part of the
+     keyboard. Subtracting it is what this instrument caught. */
+  const apart = Math.max(0, window.innerHeight - vv.height);
   const typing = document.activeElement === kbfield;
 
   /* Exactly app.js's rule, including the guard that a keyboard-sized gap
